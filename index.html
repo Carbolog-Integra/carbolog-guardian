@@ -251,13 +251,29 @@
         });
 
         function fazerLogin() {
-            const email = document.getElementById('emailInput').value.toLowerCase();
-            const dominiosPermitidos = ['@carbolog.com.br', '@grupounimetal.com.br', '@unimetalgroup.com'];
-            
-            if(dominiosPermitidos.some(d => email.endsWith(d))) {
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('app').style.display = 'block';
-                document.getElementById('userLogado').innerHTML = `<b>Usuário:</b> ${email}`;
+    const emailInput = document.getElementById('emailInput');
+    if (!emailInput) return;
+    
+    const email = emailInput.value.toLowerCase();
+    const dominiosPermitidos = ['@carbolog.com.br', '@grupounimetal.com.br', '@unimetalgroup.com'];
+    
+    if (dominiosPermitidos.some(d => email.endsWith(d))) {
+        const loginScreen = document.getElementById('login-screen');
+        const app = document.getElementById('app');
+        const userLogado = document.getElementById('userLogado');
+        
+        if (loginScreen) loginScreen.style.display = 'none';
+        if (app) app.style.display = 'block';
+        if (userLogado) userLogado.innerHTML = `<b>Usuário:</b> ${email}`;
+        
+        setTimeout(() => {
+            if (typeof carregarDadosVeiculos === 'function') carregarDadosVeiculos();
+        }, 200);
+    } else {
+        const loginError = document.getElementById('loginError');
+        if (loginError) loginError.style.display = 'block';
+    }
+}
                 
                 // Força o redesenho do mapa e carrega os dados
                 setTimeout(() => {
