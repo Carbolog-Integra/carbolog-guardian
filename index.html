@@ -5,19 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Integração - Telemetria e Abastecimento</title>
 
-    <!-- Fontes e Ícones -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
     
-    <!-- Leaflet (Mapas) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
-    <!-- Chart.js e DataLabels -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     
-    <!-- SheetJS (Excel) e html2pdf (PDF) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
@@ -87,7 +83,6 @@
 </head>
 <body>
 
-    <!-- TELA DE LOGIN -->
     <div id="login-screen">
         <div class="login-box">
             <h2><i class="fas fa-shield-alt"></i> Acesso ao Sistema</h2>
@@ -105,7 +100,6 @@
         </div>
     </div>
 
-    <!-- APLICAÇÃO PRINCIPAL -->
     <div id="app" class="app-container">
         <div class="navbar">
             <div class="logo"><h3><i class="fas fa-satellite-dish"></i> Integrador de Frota</h3></div>
@@ -120,7 +114,6 @@
             </div>
         </div>
 
-        <!-- ABA 1: GRID OPERACIONAL -->
         <div id="operacional" class="tab-content active">
             <div class="card">
                 <div class="flex-row" style="justify-content: space-between;">
@@ -136,7 +129,7 @@
 
             <div class="card">
                 <div class="flex-row">
-                    <h3 style="color: var(--primary-blue);"><i class="fas fa-list"></i> Grid de Monitoramento SASCAR</h3>
+                    <h3 style="color: var(--primary-blue);"><i class="fas fa-list"></i> Grid de Monitoramento SASCAR (Supabase)</h3>
                     <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(true)">Marcar Todos</button>
                     <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(false)">Desmarcar Todos</button>
                 </div>
@@ -161,7 +154,6 @@
             </div>
         </div>
 
-        <!-- ABA 2: DASHBOARD -->
         <div id="dashboard" class="tab-content">
             <div class="card" id="exportAreaDash">
                 <div class="flex-row" style="justify-content: space-between;">
@@ -187,7 +179,6 @@
             </div>
         </div>
 
-        <!-- ABA 3: ABASTECIMENTOS -->
         <div id="abastecimentos" class="tab-content">
             <div class="card" id="exportAreaAbastecimento">
                 <div class="flex-row" style="justify-content: space-between;">
@@ -215,12 +206,11 @@
         </div>
     </div>
 
-    <!-- MODAL DE EFICIÊNCIA -->
     <div id="modalEficiencia" class="modal">
         <div class="modal-content">
             <div class="modal-header">
                 Analisar Eficiência da Viagem
-                <span class="close-modal" onclick="fecharModal()">&times;</span>
+                <span class="close-modal" onclick="fecharModal()">×</span>
             </div>
             <div class="flex-row">
                 <div style="width: 50%;">
@@ -244,38 +234,26 @@
         let markers = {};
         let countdown = 300;
 
-        // Tenta iniciar o mapa assim que o DOM carregar
         window.addEventListener('DOMContentLoaded', () => {
             map = L.map('map').setView([-23.5505, -46.6333], 5);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+            const mapaNormal = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
+            const mapaSatelite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
+            mapaNormal.addTo(map);
+            L.control.layers({"Normal (Ruas)": mapaNormal, "Satélite": mapaSatelite}).addTo(map);
         });
 
         function fazerLogin() {
-    const emailInput = document.getElementById('emailInput');
-    if (!emailInput) return;
-    
-    const email = emailInput.value.toLowerCase();
-    const dominiosPermitidos = ['@carbolog.com.br', '@grupounimetal.com.br', '@unimetalgroup.com'];
-    
-    if (dominiosPermitidos.some(d => email.endsWith(d))) {
-        const loginScreen = document.getElementById('login-screen');
-        const app = document.getElementById('app');
-        const userLogado = document.getElementById('userLogado');
-        
-        if (loginScreen) loginScreen.style.display = 'none';
-        if (app) app.style.display = 'block';
-        if (userLogado) userLogado.innerHTML = `<b>Usuário:</b> ${email}`;
-        
-        setTimeout(() => {
-            if (typeof carregarDadosVeiculos === 'function') carregarDadosVeiculos();
-        }, 200);
-    } else {
-        const loginError = document.getElementById('loginError');
-        if (loginError) loginError.style.display = 'block';
-    }
-}
+            const emailInput = document.getElementById('emailInput');
+            if (!emailInput) return;
+            
+            const email = emailInput.value.toLowerCase();
+            const dominiosPermitidos = ['@carbolog.com.br', '@grupounimetal.com.br', '@unimetalgroup.com'];
+            
+            if (dominiosPermitidos.some(d => email.endsWith(d))) {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('app').style.display = 'block';
+                document.getElementById('userLogado').innerHTML = `<b>Usuário:</b> ${email}`;
                 
-                // Força o redesenho do mapa e carrega os dados
                 setTimeout(() => {
                     if (map) map.invalidateSize();
                     carregarDadosVeiculos();
@@ -302,18 +280,18 @@
             let veiculosDados = [];
             
             try {
-                const response = await fetch('https://oyrqywoctnyottwvqrji.supabase.co/functions/v1/clever-api', ..., {
-    method: 'GET',
-    headers: {
-        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95cnF5d29jdG55b3R0d3ZxcmppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMjMyOTQsImV4cCI6MjEwMzc5OTI5NH0.VdqJLc_u1VXFrnOe59Bw7wLWV-GZLnx6_fjzBV_TU8w',
-        'Content-Type': 'application/json'
-    }
-});
+                const response = await fetch('https://oyrqywoctnyottwvqrji.supabase.co/functions/v1/sincronizar-frota', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer SUA_SUPABASE_ANON_KEY',
+                        'Content-Type': 'application/json'
+                    }
+                });
                 
-                if (!response.ok) throw new Error('Falha ao buscar dados reais');
+                if (!response.ok) throw new Error('Falha ao buscar dados da Edge Function');
                 veiculosDados = await response.json();
             } catch (e) {
-                console.warn("[SASCAR] Erro na API, exibindo fallback temporário:", e);
+                console.warn("[SASCAR] Usando fallback local por falha na API:", e);
                 veiculosDados = [
                     { placa: 'ABC-1234', lat: -20.997711, lon: -51.800974, ignicao: 1, vel: 59, data: '2023-10-09 10:08:42', cidade: 'Tres Lagoas', uf: 'MS', rua: 'Rod P/ Brasilandia' },
                     { placa: 'XYZ-9876', lat: -23.550520, lon: -46.633308, ignicao: 0, vel: 0, data: '2023-10-09 10:15:00', cidade: 'Sao Paulo', uf: 'SP', rua: 'Av. Paulista' },
@@ -331,9 +309,12 @@
 
             veiculosDados.forEach((v) => {
                 const tr = document.createElement('tr');
-                const linkGoogle = `https://www.google.com/maps/search/?api=1&query=${v.lat || v.latitude},${v.lon || v.longitude}`;
-                const linkWaze = `https://waze.com/ul?ll=${v.lat || v.latitude},${v.lon || v.longitude}&navigate=yes`;
+                const lat = v.lat || v.latitude;
+                const lon = v.lon || v.longitude;
+                const linkGoogle = `https://www.google.com/maps/search/?api=1&query=$${lat},${lon}`;
+                const linkWaze = `https://waze.com/ul?ll=${lat},${lon}&navigate=yes`;
                 const ignicaoBool = v.ignicao === 1 || v.ignicao === true;
+                const velFinal = v.vel || v.velocidade || 0;
                 
                 tr.innerHTML = `
                     <td><input type="checkbox" class="chk-veiculo" value="${v.placa}" checked onchange="toggleMarker('${v.placa}')"></td>
@@ -343,7 +324,7 @@
                     <td>${v.cidade || '-'}</td>
                     <td>${v.uf || '-'}</td>
                     <td>${v.rua || '-'}</td>
-                    <td><b>${v.vel || v.velocidade || 0} km/h</b></td>
+                    <td><b>${velFinal} km/h</b></td>
                     <td class="table-actions">
                         <a href="${linkGoogle}" target="_blank" title="Google Maps"><i class="fas fa-map-marker-alt"></i></a>
                         <a href="${linkWaze}" target="_blank" title="Waze"><i class="fab fa-waze"></i></a>
@@ -351,12 +332,10 @@
                 `;
                 tbody.appendChild(tr);
 
-                const lat = v.lat || v.latitude;
-                const lon = v.lon || v.longitude;
                 if (lat && lon) {
                     if (markers[v.placa]) map.removeLayer(markers[v.placa]);
                     markers[v.placa] = L.marker([lat, lon], {icon: iconeCaminhao})
-                        .bindPopup(`<b>${v.placa}</b><br>${v.cidade || ''}-${v.uf || ''}<br>Vel: ${v.vel || v.velocidade || 0} km/h`)
+                        .bindPopup(`<b>${v.placa}</b><br>${v.cidade || ''}-${v.uf || ''}<br>Vel: ${velFinal} km/h`)
                         .addTo(map);
                 }
             });
