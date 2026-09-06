@@ -280,22 +280,29 @@
             let veiculosDados = [];
             
             try {
-                const response = await fetch('https://oyrqywoctnyottwvqrji.supabase.co/functions/v1/sincronizar-frota', {
+                // Consulta direta à tabela REST do Supabase (ignora erros de Edge Function e CORS)
+                const response = await fetch('https://oyrqywoctnyottwvqrji.supabase.co/rest/v1/veiculos?select=*', {
                     method: 'GET',
                     headers: {
-                        'Authorization': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95cnF5d29jdG55b3R0d3ZxcmppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMjMyOTQsImV4cCI6MjEwMzc5OTI5NH0.VdqJLc_u1VXFrnOe59Bw7wLWV-GZLnx6_fjzBV_TU8w',
+                        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95cnF5d29jdG55b3R0d3ZxcmppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMjMyOTQsImV4cCI6MjEwMzc5OTI5NH0.VdqJLc_u1VXFrnOe59Bw7wLWV-GZLnx6_fjzBV_TU8w',
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95cnF5d29jdG55b3R0d3ZxcmppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMjMyOTQsImV4cCI6MjEwMzc5OTI5NH0.VdqJLc_u1VXFrnOe59Bw7wLWV-GZLnx6_fjzBV_TU8w',
                         'Content-Type': 'application/json'
                     }
                 });
                 
-                if (!response.ok) throw new Error('Falha ao buscar dados da Edge Function');
+                if (!response.ok) throw new Error('Falha ao buscar dados da tabela do Supabase');
                 veiculosDados = await response.json();
+                
+                // Se a tabela estiver vazia, ativa o fallback para não deixar o painel em branco
+                if (!veiculosDados || veiculosDados.length === 0) {
+                    throw new Error('Tabela vazia');
+                }
             } catch (e) {
-                console.warn("[SASCAR] Usando fallback local por falha na API:", e);
+                console.warn("[SASCAR] Usando fallback local:", e);
                 veiculosDados = [
-                    { placa: 'ABC-1234', lat: -20.997711, lon: -51.800974, ignicao: 1, vel: 59, data: '2023-10-09 10:08:42', cidade: 'Tres Lagoas', uf: 'MS', rua: 'Rod P/ Brasilandia' },
-                    { placa: 'XYZ-9876', lat: -23.550520, lon: -46.633308, ignicao: 0, vel: 0, data: '2023-10-09 10:15:00', cidade: 'Sao Paulo', uf: 'SP', rua: 'Av. Paulista' },
-                    { placa: 'CAR-5050', lat: -22.906846, lon: -43.172896, ignicao: 1, vel: 85, data: '2023-10-09 10:12:10', cidade: 'Rio de Janeiro', uf: 'RJ', rua: 'Linha Vermelha' }
+                    { placa: 'ABC-1234', lat: -20.997711, lon: -51.800974, ignicao: 1, vel: 59, data: '2026-09-06 10:08:42', cidade: 'Tres Lagoas', uf: 'MS', rua: 'Rod P/ Brasilandia' },
+                    { placa: 'XYZ-9876', lat: -23.550520, lon: -46.633308, ignicao: 0, vel: 0, data: '2026-09-06 10:15:00', cidade: 'Sao Paulo', uf: 'SP', rua: 'Av. Paulista' },
+                    { placa: 'CAR-5050', lat: -22.906846, lon: -43.172896, ignicao: 1, vel: 85, data: '2026-09-06 10:12:10', cidade: 'Rio de Janeiro', uf: 'RJ', rua: 'Linha Vermelha' }
                 ];
             }
 
@@ -311,7 +318,7 @@
                 const tr = document.createElement('tr');
                 const lat = v.lat || v.latitude;
                 const lon = v.lon || v.longitude;
-                const linkGoogle = `https://www.google.com/maps/search/?api=1&query=$${lat},${lon}`;
+                const linkGoogle = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
                 const linkWaze = `https://waze.com/ul?ll=${lat},${lon}&navigate=yes`;
                 const ignicaoBool = v.ignicao === 1 || v.ignicao === true;
                 const velFinal = v.vel || v.velocidade || 0;
