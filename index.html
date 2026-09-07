@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guardian Carbolog - Gestão de Riscos</title>
+    <title>Sistema de Integração - Telemetria e Abastecimento</title>
 
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
@@ -103,7 +103,6 @@
         .bg-danger { background-color: var(--danger); }
         .bg-warning { background-color: var(--warning); }
         
-        /* Ocultar box padrão do Leaflet Routing Machine */
         .leaflet-routing-container { display: none !important; }
     </style>
 </head>
@@ -148,37 +147,17 @@
         <div id="operacional" class="tab-content active">
             <div class="card" style="padding-bottom: 0;">
                 <div class="flex-row" style="justify-content: space-between;">
-                    <h3 style="color: var(--accent-blue);"><i class="fas fa-map"></i> Monitor de Frota</h3>
+                    <h3 style="color: var(--accent-blue);"><i class="fas fa-map"></i> Robô Monitor de Frota (SASCAR)</h3>
                     <div>
                         <span class="info-tag">Auto-Refresh Robô: <span id="timerRefresh">300</span>s</span>
-                        <button class="btn" onclick="carregarDadosVeiculos()"><i class="fas fa-sync"></i> Refresh Manual</button>
+                        <button class="btn" onclick="carregarDadosVeiculos()"><i class="fas fa-sync"></i> Varredura Agora</button>
                         <button class="btn" style="background:#00838F;" onclick="toggleCamadaTransitoIAM()"><i class="fas fa-traffic-light"></i> Tráfego</button>
                         <button class="btn" onclick="abrirModalEficiencia()"><i class="fas fa-route"></i> Criar Nova Rota</button>
                     </div>
                 </div>
-                
-                <!-- PAINEL FIXO DE ROTA (Seguro e fora do mapa) -->
-                <div id="route-panel" style="display: none; background: rgba(0, 131, 143, 0.1); padding: 15px; border: 2px solid #00838F; border-radius: 8px; margin-top: 15px; margin-bottom: 15px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div style="flex-grow: 1;">
-                            <h4 style="margin-top:0; margin-bottom: 10px; color: #00838F;">
-                                <i class="fas fa-route"></i> Edição de Rota Interativa
-                            </h4>
-                            <div id="route-stats"></div>
-                        </div>
-                        <div style="display: flex; flex-direction: column; gap: 10px; min-width: 180px; margin-left: 20px;">
-                            <button id="btnSalvarRota" class="btn" style="background: var(--success); display: none; width: 100%;" onclick="salvarRotaAtual()">
-                                <i class="fas fa-save"></i> Salvar Rota Editada
-                            </button>
-                            <button class="btn" style="background: var(--danger); width: 100%;" onclick="limparRota()">
-                                <i class="fas fa-times"></i> Cancelar / Fechar
-                            </button>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- MAPA -->
-                <div id="map" style="margin-bottom: 20px;"></div>
+                <div id="map" style="margin-top: 15px; margin-bottom: 20px;"></div>
             </div>
 
             <div class="card">
@@ -270,9 +249,7 @@
                             <th>Ações</th>
                         </tr>
                     </thead>
-                    <tbody id="tbodyRotasSalvas">
-                        <!-- Preenchido dinamicamente -->
-                    </tbody>
+                    <tbody id="tbodyRotasSalvas"></tbody>
                 </table>
             </div>
         </div>
@@ -307,13 +284,22 @@
             <button class="btn" style="width: 100%; margin-top: 15px; background: #00838F;" onclick="iniciarRotaInterativa()">
                 Gerar Rota no Mapa
             </button>
-            <p style="font-size: 12px; margin-top: 10px; color: var(--warning); text-align: center;">
-                <i class="fas fa-info-circle"></i> Após gerar, você poderá arrastar a linha no mapa para alterar o trajeto antes de salvar.
-            </p>
         </div>
     </div>
 
-    <!-- SCRIPT BLINDADO -->
+    <!-- MODAL FLUTUANTE DE SALVAMENTO DE ROTA (Aparece centralizado na tela ao calcular) -->
+    <div id="modalSalvarRota" class="modal">
+        <div class="modal-content" style="max-width: 500px; text-align: center;">
+            <div class="modal-header" style="text-align: left;">Salvar Trajeto Calculado <span class="close-modal" onclick="fecharModalSalvar()">×</span></div>
+            <div id="modal-route-stats" style="margin: 15px 0; text-align: left; font-size: 14px; line-height: 1.5;"></div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn" style="background: var(--success); flex: 1;" onclick="salvarRotaAtual()"><i class="fas fa-save"></i> Confirmar e Salvar</button>
+                <button class="btn" style="background: var(--danger); flex: 1;" onclick="fecharModalSalvar()"><i class="fas fa-times"></i> Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT -->
     <script>
         Chart.register(ChartDataLabels);
         let map = null;
@@ -326,18 +312,11 @@
         let autocompleteOrigem = null;
         let autocompleteDestino = null;
         
-        // Proteção extra ao carregar do LocalStorage
         let rotasSalvas = [];
         try {
             const rotasSalvasStr = localStorage.getItem('rotasSalvas');
-            if (rotasSalvasStr) {
-                rotasSalvas = JSON.parse(rotasSalvasStr);
-                if (!Array.isArray(rotasSalvas)) rotasSalvas = [];
-            }
-        } catch (e) {
-            console.error("Erro ao ler rotas do cache:", e);
-            rotasSalvas = [];
-        }
+            if (rotasSalvasStr) rotasSalvas = JSON.parse(rotasSalvasStr);
+        } catch (e) { rotasSalvas = []; }
         
         let dadosUltimaRotaCalculada = null;
         let eixosAtuaisRota = 6;
@@ -365,7 +344,6 @@
         function alternarTema() {
             document.body.classList.toggle('dark-mode');
             const icone = document.getElementById('iconeTema');
-            
             if (document.body.classList.contains('dark-mode')) {
                 icone.className = "fas fa-sun";
                 localStorage.setItem('tema', 'escuro');
@@ -388,7 +366,6 @@
             }, 200);
         }
 
-        // Função mudarAba blindada contra o erro do "event.target"
         function mudarAba(abaId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-menus button').forEach(el => el.classList.remove('active'));
@@ -424,10 +401,9 @@
                         'Content-Type': 'application/json'
                     }
                 });
-                
-                if (!response.ok) throw new Error('Falha ao conectar');
+                if (!response.ok) return;
                 const dadosBrutos = await response.json();
-                if (!dadosBrutos || dadosBrutos.length === 0) return;
+                if (!dadosBrutos) return;
 
                 const veiculosMap = new Map();
                 dadosBrutos.forEach(v => {
@@ -436,20 +412,6 @@
                 });
                 veiculosDados = Array.from(veiculosMap.values());
             } catch (e) { return; }
-
-            const alertasComboio = new Set();
-            for (let i = 0; i < veiculosDados.length; i++) {
-                for (let j = i + 1; j < veiculosDados.length; j++) {
-                    const v1 = veiculosDados[i], v2 = veiculosDados[j];
-                    if (v1.latitude && v1.longitude && v2.latitude && v2.longitude) {
-                        const distancia = calcularDistanciaMetros(v1.latitude, v1.longitude, v2.latitude, v2.longitude);
-                        if (distancia <= 300) {
-                            alertasComboio.add(v1.id_veiculo ? String(v1.id_veiculo) : 'SEM-PLACA');
-                            alertasComboio.add(v2.id_veiculo ? String(v2.id_veiculo) : 'SEM-PLACA');
-                        }
-                    }
-                }
-            }
 
             const tbody = document.getElementById('tbodyOperacional');
             tbody.innerHTML = '';
@@ -471,26 +433,18 @@
                 const ignicaoBool = v.ignicao === 1 || v.ignicao === true || String(v.ignicao) === '1';
                 const velFinal = Number(v.velocidade) || 0;
                 
-                let htmlAlertas = '';
-                if (velFinal > 80) htmlAlertas += `<span class="badge-alerta bg-danger">EXCESSO VEL.</span>`;
-                if (alertasComboio.has(placaRaw)) htmlAlertas += `<span class="badge-alerta bg-warning">POSSÍVEL COMBOIO</span>`;
-                if (htmlAlertas === '') htmlAlertas = `<span style="color: var(--success); font-size: 12px;">Normal</span>`;
-                
-                const dataFormatada = v.data_posicao ? new Date(v.data_posicao).toLocaleString('pt-BR') : '-';
-                
                 tr.innerHTML = `
                     <td><b>${index + 1}</b></td>
                     <td><input type="checkbox" class="chk-veiculo" value="${placaFormatada}" checked onchange="toggleMarker('${placaFormatada}')"></td>
                     <td><b>${placaFormatada}</b></td>
-                    <td>${dataFormatada}</td>
+                    <td>${v.data_posicao ? new Date(v.data_posicao).toLocaleString('pt-BR') : '-'}</td>
                     <td><span style="color: ${ignicaoBool ? 'var(--success)' : 'var(--danger)'}; font-weight:bold;">${ignicaoBool ? 'LIGADA' : 'DESLIGADA'}</span></td>
                     <td>${v.cidade || '-'}</td>
                     <td>${v.uf || '-'}</td>
                     <td>${v.rua || '-'}</td>
                     <td><b>${velFinal} km/h</b></td>
                     <td class="table-actions">
-                        ${htmlAlertas}
-                        <a href="${linkGoogle}" target="_blank" title="Google Maps" style="margin-left: 10px;"><i class="fas fa-map-marker-alt"></i></a>
+                        <a href="${linkGoogle}" target="_blank" title="Google Maps"><i class="fas fa-map-marker-alt"></i></a>
                         <a href="${linkWaze}" target="_blank" title="Waze"><i class="fab fa-waze"></i></a>
                     </td>
                 `;
@@ -531,12 +485,6 @@
                 const colunas = linha.querySelectorAll('td');
                 filtros.forEach((termo, index) => { if (termo && colunas[index+2].innerText.toUpperCase().indexOf(termo) === -1) visivel = false; });
                 linha.style.display = visivel ? '' : 'none';
-                
-                const chk = linha.querySelector('.chk-veiculo');
-                if (chk) {
-                    if (!visivel && markers[chk.value]) map.removeLayer(markers[chk.value]);
-                    else if (visivel && chk.checked && markers[chk.value]) markers[chk.value].addTo(map);
-                }
             });
         }
 
@@ -551,6 +499,7 @@
 
         function abrirModalEficiencia() { document.getElementById('modalEficiencia').style.display = 'flex'; }
         function fecharModal() { document.getElementById('modalEficiencia').style.display = 'none'; }
+        function fecharModalSalvar() { document.getElementById('modalSalvarRota').style.display = 'none'; }
         
         function alterarEixos(valor) {
             const inputEixos = document.getElementById('iamEixos');
@@ -596,11 +545,6 @@
         // --- SISTEMA DE ROTA INTERATIVA ---
         async function iniciarRotaInterativa() {
             eixosAtuaisRota = parseInt(document.getElementById('iamEixos').value) || 6;
-            
-            document.getElementById('route-panel').style.display = 'block';
-            document.getElementById('route-stats').innerHTML = `<p><i class="fas fa-spinner fa-spin"></i> Localizando coordenadas...</p>`;
-            document.getElementById('btnSalvarRota').style.display = 'none';
-
             fecharModal();
             limparRota();
 
@@ -608,11 +552,9 @@
             const destCoord = await obterCoordenadasGoogle('iamDestino', autocompleteDestino);
 
             if (!origCoord || !destCoord) {
-                document.getElementById('route-stats').innerHTML = `<p style="color:red;">Não foi possível localizar os pontos.</p>`;
+                alert("Não foi possível localizar os pontos de origem ou destino.");
                 return;
             }
-
-            document.getElementById('route-stats').innerHTML = `<p><i class="fas fa-spinner fa-spin"></i> Desenhando rota inteligente...</p>`;
 
             routingControl = L.Routing.control({
                 waypoints: [
@@ -621,7 +563,7 @@
                 ],
                 routeWhileDragging: true,
                 language: 'pt-BR',
-                show: false, // Oculta a caixa de texto feia do Leaflet
+                show: false,
                 lineOptions: { styles: [{color: '#00838F', opacity: 0.9, weight: 6}] }
             }).addTo(map);
 
@@ -650,58 +592,55 @@
                     coordenadas: coordenadasMalha
                 };
 
-                document.getElementById('route-stats').innerHTML = `
-                    <div style="display: flex; gap: 20px; font-size: 13px; flex-wrap: wrap;">
-                        <p style="margin: 3px 0;"><b>Distância:</b> ${distanciaKm} km</p>
-                        <p style="margin: 3px 0;"><b>Tempo Est.:</b> ~${duracaoHoras} h</p>
-                        <p style="margin: 3px 0;"><b>Pedágios:</b> R$ ${valorTotalPedagios} (${eixosAtuaisRota} eixos)</p>
-                        <p style="margin: 3px 0;"><b>Combustível:</b> R$ ${custoCombustivel}</p>
-                    </div>
-                    <p style="font-size: 11px; color: #FF8F00; margin: 8px 0 0 0;">
-                        <i class="fas fa-hand-pointer"></i> <b>Dica:</b> Arraste a linha azul no mapa para forçar desvios. O custo será recalculado.
-                    </p>
+                // Exibe o modal centralizado para confirmar e salvar
+                document.getElementById('modal-route-stats').innerHTML = `
+                    <p><b>Distância Total:</b> ${distanciaKm} km</p>
+                    <p><b>Tempo Estimado:</b> ~${duracaoHoras} horas</p>
+                    <p><b>Qtd. Eixos:</b> ${eixosAtuaisRota} eixos</p>
+                    <p><b>Pedágios (Est.):</b> R$ ${valorTotalPedagios}</p>
+                    <p><b>Combustível (Est.):</b> R$ ${custoCombustivel}</p>
+                    <hr style="border-top:1px solid var(--border-color); margin: 10px 0;">
+                    <p style="color: var(--warning); font-size: 13px;"><i class="fas fa-info-circle"></i> Você pode arrastar a linha azul no mapa para ajustar o trajeto antes de salvar.</p>
                 `;
-                document.getElementById('btnSalvarRota').style.display = 'block';
+                document.getElementById('modalSalvarRota').style.display = 'flex';
             });
         }
 
         function limparRota() {
             if (routingControl) { map.removeControl(routingControl); routingControl = null; }
             if (linhaRotaEstatica) { map.removeLayer(linhaRotaEstatica); linhaRotaEstatica = null; }
-            document.getElementById('route-panel').style.display = 'none';
             dadosUltimaRotaCalculada = null;
         }
 
-        // Função salvar blindada contra erros!
         function salvarRotaAtual() {
             try {
                 if (!dadosUltimaRotaCalculada) {
-                    alert("Aguarde a rota terminar de ser traçada.");
+                    alert("Nenhuma rota calculada para salvar.");
                     return;
                 }
                 
                 const nomePadrao = `${dadosUltimaRotaCalculada.origemTxt.split(',')[0]} -> ${dadosUltimaRotaCalculada.destinoTxt.split(',')[0]}`;
                 const nomeRota = prompt("Digite um nome para identificar esta rota:", nomePadrao);
                 
-                if (!nomeRota) return; // Se cancelar o prompt, não faz nada
+                if (!nomeRota) return;
 
                 const novaRota = { id: Date.now(), nome: nomeRota, ...dadosUltimaRotaCalculada };
                 rotasSalvas.push(novaRota);
                 localStorage.setItem('rotasSalvas', JSON.stringify(rotasSalvas));
                 
                 renderizarTabelaRotas();
-                alert("Rota salva com sucesso! O trajeto exato (incluindo desvios) foi armazenado.");
+                fecharModalSalvar();
+                alert("Rota salva com sucesso!");
                 
                 limparRota();
-                mudarAba('rotas'); // Muda para a aba de rotas sem quebrar o layout
+                mudarAba('rotas');
                 
             } catch (error) {
                 console.error(error);
-                alert("Ocorreu um erro ao salvar: " + error.message);
+                alert("Erro ao salvar: " + error.message);
             }
         }
 
-        // --- GESTÃO DE ROTAS SALVAS ---
         function renderizarTabelaRotas(filtro = '') {
             const tbody = document.getElementById('tbodyRotasSalvas');
             tbody.innerHTML = '';
@@ -740,16 +679,6 @@
             
             linhaRotaEstatica = L.polyline(rota.coordenadas, {color: '#FF8F00', weight: 6, opacity: 0.9}).addTo(map);
             map.fitBounds(linhaRotaEstatica.getBounds());
-            
-            document.getElementById('route-panel').style.display = 'block';
-            document.getElementById('btnSalvarRota').style.display = 'none';
-            document.getElementById('route-stats').innerHTML = `
-                <div style="display: flex; gap: 20px; font-size: 13px;">
-                    <p style="margin: 3px 0; color: #FF8F00;"><b><i class="fas fa-eye"></i> Visualizando Rota Salva:</b> ${rota.nome}</p>
-                    <p style="margin: 3px 0;"><b>Distância:</b> ${rota.distancia} km</p>
-                    <p style="margin: 3px 0;"><b>Custo Est.:</b> R$ ${rota.custo}</p>
-                </div>
-            `;
         }
 
         function excluirRota(id) {
@@ -759,7 +688,6 @@
             renderizarTabelaRotas();
         }
 
-        // Gráficos e tabelas secundárias
         function atualizarDashboards() {
             if(window.graf1) window.graf1.destroy();
             if(window.graf2) window.graf2.destroy();
