@@ -19,7 +19,7 @@ jobs:
 
       - name: Instalar Dependências
         run: |
-          pip install requests
+          pip install requests zeep
 
       - name: Executar Robô de Telemetria
         env:
