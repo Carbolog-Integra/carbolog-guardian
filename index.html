@@ -21,6 +21,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
+    <!-- Google Maps Places API (Para busca por palavra-chave exata estilo Google Maps) -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=SUA_GOOGLE_MAPS_API_KEY&libraries=places"></script>
+
     <style>
         :root {
             --bg-dark: #002244;
@@ -200,19 +203,19 @@
         </div>
     </div>
 
-    <!-- MODAL DE ROTEIRIZAÇÃO IAM / QUALP -->
+    <!-- MODAL DE ROTEIRIZAÇÃO IAM / GOOGLE PLACES -->
     <div id="modalEficiencia" class="modal">
         <div class="modal-content">
-            <div class="modal-header">Roteirizador Rodoviário (IAM / Qualp) <span class="close-modal" onclick="fecharModal()">×</span></div>
+            <div class="modal-header">Roteirizador Rodoviário (Google Places + IAM / Qualp) <span class="close-modal" onclick="fecharModal()">×</span></div>
             
             <div class="flex-row">
                 <div style="width: 50%;">
-                    <label><b>Origem</b> (Cidade, Empresa ou Ref.)</label><br>
-                    <input type="text" id="iamOrigem" value="Sao Vicente SP" style="width:90%; padding:8px;">
+                    <label><b>Origem</b> (Busca Inteligente)</label><br>
+                    <input type="text" id="iamOrigem" placeholder="Digite empresa, ref. ou cidade..." style="width:90%; padding:8px;">
                 </div>
                 <div style="width: 50%;">
-                    <label><b>Destino</b> (Cidade, Empresa ou Ref.)</label><br>
-                    <input type="text" id="iamDestino" value="Cosmopolis SP" style="width:90%; padding:8px;">
+                    <label><b>Destino</b> (Busca Inteligente)</label><br>
+                    <input type="text" id="iamDestino" placeholder="Digite empresa, ref. ou cidade..." style="width:90%; padding:8px;">
                 </div>
             </div>
 
@@ -222,7 +225,7 @@
                     <button class="eixos-btn" onclick="alterarEixos(-1)">-</button>
                     <input type="text" id="iamEixos" value="9" readonly style="width: 50px; text-align: center; font-weight: bold; font-size: 16px; padding: 5px;">
                     <button class="eixos-btn" onclick="alterarEixos(1)">+</button>
-                    <span style="font-size: 13px; color: #666; margin-left: 10px;">(Ex: 2 para utilitário, 6/9 para carreta)</span>
+                    <span style="font-size: 13px; color: #666; margin-left: 10px;">(Ex: 2 utilitário, 6/9 carreta)</span>
                 </div>
             </div>
 
@@ -238,6 +241,8 @@
         let countdown = 300;
         let camadaTransitoAtiva = false;
         let linhaRotaIAM = null;
+        let autocompleteOrigem = null;
+        let autocompleteDestino = null;
 
         window.addEventListener('DOMContentLoaded', () => {
             map = L.map('map').setView([-23.5505, -46.6333], 5);
@@ -245,6 +250,12 @@
             const mapaSatelite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
             mapaNormal.addTo(map);
             L.control.layers({"Normal": mapaNormal, "Satélite": mapaSatelite}).addTo(map);
+
+            // Inicializa o Google Places Autocomplete nos inputs de origem e destino
+            if (window.google && google.maps && google.maps.places) {
+                autocompleteOrigem = new google.maps.places.Autocomplete(document.getElementById('iamOrigem'), { componentRestrictions: { country: 'br' } });
+                autocompleteDestino = new google.maps.places.Autocomplete(document.getElementById('iamDestino'), { componentRestrictions: { country: 'br' } });
+            }
         });
 
         function fazerLogin() {
@@ -438,35 +449,29 @@
             }
         }
 
-        // Sistema de busca resiliente (Tenta achar a referência exata, se não achar, busca pela cidade principal informada)
-        async function gearLocal(termo) {
-            termo = termo.trim();
-            if (termo.includes(',')) {
-                const p = termo.split(',');
-                const lat = parseFloat(p[0]);
-                const lon = parseFloat(p[1]);
-                if(!isNaN(lat) && !isNaN(lon)) return { lat, lon, nome: termo };
+        // Função de Geocodificação integrada com Google Places e fallback inteligente
+        async function obterCoordenadasGoogle(inputElementId, autocompleteInstance) {
+            const val = document.getElementById(inputElementId).value.trim();
+            
+            // Se o usuário selecionou uma sugestão direta do Google Places Autocomplete
+            if (autocompleteInstance) {
+                const place = autocompleteInstance.getPlace();
+                if (place && place.geometry && place.geometry.location) {
+                    return {
+                        lat: place.geometry.location.lat(),
+                        lon: place.geometry.location.lng(),
+                        nome: place.formatted_address || val
+                    };
+                }
             }
 
+            // Fallback: Se digitou livremente sem clicar na lista, busca via Nominatim/OSRM global
             try {
-                // 1. Tenta busca exata
-                let url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termo)}`;
-                let res = await fetch(url);
-                let data = await res.json();
+                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}`;
+                const res = await fetch(url);
+                const data = await res.json();
                 if (data && data.length > 0) {
                     return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), nome: data[0].display_name };
-                }
-
-                // 2. Fallback: Se não achar a referência específica (ex: Unimetal), pega apenas as palavras finais (Cidade/Estado)
-                const palavras = termo.split(' ');
-                if (palavras.length > 1) {
-                    const cidadeEstado = palavras.slice(-2).join(' '); // Ex: "sao vicente sp"
-                    url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cidadeEstado)}`;
-                    res = await fetch(url);
-                    data = await res.json();
-                    if (data && data.length > 0) {
-                        return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), nome: `${termo} (${data[0].display_name})` };
-                    }
                 }
             } catch(e) {
                 console.warn("Erro no geocoding:", e);
@@ -475,20 +480,18 @@
         }
 
         async function calcularRotaRodoviariaIAM() {
-            const origemInput = document.getElementById('iamOrigem').value;
-            const destinoInput = document.getElementById('iamDestino').value;
             const qtdEixos = parseInt(document.getElementById('iamEixos').value) || 6;
             const res = document.getElementById('resultadoEficiencia');
 
             res.style.display = 'block';
-            res.innerHTML = `<h4 style="color:#00838F"><i class="fas fa-spinner fa-spin"></i> Localizando referências e calculando malha rodoviária...</h4>`;
+            res.innerHTML = `<h4 style="color:#00838F"><i class="fas fa-spinner fa-spin"></i> Consultando Google Places e calculando rota rodoviária...</h4>`;
 
             try {
-                const origCoord = await gearLocal(origemInput);
-                const destCoord = await gearLocal(destinoInput);
+                const origCoord = await obterCoordenadasGoogle('iamOrigem', autocompleteOrigem);
+                const destCoord = await obterCoordenadasGoogle('iamDestino', autocompleteDestino);
 
                 if (!origCoord || !destCoord) {
-                    throw new Error("Não foi possível localizar a origem ou destino. Tente informar o nome da cidade e estado (Ex: 'Santos SP').");
+                    throw new Error("Não foi possível localizar a origem ou destino. Selecione uma opção na lista de sugestões do Google.");
                 }
 
                 const url = `https://router.project-osrm.org/route/v1/driving/${origCoord.lon},${origCoord.lat};${destCoord.lon},${destCoord.lat}?overview=full&geometries=geojson`;
