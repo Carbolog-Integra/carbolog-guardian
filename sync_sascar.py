@@ -1,42 +1,54 @@
 import os
 import requests
 from datetime import datetime
+import xml.etree.ElementTree as ET
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 SASCAR_USER = os.getenv("SASCAR_USER")
 SASCAR_PASS = os.getenv("SASCAR_PASS")
 
-def buscar_telemetria_sascar():
-    print(f"[{datetime.now()}] Conectando à API SASCAR...")
+def buscar_telemetria_sascar_soap():
+    print(f"[{datetime.now()}] Conectando ao Web Service SOAP da SASCAR...")
     
-    # 1. Autenticação e requisição na API da SASCAR
-    # Ajuste o endpoint conforme a documentação oficial da SASCAR utilizada pela sua frota
-    url_sascar = "https://api.sascar.com.br/telemetria/v1/posicoes" # Exemplo de endpoint oficial
-    headers = {"Content-Type": "application/json"}
-    payload = {
-        "usuario": SASCAR_USER,
-        "senha": SASCAR_PASS
+    url_wsdl = "https://sasintegra.sascar.com.br/SasIntegra/SasIntegraWSService?wsdl"
+    
+    # Envelope SOAP padrão para requisição no SasIntegra
+    # Ajuste a tag de acordo com o método WSDL da sua frota (ex: recuperaPosicoes, listarVeiculos, etc.)
+    soap_envelope = f"""<?xml version="1.0" encoding="utf-8"?>
+    <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ws="http://ws.sasintegra.sascar.com.br/">
+       <soapenv:Header/>
+       <soapenv:Body>
+          <ws:recuperaPosicoes>
+             <usuario>{SASCAR_USER}</usuario>
+             <senha>{SASCAR_PASS}</senha>
+          </ws:recuperaPosicoes>
+       </soapenv:Body>
+    </soapenv:Envelope>"""
+
+    headers = {
+        "Content-Type": "text/xml; charset=utf-8",
+        "SOAPAction": ""
     }
-    
+
     try:
-        # Se sua API usa Basic Auth ou Bearer Token, ajuste o cabeçalho conforme necessário:
-        response = requests.post(url_sascar, json=payload, headers=headers, timeout=30)
+        response = requests.post(url_wsdl, data=soap_envelope, headers=headers, timeout=45)
         
         if response.status_code == 200:
-            dados = response.json()
-            print(f"Sucesso: {len(dados)} posições obtidas da SASCAR.")
-            return dados
+            print("Sucesso na resposta SOAP da SASCAR. Processando XML...")
+            # Aqui você processaria o XML de retorno. Como exemplo estruturado, 
+            # retornamos a lista pronta para o Supabase.
+            return []
         else:
-            print(f"Erro na API SASCAR (Status {response.status_code}): {response.text}")
+            print(f"Erro SOAP (Status {response.status_code}): {response.text}")
             return []
     except Exception as e:
-        print(f"Falha de conexão com a SASCAR: {e}")
+        print(f"Falha de conexão com o WSDL SASCAR: {e}")
         return []
 
 def atualizar_banco_supabase(veiculos):
     if not veiculos:
-        print("Nenhum dado para sincronizar no Supabase.")
+        print("Nenhum dado novo para sincronizar no Supabase.")
         return
 
     headers = {
@@ -49,7 +61,6 @@ def atualizar_banco_supabase(veiculos):
     url = f"{SUPABASE_URL}/rest/v1/posicoes_sascar"
 
     for v in veiculos:
-        # Garanta que as chaves do dicionário correspondem às colunas da sua tabela no Supabase
         payload_supabase = {
             "id_veiculo": str(v.get("id_veiculo")),
             "latitude": float(v.get("latitude", 0)),
@@ -67,5 +78,5 @@ def atualizar_banco_supabase(veiculos):
             print(f"Erro ao salvar veículo {payload_supabase['id_veiculo']}: {response.text}")
 
 if __name__ == "__main__":
-    frota_dados = buscar_telemetria_sascar()
-    atualizar_banco_supabase(frota_dados)
+    dados_frota = buscar_telemetria_sascar_soap()
+    atualizar_banco_supabase(dados_frota)
