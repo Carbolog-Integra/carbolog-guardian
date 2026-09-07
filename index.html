@@ -262,16 +262,31 @@
         });
 
         function fazerLogin() {
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('app').style.display = 'block';
-            document.getElementById('userLogado').innerHTML = `<b>Usuário:</b> v.menezes@carbolog.com.br`;
-            setTimeout(() => {
-                if (map) map.invalidateSize();
-                carregarDadosVeiculos();
-                carregarAbastecimentos();
-                atualizarDashboards();
-                iniciarAutoRefresh();
-            }, 200);
+            const email = document.getElementById('emailInput').value.trim();
+            const senha = document.getElementById('passInput').value.trim();
+            const erroEl = document.getElementById('loginError');
+
+            // Defina aqui as credenciais autorizadas de acesso
+            const emailAutorizado = "v.menezes@carbolog.com.br";
+            const senhaAutorizada = "123456"; // Altere para a senha desejada
+
+            if (email === emailAutorizado && senha === senhaAutorizada) {
+                erroEl.style.display = 'none';
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('app').style.display = 'block';
+                document.getElementById('userLogado').innerHTML = `<b>Usuário:</b> ${email}`;
+                
+                setTimeout(() => {
+                    if (map) map.invalidateSize();
+                    carregarDadosVeiculos();
+                    carregarAbastecimentos();
+                    atualizarDashboards();
+                    iniciarAutoRefresh();
+                }, 200);
+            } else {
+                erroEl.innerText = "Acesso negado: E-mail ou senha incorretos!";
+                erroEl.style.display = 'block';
+            }
         }
 
         function mudarAba(abaId) {
