@@ -102,6 +102,10 @@
         .bg-danger { background-color: var(--danger); }
         .bg-warning { background-color: var(--warning); }
         
+        /* Correção para evitar ícones e sobreposições indesejadas do Google Places nos inputs */
+        .pac-container { z-index: 9999 !important; }
+        .input-limpo { width: 90%; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); color: var(--text-color); box-sizing: border-box; background-image: none !important; }
+
         .leaflet-routing-container { display: none !important; }
     </style>
 </head>
@@ -126,7 +130,7 @@
     <!-- APLICAÇÃO PRINCIPAL -->
     <div id="app" class="app-container">
         <div class="navbar">
-            <div class="logo"><h3><i class="fas fa-satellite-dish"></i> GUARDIAN CARBOLOG</h3></div>
+            <div class="logo"><h3><i class="fas fa-satellite-dish"></i> Guardian Carbolog</h3></div>
             <div class="nav-menus">
                 <button class="active" onclick="mudarAba('operacional')">Grid Operacional</button>
                 <button onclick="mudarAba('dashboard')">Dashboard</button>
@@ -151,7 +155,7 @@
                     <div>
                         <span class="info-tag">Auto-Refresh Robô: <span id="timerRefresh">300</span>s</span>
                         <button class="btn" onclick="carregarDadosVeiculos()"><i class="fas fa-sync"></i> Refresh</button>
-                        <button class="btn" style="background:#00838F;" onclick="carregarAcidentesWazeGoogle()"><i class="fas fa-traffic-light"></i> Tráfego em tempo real</button>
+                        <button class="btn" style="background:#00838F;" onclick="carregarAcidentesWazeGoogle()"><i class="fas fa-traffic-light"></i> Trânsito em tempo real</button>
                         <button class="btn" onclick="abrirModalEficiencia()"><i class="fas fa-route"></i> Criar Nova Rota</button>
                     </div>
                 </div>
@@ -289,7 +293,7 @@
             
             <div class="flex-row" style="gap: 10px; margin-bottom: 15px;">
                 <div style="flex: 1; display: flex; align-items: center; position: relative;">
-                    <input type="text" id="inputBuscaRefArea" placeholder="Pesquisar por referência, cidade, UF ou localidade do Google (Ex: Unimetal, Sorocaba SP)..." onkeydown="if(event.key === 'Enter') pesquisarLocalArea();" style="width: 100%; padding: 10px 40px 10px 12px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); color: var(--text-color);">
+                    <input type="text" id="inputBuscaRefArea" class="input-limpo" placeholder="Pesquisar por referência, cidade, UF ou localidade do Google (Ex: Unimetal, Sorocaba SP)..." onkeydown="if(event.key === 'Enter') pesquisarLocalArea();" style="width: 100%; padding-right: 40px;">
                     <i class="fas fa-search" onclick="pesquisarLocalArea()" style="position: absolute; right: 12px; cursor: pointer; color: var(--accent-blue); font-size: 16px;" title="Pesquisar localização"></i>
                 </div>
                 <button class="btn" style="background: var(--accent-blue); margin-top: 0; padding: 10px 15px;" onclick="pesquisarLocalArea()"><i class="fas fa-search"></i> Buscar</button>
@@ -356,11 +360,11 @@
             <div class="flex-row">
                 <div style="width: 50%;">
                     <label><b>Origem</b></label><br>
-                    <input type="text" id="iamOrigem" value="Unimetal Sao Vicente SP" style="width:90%; padding:8px; border:1px solid var(--border-color); background:var(--card-bg); color:var(--text-color);">
+                    <input type="text" id="iamOrigem" class="input-limpo" value="Unimetal Sao Vicente SP">
                 </div>
                 <div style="width: 50%;">
                     <label><b>Destino</b></label><br>
-                    <input type="text" id="iamDestino" value="Unimetal Cosmopolis SP" style="width:90%; padding:8px; border:1px solid var(--border-color); background:var(--card-bg); color:var(--text-color);">
+                    <input type="text" id="iamDestino" class="input-limpo" value="Unimetal Cosmopolis SP">
                 </div>
             </div>
             <div style="margin-top: 15px; margin-bottom: 10px;">
@@ -512,11 +516,6 @@
                 "Tráfego & Acidentes (Dados Reais Atualizados)": camadaTransitoGrupo,
                 "Áreas Geográficas (Cercas)": camadaAreasGrupo
             }).addTo(map);
-
-            if (window.google && google.maps && google.maps.places) {
-                autocompleteOrigem = new google.maps.places.Autocomplete(document.getElementById('iamOrigem'), { componentRestrictions: { country: 'br' } });
-                autocompleteDestino = new google.maps.places.Autocomplete(document.getElementById('iamDestino'), { componentRestrictions: { country: 'br' } });
-            }
 
             if (localStorage.getItem('tema') === 'claro') {
                 document.body.classList.remove('dark-mode');
@@ -879,6 +878,24 @@
         function fecharModalComboio() {
             document.getElementById('modalComboio').style.display = 'none';
         }
+
+        // --- MODAL DE CRIAR ROTA ---
+        function abrirModalEficiencia() {
+            document.getElementById('modalEficiencia').style.display = 'flex';
+            setTimeout(() => {
+                if (window.google && google.maps && google.maps.places) {
+                    if (!autocompleteOrigem) {
+                        autocompleteOrigem = new google.maps.places.Autocomplete(document.getElementById('iamOrigem'), { componentRestrictions: { country: 'br' } });
+                    }
+                    if (!autocompleteDestino) {
+                        autocompleteDestino = new google.maps.places.Autocomplete(document.getElementById('iamDestino'), { componentRestrictions: { country: 'br' } });
+                    }
+                }
+            }, 200);
+        }
+
+        function fecharModal() { document.getElementById('modalEficiencia').style.display = 'none'; }
+        function fecharModalSalvar() { document.getElementById('modalSalvarRota').style.display = 'none'; }
 
         // --- JANELA DE CRIAÇÃO E DESENHO DE ÁREAS GEOGRÁFICAS ---
         function abrirJanelaCriarArea() {
@@ -1306,10 +1323,6 @@
             }, 1000);
         }
 
-        function abrirModalEficiencia() { document.getElementById('modalEficiencia').style.display = 'flex'; }
-        function fecharModal() { document.getElementById('modalEficiencia').style.display = 'none'; }
-        function fecharModalSalvar() { document.getElementById('modalSalvarRota').style.display = 'none'; }
-        
         function alterarEixos(valor) {
             const inputEixos = document.getElementById('iamEixos');
             let atual = parseInt(inputEixos.value) + valor;
@@ -1407,7 +1420,7 @@
             try {
                 if (!dadosUltimaRotaCalculada) return;
                 const nomeRota = document.getElementById('inputNomeRota').value.trim();
-                if (!nomeRota) { alert("Digite um nome para la rota."); return; }
+                if (!nomeRota) { alert("Digite um nome para a rota."); return; }
 
                 const novaRota = { id: Date.now(), nome: nomeRota, ...dadosUltimaRotaCalculada };
                 rotasSalvas.push(novaRota);
