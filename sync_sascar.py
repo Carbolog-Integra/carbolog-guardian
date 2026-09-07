@@ -41,22 +41,28 @@ def buscar_e_sincronizar_sascar():
         }
         url_sup = f"{SUPABASE_URL}/rest/v1/posicoes_sascar"
 
-        # Fuso horário de Brasília
         fuso_brasilia = ZoneInfo("America/Sao_Paulo")
 
         for item in resposta:
             data_original = getattr(item, 'data', None)
             
             if isinstance(data_original, datetime):
-                # Se vier sem timezone, assume UTC/local e converte para Brasília
+                # Força a interpretação como UTC caso venha ingênua e converte para Brasília
                 if data_original.tzinfo is None:
                     data_original = data_original.replace(tzinfo=ZoneInfo("UTC"))
                 data_brasilia = data_original.astimezone(fuso_brasilia).isoformat()
             else:
                 data_brasilia = datetime.now(fuso_brasilia).isoformat()
 
+            # Tenta capturar a placa real por diferentes atributos possíveis no objeto SASCAR
+            placa_veiculo = (
+                getattr(item, 'placa', None) or 
+                getattr(item, 'placaVeiculo', None) or 
+                str(getattr(item, 'idVeiculo', 'N/D'))
+            )
+
             payload_supabase = {
-                "id_veiculo": str(getattr(item, 'placa', None) or getattr(item, 'idVeiculo', 'N/D')),
+                "id_veiculo": placa_veiculo,
                 "latitude": float(getattr(item, 'latitude', 0.0)),
                 "longitude": float(getattr(item, 'longitude', 0.0)),
                 "velocidade": int(getattr(item, 'velocidade', 0)),
@@ -69,7 +75,7 @@ def buscar_e_sincronizar_sascar():
             if res.status_code not in [200, 201]:
                 print(f"Erro ao salvar veículo {payload_supabase['id_veiculo']}: {res.text}")
 
-        print(f"[{datetime.now()}] Sincronização e ajuste de fuso concluídos com sucesso!")
+        print(f"[{datetime.now()}] Sincronização concluída com sucesso!")
 
     except Exception as e:
         print(f"Erro na execução da sincronização: {e}")
