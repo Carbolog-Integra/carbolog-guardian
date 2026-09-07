@@ -206,7 +206,7 @@
                     <div style="width: 50%;"><canvas id="graficoParado"></canvas></div>
                 </div>
                 <hr>
-                <h4>Registros Brutos (Rastreador e Permanência em Área)</h4>
+                <h4>Registros Brutos (Rastreador, Permanência e Desvios de Rota)</h4>
                 <table id="tabelaDash">
                     <thead><tr><th>Placa</th><th>Ocorrência</th><th>Duração (Min)</th><th>Máx. Vel. (km/h)</th><th>Data/Hora</th></tr></thead>
                     <tbody id="tbodyDash"></tbody>
@@ -406,6 +406,7 @@
         let areasSalvas = [];
         let contadorPermanenciaAreas = {}; 
         let historicoPermanenciasDashboard = [];
+        let historicoDesviosDashboard = [];
 
         try {
             const rotasSalvasStr = localStorage.getItem('rotasSalvas');
@@ -450,9 +451,7 @@
             
             const mapaNormal = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
             const mapaSatelite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
-            const rotulosSatelite = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
-            
-            const grupoSateliteComRotulos = L.layerGroup([mapaSatelite, rotulosSatelite]);
+            const rotulosSatelite = L.layerGroup([mapaSatelite, L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 })]);
 
             mapaNormal.addTo(map);
             camadaTransitoGrupo.addTo(map);
@@ -460,7 +459,7 @@
 
             L.control.layers({
                 "Normal": mapaNormal, 
-                "Satélite (com Nomes/Vias)": grupoSateliteComRotulos
+                "Satélite (com Nomes/Vias)": rotulosSatelite
             }, {
                 "Tráfego & Acidentes (Waze/Google)": camadaTransitoGrupo,
                 "Áreas Geográficas (Cercas)": camadaAreasGrupo
@@ -470,21 +469,13 @@
             map.addLayer(drawnItems);
             const drawControl = new L.Control.Draw({
                 edit: { featureGroup: drawnItems },
-                draw: {
-                    polygon: true,
-                    rectangle: true,
-                    circle: true,
-                    marker: false,
-                    polyline: false,
-                    circlemarker: false
-                }
+                draw: { polygon: true, rectangle: true, circle: true, marker: false, polyline: false, circlemarker: false }
             });
             map.addControl(drawControl);
 
             map.on(L.Draw.Event.CREATED, function (e) {
                 const layer = e.layer;
                 drawnItems.addLayer(layer);
-                
                 let tipo = e.layerType;
                 let geomData = null;
 
@@ -498,7 +489,6 @@
                 document.getElementById('inputNomeArea').value = `Área ${tipo.toUpperCase()} - ${new Date().toLocaleDateString()}`;
                 document.getElementById('infoAreaTipo').innerText = `Tipo de cerca: ${tipo.toUpperCase()}`;
                 document.getElementById('modalSalvarArea').style.display = 'flex';
-                
                 drawnItems.removeLayer(layer);
             });
 
@@ -567,6 +557,17 @@
             return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
         }
 
+        // --- CÁLCULO DE DISTÂNCIA MÍNIMA ATÉ A ROTA TRAÇADA ---
+        function calcularMenorDistanciaAteRota(lat, lon, coordenadasRota) {
+            let menorDist = Infinity;
+            for (let i = 0; i < coordenadasRota.length; i++) {
+                const pt = coordenadasRota[i];
+                const d = calcularDistanciaMetros(lat, lon, pt[0], pt[1]);
+                if (d < menorDist) menorDist = d;
+            }
+            return menorDist;
+        }
+
         function pontoNoPoligono(ponto, vs) {
             const x = ponto[0], y = ponto[1];
             let inside = false;
@@ -610,12 +611,12 @@
                 });
                 veiculosCacheGlobal = Array.from(veiculosMap.values());
                 
-                processarPermanenciaAreas(veiculosCacheGlobal);
+                processarRegrasEAlertas(veiculosCacheGlobal);
                 renderizarGridEMapa();
             } catch (e) { return; }
         }
 
-        function processarPermanenciaAreas(veiculos) {
+        function processarRegrasEAlertas(veiculos) {
             const agora = Date.now();
             veiculos.forEach(v => {
                 let placaRaw = v.id_veiculo ? String(v.id_veiculo) : 'SEM-PLACA';
@@ -624,6 +625,29 @@
                 const lat = v.latitude, lon = v.longitude;
                 if (!lat || !lon) return;
 
+                // 1. Regra de Desvio de Rota (> 250 metros da rota vinculada)
+                const rotaObj = rotasVeiculos[placaFormatada];
+                if (rotaObj && rotaObj.coordenadas) {
+                    const distRotaM = calcularMenorDistanciaAteRota(lat, lon, rotaObj.coordenadas);
+                    if (distRotaM > 250) {
+                        const metrosArredondados = Math.round(distRotaM);
+                        // Evita duplicar no histórico contínuo
+                        const jaExiste = historicoDesviosDashboard.some(d => d.placa === placaFormatada && (agora - d.timestamp) < 300000);
+                        if (!jaExiste) {
+                            historicoDesviosDashboard.push({
+                                placa: placaFormatada,
+                                ocorrencia: `Desvio de Rota (${rotaObj.nome})`,
+                                duracao: 1,
+                                maxVel: Number(v.velocidade) || 0,
+                                metrosDesvio: metrosArredondados,
+                                dataHora: new Date().toLocaleString('pt-BR'),
+                                timestamp: agora
+                            });
+                        }
+                    }
+                }
+
+                // 2. Regra de Áreas Geográficas
                 const areasIdsDoVeiculo = areasVeiculos[placaFormatada] || [];
                 areasIdsDoVeiculo.forEach(areaId => {
                     const areaObj = areasSalvas.find(a => a.id == areaId);
@@ -676,7 +700,6 @@
                 });
             }
 
-            // Mapeamento de comboios e vizinhos próximos (≤ 300 metros)
             const mapPlacasProximas = {};
             for (let i = 0; i < dadosFiltrados.length; i++) {
                 for (let j = i + 1; j < dadosFiltrados.length; j++) {
@@ -713,14 +736,22 @@
                 const ignicaoBool = v.ignicao === 1 || v.ignicao === true || String(v.ignicao) === '1';
                 const velFinal = Number(v.velocidade) || 0;
                 
+                const rotaVinculadaObj = rotasVeiculos[placaFormatada];
+                let desvioMetros = 0;
+                if (rotaVinculadaObj && rotaVinculadaObj.coordenadas && lat && lon) {
+                    desvioMetros = Math.round(calcularMenorDistanciaAteRota(lat, lon, rotaVinculadaObj.coordenadas));
+                }
+
                 let htmlAlertas = '';
                 if (velFinal > 80) htmlAlertas += `<span class="badge-alerta bg-danger">EXCESSO VEL.</span>`;
+                if (rotaVinculadaObj && desvioMetros > 250) {
+                    htmlAlertas += `<span class="badge-alerta bg-danger" title="Veículo fora da rota traçada">DESVIO DE ROTA (${desvioMetros}m)</span>`;
+                }
                 if (mapPlacasProximas[placaFormatada] && mapPlacasProximas[placaFormatada].length > 0) {
                     htmlAlertas += `<span class="badge-alerta bg-warning" onclick="abrirModalComboio('${placaFormatada}')" title="Clique para ver placas em comboio">POSSÍVEL COMBOIO</span>`;
                 }
                 if (htmlAlertas === '') htmlAlertas = `<span style="color: var(--success); font-size: 12px;">Normal</span>`;
 
-                const rotaVinculadaObj = rotasVeiculos[placaFormatada];
                 const rotaVinculadaNome = rotaVinculadaObj ? rotaVinculadaObj.nome : 'Nenhuma';
                 const dataFormatadaPtBr = formatarDataHoraPtBr(v.data_posicao);
 
@@ -760,8 +791,11 @@
                             Velocidade: ${velFinal} km/h<br>
                             Cidade: ${v.cidade || '-'}<br>
                             Ult. Comunicação: <b>${dataFormatadaPtBr}</b><br>
-                            Rota Vinculada: <b>${rotaVinculadaNome}</b><br>
-                            Áreas Atreladas: <b>${areasStr}</b><br><hr style="margin:5px 0;">`;
+                            Rota Vinculada: <b>${rotaVinculadaNome}</b><br>`;
+                        if (rotaVinculadaObj) {
+                            acoesHtml += `Desvio da Rota: <b style="color:${desvioMetros > 250 ? 'red':'green'}">${desvioMetros}m</b><br>`;
+                        }
+                        acoesHtml += `Áreas Atreladas: <b>${areasStr}</b><br><hr style="margin:5px 0;">`;
                         
                         if (rotaVinculadaObj) {
                             acoesHtml += `<button class="btn" style="background:var(--primary-blue); padding:4px 8px; font-size:11px; width:100%; margin-top:3px;" onclick="visualizarRotaEmbarcada('${placaFormatada}')"><i class="fas fa-route"></i> Visualizar Rota</button>`;
@@ -786,13 +820,11 @@
             countdown = 300;
         }
 
-        // --- FUNÇÃO PARA ABRIR MODAL COMBOIO (PLACAS PRÓXIMAS) ---
         function abrirModalComboio(placaAlvo) {
             document.getElementById('comboioVeiculoPrincipal').innerText = placaAlvo;
             const container = document.getElementById('listaPlacasComboio');
             container.innerHTML = '';
 
-            // Recalcula proximidades rapidamente para listar as placas
             let vizinhos = [];
             const vAlvo = veiculosCacheGlobal.find(v => {
                 let p = v.id_veiculo ? String(v.id_veiculo) : 'SEM-PLACA';
@@ -1296,6 +1328,10 @@
 
             historicoPermanenciasDashboard.forEach(item => {
                 tbodyHtml += `<tr><td><b>${item.placa}</b></td><td>${item.ocorrencia}</td><td>${item.duracao} min</td><td>${item.maxVel}</td><td>${item.dataHora}</td></tr>`;
+            });
+
+            historicoDesviosDashboard.forEach(item => {
+                tbodyHtml += `<tr><td><b>${item.placa}</b></td><td style="color:var(--danger); font-weight:bold;">${item.ocorrencia} (${item.metrosDesvio}m fora)</td><td>${item.duracao} min</td><td>${item.maxVel}</td><td>${item.dataHora}</td></tr>`;
             });
 
             document.getElementById('tbodyDash').innerHTML = tbodyHtml || `<tr><td colspan="5" style="text-align:center;">Nenhum alerta crítico no momento.</td></tr>`;
