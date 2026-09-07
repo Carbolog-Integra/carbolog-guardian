@@ -396,9 +396,9 @@
                     <td><b>${placaFormatada}</b></td>
                     <td>${dataFormatada}</td>
                     <td><span style="color: ${ignicaoBool ? 'green' : 'red'}; font-weight:bold;">${ignicaoBool ? 'LIGADA' : 'DESLIGADA'}</span></td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
+                    <td>${v.cidade || 'Não mapeada'}</td>
+                    <td>${v.uf || 'SP'}</td>
+                    <td>${v.rua || 'Via Pública'}</td>
                     <td><b>${velFinal} km/h</b></td>
                     <td class="table-actions">
                         ${htmlAlertas}
