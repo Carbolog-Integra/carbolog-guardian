@@ -12,15 +12,15 @@ def buscar_telemetria_sascar_soap():
     
     url_wsdl = "https://sasintegra.sascar.com.br/SasIntegra/SasIntegraWSService?wsdl"
     
-    # Envelope SOAP básico para autenticação e teste de método
+    # Testando com a operação padrão de últimas posições da SASCAR
     soap_envelope = f"""<?xml version="1.0" encoding="utf-8"?>
     <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ws="http://ws.sasintegra.sascar.com.br/">
        <soapenv:Header/>
        <soapenv:Body>
-          <ws:getPosicoes>
+          <ws:recuperaUltimasPosicoes>
              <usuario>{SASCAR_USER}</usuario>
              <senha>{SASCAR_PASS}</senha>
-          </ws:getPosicoes>
+          </ws:recuperaUltimasPosicoes>
        </soapenv:Body>
     </soapenv:Envelope>"""
 
