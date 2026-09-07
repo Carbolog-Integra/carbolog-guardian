@@ -2,55 +2,38 @@ import os
 import requests
 from datetime import datetime
 
-# Configurações obtidas das Secrets do GitHub
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 SASCAR_USER = os.getenv("SASCAR_USER")
 SASCAR_PASS = os.getenv("SASCAR_PASS")
 
-def buscar_posicoes_sascar():
-    # Substitua pelo endpoint e payload reais da API da SASCAR quando houver credenciais de homologação
-    print("Conectando à API SASCAR...")
+def sincronizar_dados():
+    print(f"[{datetime.now()}] Conectando ao integrador SASCAR...")
     
-    # Exemplo estruturado de requisição simulada/oficial para a SASCAR
-    headers = {"Content-Type": "application/json"}
-    payload = {"usuario": SASCAR_USER, "senha": SASCAR_PASS}
-    
-    try:
-        # Exemplo de chamada (ajuste para o endpoint oficial SASCAR da sua frota)
-        # response = requests.post("https://api.sascar.com.br/veiculos/posicoes", json=payload, headers=headers)
-        # dados = response.json()
-        
-        # Como exemplo de robustez, estruturamos o payload para inserção direta no Supabase
-        print("Conexão SASCAR estabelecida com sucesso.")
-        return []
-    except Exception as e:
-        print(f"Erro ao comunicar com SASCAR: {e}")
-        return []
+    # Exemplo de payload padronizado para ingestão na tabela posicoes_sascar do Supabase
+    # Insira aqui os dados retornados pela API ou sua rotina de integração de frotas
+    payload_exemplo = []
 
-def atualizar_supabase(dados_veiculos):
-    if not dados_veiculos:
-        print("Nenhum dado novo para sincronizar.")
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        print("Erro: Credenciais do Supabase não configuradas nas Secrets.")
         return
 
     headers = {
         "apikey": SUPABASE_KEY,
         "Authorization": f"Bearer {SUPABASE_KEY}",
         "Content-Type": "application/json",
-        "Prefer": "return=representation"
+        "Prefer": "resolution=merge-duplicates"
     }
 
     url = f"{SUPABASE_URL}/rest/v1/posicoes_sascar"
 
-    for veiculo in dados_veiculos:
-        response = requests.post(url, json=veiculo, headers=headers)
+    # Se houver dados novos capturados, enviamos para o Supabase
+    for item in payload_exemplo:
+        response = requests.post(url, json=item, headers=headers)
         if response.status_code in [200, 201]:
-            print(f"Veículo {veiculo.get('id_veiculo')} sincronizado com sucesso.")
+            print(f"Registro do veículo {item.get('id_veiculo')} atualizado com sucesso.")
         else:
-            print(f"Erro ao salvar veículo {veiculo.get('id_veiculo')}: {response.text}")
+            print(f"Falha ao salvar: {response.text}")
 
 if __name__ == "__main__":
-    print(f"[{datetime.now()}] Iniciando execução do Robô SASCAR...")
-    veiculos = buscar_posicoes_sascar()
-    atualizar_supabase(veiculos)
-    print(f"[{datetime.now()}] Execução finalizada.")
+    sincronizar_dados()
