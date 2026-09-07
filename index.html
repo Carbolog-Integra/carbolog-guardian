@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Integração - Telemetria e Abastecimento</title>
+    <title>Guardian Carbolog - Gestão de Riscos</title>
 
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
@@ -110,8 +110,8 @@
     <!-- TELA DE LOGIN -->
     <div id="login-screen">
         <div class="login-box">
-            <h2><i class="fas fa-shield-alt"></i> Acesso ao Sistema</h2>
-            <p style="font-size: 14px; opacity: 0.8;">Apenas e-mails corporativos autorizados</p>
+            <h2><i class="fas fa-shield-alt"></i> Guardian Carbolog</h2>
+            <p style="font-size: 14px; opacity: 0.8;">Gestão de Riscos</p>
             <input type="email" id="emailInput" placeholder="usuario@carbolog.com.br" value="v.menezes@carbolog.com.br" required>
             <select id="perfilInput">
                 <option value="Administrador">Administrador</option>
@@ -126,7 +126,7 @@
     <!-- APLICAÇÃO PRINCIPAL -->
     <div id="app" class="app-container">
         <div class="navbar">
-            <div class="logo"><h3><i class="fas fa-satellite-dish"></i> Integrador de Frota</h3></div>
+            <div class="logo"><h3><i class="fas fa-satellite-dish"></i> Guardian Carbolog</h3></div>
             <div class="nav-menus">
                 <button class="active" onclick="mudarAba('operacional')">Grid Operacional</button>
                 <button onclick="mudarAba('dashboard')">Dashboard</button>
@@ -146,11 +146,11 @@
         <div id="operacional" class="tab-content active">
             <div class="card" style="padding-bottom: 0;">
                 <div class="flex-row" style="justify-content: space-between;">
-                    <h3 style="color: var(--accent-blue);"><i class="fas fa-map"></i> Robô Monitor de Frota (SASCAR)</h3>
+                    <h3 style="color: var(--accent-blue);"><i class="fas fa-map"></i> Monitor de Frota</h3>
                     <div>
                         <span class="info-tag">Auto-Refresh Robô: <span id="timerRefresh">300</span>s</span>
                         <button class="btn" onclick="carregarDadosVeiculos()"><i class="fas fa-sync"></i> Varredura Agora</button>
-                        <button class="btn" style="background:#00838F;" onclick="toggleCamadaTransitoIAM()"><i class="fas fa-traffic-light"></i> Tráfego</button>
+                        <button class="btn" style="background:#00838F;" onclick="toggleCamadaTransito()"><i class="fas fa-traffic-light"></i> Tráfego / Acidentes</button>
                         <button class="btn" onclick="abrirModalEficiencia()"><i class="fas fa-route"></i> Criar Nova Rota</button>
                     </div>
                 </div>
@@ -254,53 +254,60 @@
         </div>
     </div>
 
-    <!-- MODAL DE PARAMETRIZAÇÃO DE NOVA ROTA -->
+    <!-- MODAL CRIAR ROTA -->
     <div id="modalEficiencia" class="modal">
         <div class="modal-content">
             <div class="modal-header">Criar Rota (Interativa) <span class="close-modal" onclick="fecharModal()">×</span></div>
-            
             <div class="flex-row">
                 <div style="width: 50%;">
-                    <label><b>Origem</b> (Busca Inteligente)</label><br>
+                    <label><b>Origem</b></label><br>
                     <input type="text" id="iamOrigem" value="Unimetal Sao Vicente SP" style="width:90%; padding:8px; border:1px solid var(--border-color); background:var(--card-bg); color:var(--text-color);">
                 </div>
                 <div style="width: 50%;">
-                    <label><b>Destino</b> (Busca Inteligente)</label><br>
+                    <label><b>Destino</b></label><br>
                     <input type="text" id="iamDestino" value="Unimetal Cosmopolis SP" style="width:90%; padding:8px; border:1px solid var(--border-color); background:var(--card-bg); color:var(--text-color);">
                 </div>
             </div>
-
             <div style="margin-top: 15px; margin-bottom: 10px;">
-                <label><b>Quantidade de Eixos (Pedágio/Custo):</b></label>
+                <label><b>Quantidade de Eixos:</b></label>
                 <div class="eixos-control">
                     <button class="eixos-btn" onclick="alterarEixos(-1)">-</button>
                     <input type="text" id="iamEixos" value="9" readonly style="width: 50px; text-align: center; font-weight: bold; font-size: 16px; padding: 5px; border:1px solid var(--border-color); background:var(--card-bg); color:var(--text-color);">
                     <button class="eixos-btn" onclick="alterarEixos(1)">+</button>
-                    <span style="font-size: 13px; opacity: 0.8; margin-left: 10px;">(Ex: 2 utilitário, 6/9 carreta)</span>
                 </div>
             </div>
-
-            <button class="btn" style="width: 100%; margin-top: 15px; background: #00838F;" onclick="iniciarRotaInterativa()">
-                Gerar Rota no Mapa
-            </button>
+            <button class="btn" style="width: 100%; margin-top: 15px; background: #00838F;" onclick="iniciarRotaInterativa()">Gerar Rota no Mapa</button>
         </div>
     </div>
 
-    <!-- MODAL FLUTUANTE DE SALVAMENTO DE ROTA COM INPUT DE NOME -->
+    <!-- MODAL SALVAR ROTA -->
     <div id="modalSalvarRota" class="modal">
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">Salvar Trajeto Calculado <span class="close-modal" onclick="fecharModalSalvar()">×</span></div>
-            
             <div style="margin-bottom: 15px;">
                 <label><b>Nome Identificador da Rota:</b></label><br>
-                <input type="text" id="inputNomeRota" style="width: 95%; padding: 10px; margin-top: 5px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); color: var(--text-color); font-weight: bold;" placeholder="Ex: Rota Matriz x Filial">
+                <input type="text" id="inputNomeRota" style="width: 95%; padding: 10px; margin-top: 5px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); color: var(--text-color); font-weight: bold;">
             </div>
-
-            <div id="modal-route-stats" style="margin: 15px 0; font-size: 14px; line-height: 1.5; background: rgba(0,0,0,0.05); padding: 10px; border-radius: 4px;"></div>
-            
+            <div id="modal-route-stats" style="margin: 15px 0; font-size: 14px; background: rgba(0,0,0,0.05); padding: 10px; border-radius: 4px;"></div>
             <div style="display: flex; gap: 10px; margin-top: 20px;">
                 <button class="btn" style="background: var(--success); flex: 1;" onclick="salvarRotaAtual()"><i class="fas fa-save"></i> Salvar Definitivamente</button>
                 <button class="btn" style="background: var(--danger); flex: 1;" onclick="fecharModalSalvar()"><i class="fas fa-times"></i> Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL VINCULAR ROTA AO VEÍCULO -->
+    <div id="modalVincularRota" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">Vincular Rota ao Veículo <span class="close-modal" onclick="fecharModalVincular()">×</span></div>
+            <p>Veículo: <b id="veiculoSelecionadoModal"></b></p>
+            <div style="margin-bottom: 15px;">
+                <label><b>Selecione a Rota Criada:</b></label><br>
+                <select id="selectRotaVinculo" style="width: 95%; padding: 10px; margin-top: 5px; background: var(--card-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;"></select>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn" style="background: var(--success); flex: 1;" onclick="confirmarVinculacaoRota()">Salvar Vínculo</button>
+                <button class="btn" style="background: var(--danger); flex: 1;" onclick="fecharModalVincular()">Cancelar</button>
             </div>
         </div>
     </div>
@@ -310,11 +317,13 @@
         Chart.register(ChartDataLabels);
         let map = null;
         let markers = {};
-        let countdown = 300;
-        let camadaTransitoAtiva = false;
-        
+        let rotasVeiculos = {}; // Associa placa -> objeto da rota
+        let veiculosCacheGlobal = []; // Dados brutos da frota
+        let veiculoFocoGlobal = null; // Filtro de apenas 1 veículo no grid/mapa
+
         let routingControl = null;
         let linhaRotaEstatica = null; 
+        let camadaTransitoGrupo = L.layerGroup();
         let autocompleteOrigem = null;
         let autocompleteDestino = null;
         
@@ -323,16 +332,34 @@
             const rotasSalvasStr = localStorage.getItem('rotasSalvas');
             if (rotasSalvasStr) rotasSalvas = JSON.parse(rotasSalvasStr);
         } catch (e) { rotasSalvas = []; }
+
+        try {
+            const rotasVeiculosStr = localStorage.getItem('rotasVeiculos');
+            if (rotasVeiculosStr) rotasVeiculos = JSON.parse(rotasVeiculosStr);
+        } catch(e) { rotasVeiculos = {}; }
         
         let dadosUltimaRotaCalculada = null;
         let eixosAtuaisRota = 6;
+        let placaAtualVinculando = null;
 
         window.addEventListener('DOMContentLoaded', () => {
             map = L.map('map').setView([-23.5505, -46.6333], 7);
+            
             const mapaNormal = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
             const mapaSatelite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
+            const rotulosSatelite = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
+            
+            const grupoSateliteComRotulos = L.layerGroup([mapaSatelite, rotulosSatelite]);
+
             mapaNormal.addTo(map);
-            L.control.layers({"Normal": mapaNormal, "Satélite": mapaSatelite}).addTo(map);
+            camadaTransitoGrupo.addTo(map);
+
+            L.control.layers({
+                "Normal": mapaNormal, 
+                "Satélite (com Nomes/Vias)": grupoSateliteComRotulos
+            }, {
+                "Camada de Trânsito & Acidentes": camadaTransitoGrupo
+            }).addTo(map);
 
             if (window.google && google.maps && google.maps.places) {
                 autocompleteOrigem = new google.maps.places.Autocomplete(document.getElementById('iamOrigem'), { componentRestrictions: { country: 'br' } });
@@ -397,7 +424,6 @@
         }
 
         async function carregarDadosVeiculos() {
-            let veiculosDados = [];
             try {
                 const response = await fetch('https://oyrqywoctnyottwvqrji.supabase.co/rest/v1/posicoes_sascar?select=*&order=data_posicao.desc&limit=10000', {
                     method: 'GET',
@@ -416,33 +442,44 @@
                     const id = v.id_veiculo ? String(v.id_veiculo) : 'SEM-PLACA';
                     if (!veiculosMap.has(id)) veiculosMap.set(id, v);
                 });
-                veiculosDados = Array.from(veiculosMap.values());
+                veiculosCacheGlobal = Array.from(veiculosMap.values());
+                renderizarGridEMapa();
             } catch (e) { return; }
+        }
 
+        function renderizarGridEMapa() {
             const tbody = document.getElementById('tbodyOperacional');
             tbody.innerHTML = '';
             Object.values(markers).forEach(m => map.removeLayer(m));
             markers = {};
 
+            let dadosFiltrados = veiculosCacheGlobal;
+            if (veiculoFocoGlobal) {
+                dadosFiltrados = veiculosCacheGlobal.filter(v => {
+                    let p = v.id_veiculo ? String(v.id_veiculo) : 'SEM-PLACA';
+                    if (p.length === 7 && !isNaN(p)) p = p.substring(0,3) + '-' + p.substring(3);
+                    return p === veiculoFocoGlobal;
+                });
+            }
+
             const iconeCaminhao = L.divIcon({
                 html: '<i class="fas fa-truck custom-truck-icon"></i>', className: '', iconSize: [24, 24], iconAnchor: [12, 12]
             });
 
-            veiculosDados.forEach((v, index) => {
+            dadosFiltrados.forEach((v, index) => {
                 const tr = document.createElement('tr');
                 const lat = v.latitude, lon = v.longitude;
                 let placaRaw = v.id_veiculo ? String(v.id_veiculo) : 'SEM-PLACA';
-                let placaFormatada = (placaRaw !== 'SEM-PLACA' && placaRaw.length === 7 && isNaN(placaRaw)) ? placaRaw.substring(0, 3) + '-' + placaRaw.substring(3) : placaRaw;
+                let placaFormatada = (placaRaw !== 'SEM-PLACA' && placaRaw.length === 7 && !isNaN(placaRaw)) ? placaRaw.substring(0, 3) + '-' + placaRaw.substring(3) : placaRaw;
 
-                const linkGoogle = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
-                const linkWaze = `https://waze.com/ul?ll=${lat},${lon}&navigate=yes`;
                 const ignicaoBool = v.ignicao === 1 || v.ignicao === true || String(v.ignicao) === '1';
                 const velFinal = Number(v.velocidade) || 0;
+                const rotaVinculadaNome = rotasVeiculos[placaFormatada] ? rotasVeiculos[placaFormatada].nome : 'Nenhuma';
                 
                 tr.innerHTML = `
                     <td><b>${index + 1}</b></td>
                     <td><input type="checkbox" class="chk-veiculo" value="${placaFormatada}" checked onchange="toggleMarker('${placaFormatada}')"></td>
-                    <td><b>${placaFormatada}</b></td>
+                    <td><a href="#" onclick="focarVeiculoNoMapa('${placaFormatada}'); return false;" style="color:var(--accent-blue); font-weight:bold;" title="Clique para plotar apenas este veículo">${placaFormatada}</a></td>
                     <td>${v.data_posicao ? new Date(v.data_posicao).toLocaleString('pt-BR') : '-'}</td>
                     <td><span style="color: ${ignicaoBool ? 'var(--success)' : 'var(--danger)'}; font-weight:bold;">${ignicaoBool ? 'LIGADA' : 'DESLIGADA'}</span></td>
                     <td>${v.cidade || '-'}</td>
@@ -450,17 +487,116 @@
                     <td>${v.rua || '-'}</td>
                     <td><b>${velFinal} km/h</b></td>
                     <td class="table-actions">
-                        <a href="${linkGoogle}" target="_blank" title="Google Maps"><i class="fas fa-map-marker-alt"></i></a>
-                        <a href="${linkWaze}" target="_blank" title="Waze"><i class="fab fa-waze"></i></a>
+                        <span style="font-size:11px; background:rgba(0,0,0,0.1); padding:3px 6px; border-radius:4px;">Rota: <b>${rotaVinculadaNome}</b></span>
                     </td>
                 `;
                 tbody.appendChild(tr);
 
                 if (lat && lon) {
-                    markers[placaFormatada] = L.marker([lat, lon], {icon: iconeCaminhao}).bindPopup(`<b>${placaFormatada}</b><br>Vel: ${velFinal} km/h`).addTo(map);
+                    const marcador = L.marker([lat, lon], {icon: iconeCaminhao}).addTo(map);
+                    
+                    // Balãozinho interativo ao clicar no veículo
+                    marcador.on('click', function() {
+                        let acoesHtml = `<div style="min-width: 180px; font-family: Roboto;">
+                            <b>Placa: ${placaFormatada}</b><br>
+                            Velocidade: ${velFinal} km/h<br>
+                            Cidade: ${v.cidade || '-'}<br>
+                            Rota Vinculada: <b>${rotaVinculadaNome}</b><br><hr style="margin:5px 0;">`;
+                        
+                        if (rotasVeiculos[placaFormatada]) {
+                            acoesHtml += `<button class="btn" style="background:var(--danger); padding:4px 8px; font-size:11px; width:100%; margin-top:5px;" onclick="desvincularRotaVeiculo('${placaFormatada}')"><i class="fas.fa-unlink"></i> Desvincular Rota</button>`;
+                        } else {
+                            acoesHtml += `<button class="btn" style="background:var(--success); padding:4px 8px; font-size:11px; width:100%; margin-top:5px;" onclick="abrirModalVincular('${placaFormatada}')"><i class="fas fa-link"></i> Vincular Rota</button>`;
+                        }
+                        acoesHtml += `</div>`;
+                        marcador.bindPopup(acoesHtml).openPopup();
+                    });
+
+                    markers[placaFormatada] = marcador;
                 }
             });
             countdown = 300;
+        }
+
+        function focarVeiculoNoMapa(placa) {
+            veiculoFocoGlobal = (veiculoFocoGlobal === placa) ? null : placa;
+            renderizarGridEMapa();
+            if (veiculoFocoGlobal && markers[veiculoFocoGlobal]) {
+                map.setView(markers[veiculoFocoGlobal].getLatLng(), 13);
+                markers[placa].openPopup();
+            }
+        }
+
+        function abrirModalVincular(placa) {
+            placaAtualVinculando = placa;
+            document.getElementById('veiculoSelecionadoModal').innerText = placa;
+            
+            const select = document.getElementById('selectRotaVinculo');
+            select.innerHTML = '';
+            if (rotasSalvas.length === 0) {
+                select.innerHTML = `<option value="">Nenhuma rota criada ainda</option>`;
+            } else {
+                rotasSalvas.forEach(r => {
+                    const opt = document.createElement('option');
+                    opt.value = r.id;
+                    opt.innerText = r.nome + ` (${r.distancia} km)`;
+                    select.appendChild(opt);
+                });
+            }
+            document.getElementById('modalVincularRota').style.display = 'flex';
+        }
+
+        function fecharModalVincular() { document.getElementById('modalVincularRota').style.display = 'none'; }
+
+        function confirmarVinculacaoRota() {
+            const selectId = document.getElementById('selectRotaVinculo').value;
+            if (!selectId) return;
+            const rotaEscolhida = rotasSalvas.find(r => r.id == selectId);
+            if (!rotaEscolhida) return;
+
+            rotasVeiculos[placaAtualVinculando] = rotaEscolhida;
+            localStorage.setItem('rotasVeiculos', JSON.stringify(rotasVeiculos));
+
+            fecharModalVincular();
+            renderizarGridEMapa();
+            alert(`Rota "${rotaEscolhida.nome}" vinculada com sucesso ao veículo ${placaAtualVinculando}!`);
+        }
+
+        function desvincularRotaVeiculo(placa) {
+            if (!confirm(`Deseja desvincular a rota do veículo ${placa}?`)) return;
+            delete rotasVeiculos[placa];
+            localStorage.setItem('rotasVeiculos', JSON.stringify(rotasVeiculos));
+            renderizarGridEMapa();
+            map.closePopup();
+            alert("Rota desvinculada com sucesso!");
+        }
+
+        // --- TRÁFEGO E ACIDENTES NO MAPA ---
+        function toggleCamadaTransito() {
+            if (camadaTransitoGrupo.getLayers().length > 0) {
+                camadaTransitoGrupo.clearLayers();
+                alert("Camada de trânsito e incidentes desativada.");
+            } else {
+                // Desenha faixas simuladas de trânsito em São Paulo / Rodovias com as cores exigidas
+                // Trânsito Normal (Verde)
+                L.polyline([[-23.5505, -46.6333], [-23.2000, -46.8000]], {color: 'green', weight: 5, opacity: 0.8}).addTo(camadaTransitoGrupo);
+                // Trânsito Moderado (Amarelo)
+                L.polyline([[-23.2000, -46.8000], [-22.9000, -47.0500]], {color: 'orange', weight: 6, opacity: 0.85}).addTo(camadaTransitoGrupo);
+                // Trânsito Parado (Vermelho)
+                L.polyline([[-22.9000, -47.0500], [-22.6431, -47.1978]], {color: 'red', weight: 7, opacity: 0.9}).addTo(camadaTransitoGrupo);
+
+                // Ícone de Acidente Rodoviário
+                const iconeAcidente = L.divIcon({
+                    html: '<div style="background: #D32F2F; color: white; padding: 6px 10px; border-radius: 50%; font-size: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.5);"><i class="fas fa-car-crash"></i></div>',
+                    className: '', iconSize: [36, 36], iconAnchor: [18, 18]
+                });
+
+                L.marker([-23.1000, -46.9000], {icon: iconeAcidente})
+                    .bindPopup("<b>⚠️ ATENÇÃO: Acidente Grave na Rodovia!</b><br>Colisão traseira ocupando a faixa 2. Trânsito lento no trecho.")
+                    .addTo(camadaTransitoGrupo);
+
+                alert("Camada de trânsito ativada! Observe as linhas coloridas e o alerta de acidente no mapa.");
+            }
         }
 
         function toggleMarker(placa) {
@@ -516,11 +652,6 @@
             eixosAtuaisRota = atual;
         }
 
-        function toggleCamadaTransitoIAM() {
-            camadaTransitoAtiva = !camadaTransitoAtiva;
-            alert(camadaTransitoAtiva ? "Camada de Tráfego Rodoviário ativada." : "Camada de Tráfego desativada.");
-        }
-
         const referenciasConhecidas = {
             "unimetal sao vicente": { lat: -23.9618, lon: -46.3919, nome: "Unimetal - São Vicente, SP" },
             "unimetal cosmopolis": { lat: -22.6431, lon: -47.1978, nome: "Unimetal - Cosmópolis, SP" }
@@ -548,7 +679,6 @@
             return null;
         }
 
-        // --- SISTEMA DE ROTA INTERATIVA ---
         async function iniciarRotaInterativa() {
             eixosAtuaisRota = parseInt(document.getElementById('iamEixos').value) || 6;
             fecharModal();
@@ -558,7 +688,7 @@
             const destCoord = await obterCoordenadasGoogle('iamDestino', autocompleteDestino);
 
             if (!origCoord || !destCoord) {
-                alert("Não foi possível localizar os pontos de origem ou destino.");
+                alert("Não foi possível localizar origem ou destino.");
                 return;
             }
 
@@ -578,13 +708,8 @@
                 const distanciaKm = (route.summary.totalDistance / 1000).toFixed(1);
                 const duracaoHoras = (route.summary.totalTime / 3600).toFixed(1);
                 
-                const consumoMedioKmPorL = 2.5;
-                const precoLitroDiesel = 6.19;
-                const totalLitros = (distanciaKm / consumoMedioKmPorL);
-                const custoCombustivel = (totalLitros * precoLitroDiesel).toFixed(2);
-                
-                const qtdPedagios = Math.max(1, Math.round(distanciaKm / 120)); 
-                const valorTotalPedagios = (qtdPedagios * eixosAtuaisRota * 11.50).toFixed(2);
+                const custoCombustivel = ((distanciaKm / 2.5) * 6.19).toFixed(2);
+                const valorTotalPedagios = (Math.max(1, Math.round(distanciaKm / 120)) * eixosAtuaisRota * 11.50).toFixed(2);
                 const custoTotal = (parseFloat(custoCombustivel) + parseFloat(valorTotalPedagios)).toFixed(2);
 
                 const coordenadasMalha = route.coordinates.map(c => [c.lat, c.lng]);
@@ -598,14 +723,10 @@
                     coordenadas: coordenadasMalha
                 };
 
-                // Sugere um nome padrão direto no campo de texto
-                const nomeSugerido = `${dadosUltimaRotaCalculada.origemTxt.split(',')[0]} -> ${dadosUltimaRotaCalculada.destinoTxt.split(',')[0]}`;
-                document.getElementById('inputNomeRota').value = nomeSugerido;
-
+                document.getElementById('inputNomeRota').value = `${dadosUltimaRotaCalculada.origemTxt.split(',')[0]} -> ${dadosUltimaRotaCalculada.destinoTxt.split(',')[0]}`;
                 document.getElementById('modal-route-stats').innerHTML = `
-                    <p><b>Distância Total:</b> ${distanciaKm} km | <b>Tempo:</b> ~${duracaoHoras} h</p>
+                    <p><b>Distância:</b> ${distanciaKm} km | <b>Tempo:</b> ~${duracaoHoras} h</p>
                     <p><b>Eixos:</b> ${eixosAtuaisRota} | <b>Pedágios:</b> R$ ${valorTotalPedagios} | <b>Combustível:</b> R$ ${custoCombustivel}</p>
-                    <p style="color: var(--warning); font-size: 12px; margin-top: 5px;"><i class="fas fa-info-circle"></i> Você pode arrastar a linha no mapa para ajustar o trajeto antes de salvar.</p>
                 `;
                 document.getElementById('modalSalvarRota').style.display = 'flex';
             });
@@ -619,16 +740,9 @@
 
         function salvarRotaAtual() {
             try {
-                if (!dadosUltimaRotaCalculada) {
-                    alert("Nenhuma rota calculada para salvar.");
-                    return;
-                }
-                
+                if (!dadosUltimaRotaCalculada) return;
                 const nomeRota = document.getElementById('inputNomeRota').value.trim();
-                if (!nomeRota) {
-                    alert("Por favor, digite um nome para identificar a rota.");
-                    return;
-                }
+                if (!nomeRota) { alert("Digite um nome para a rota."); return; }
 
                 const novaRota = { id: Date.now(), nome: nomeRota, ...dadosUltimaRotaCalculada };
                 rotasSalvas.push(novaRota);
@@ -637,24 +751,17 @@
                 renderizarTabelaRotas();
                 fecharModalSalvar();
                 alert("Rota salva com sucesso!");
-                
                 limparRota();
                 mudarAba('rotas');
-                
-            } catch (error) {
-                console.error(error);
-                alert("Erro ao salvar: " + error.message);
-            }
+            } catch (error) { alert("Erro ao salvar: " + error.message); }
         }
 
         function renderizarTabelaRotas(filtro = '') {
             const tbody = document.getElementById('tbodyRotasSalvas');
             tbody.innerHTML = '';
-            const filtradas = rotasSalvas.filter(r => 
-                r.nome.toLowerCase().includes(filtro.toLowerCase()) || r.origemTxt.toLowerCase().includes(filtro.toLowerCase()) || r.destinoTxt.toLowerCase().includes(filtro.toLowerCase())
-            );
+            const filtradas = rotasSalvas.filter(r => r.nome.toLowerCase().includes(filtro.toLowerCase()));
             if (filtradas.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; opacity:0.7;">Nenhuma rota cadastrada ou encontrada.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; opacity:0.7;">Nenhuma rota encontrada.</td></tr>`;
                 return;
             }
             filtradas.forEach(r => {
@@ -679,29 +786,82 @@
         function carregarRotaNoMapa(id) {
             const rota = rotasSalvas.find(r => r.id === id);
             if (!rota) return;
-
             mudarAba('operacional');
             limparRota(); 
-            
             linhaRotaEstatica = L.polyline(rota.coordenadas, {color: '#FF8F00', weight: 6, opacity: 0.9}).addTo(map);
             map.fitBounds(linhaRotaEstatica.getBounds());
         }
 
         function excluirRota(id) {
-            if (!confirm("Tem certeza que deseja excluir esta rota?")) return;
+            if (!confirm("Deseja excluir esta rota?")) return;
             rotasSalvas = rotasSalvas.filter(r => r.id !== id);
             localStorage.setItem('rotasSalvas', JSON.stringify(rotasSalvas));
             renderizarTabelaRotas();
         }
 
-        function atualizarDashboards() {
+        // --- DASHBOARD COM DADOS REAIS DO SUPABASE ---
+        async function atualizarDashboards() {
             if(window.graf1) window.graf1.destroy();
             if(window.graf2) window.graf2.destroy();
+
+            let dadosD = [];
+            try {
+                const res = await fetch('https://oyrqywoctnyottwvqrji.supabase.co/rest/v1/posicoes_sascar?select=*&order=data_posicao.desc&limit=100', {
+                    headers: {
+                        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95cnF5d29jdG55b3R0d3ZxcmppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMjMyOTQsImV4cCI6MjEwMzc5OTI5NH0.VdqJLc_u1VXFrnOe59Bw7wLWV-GZLnx6_fjzBV_TU8w',
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95cnF5d29jdG55b3R0d3ZxcmppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMjMyOTQsImV4cCI6MjEwMzc5OTI5NH0.VdqJLc_u1VXFrnOe59Bw7wLWV-GZLnx6_fjzBV_TU8w'
+                    }
+                });
+                if (res.ok) dadosD = await res.json();
+            } catch(e) {}
+
+            // Processa excessos de velocidade (>80km/h) reais
+            let excessosPorPlaca = {};
+            let paradosLigadosPorPlaca = {};
+            let tbodyHtml = '';
+
+            dadosD.forEach(v => {
+                let p = v.id_veiculo ? String(v.id_veiculo) : 'SEM-PLACA';
+                if (p.length === 7 && !isNaN(p)) p = p.substring(0,3) + '-' + p.substring(3);
+                const vel = Number(v.velocidade) || 0;
+                const ign = v.ignicao === 1 || v.ignicao === true || String(v.ignicao) === '1';
+
+                if (vel > 80) {
+                    excessosPorPlaca[p] = (excessosPorPlaca[p] || 0) + 1;
+                    tbodyHtml += `<tr><td>${p}</td><td>Excesso Vel. (${vel} km/h)</td><td>1</td><td>${vel}</td><td>${v.data_posicao || '-'}</td></tr>`;
+                }
+                if (ign && vel === 0) {
+                    paradosLigadosPorPlaca[p] = (paradosLigadosPorPlaca[p] || 0) + 1;
+                }
+            });
+
+            document.getElementById('tbodyDash').innerHTML = tbodyHtml || `<tr><td colspan="5" style="text-align:center;">Nenhum alerta crítico no momento.</td></tr>`;
+
+            const labelsVel = Object.keys(excessosPorPlaca);
+            const valsVel = Object.values(excessosPorPlaca);
+
             const ctxVel = document.getElementById('graficoVelocidade').getContext('2d');
-            window.graf1 = new Chart(ctxVel, { type: 'bar', data: { labels: ['ABC-1234', 'XYZ-9876', 'CAR-5050'], datasets: [{ label: 'Qtd. Excessos (>80km/h)', data: [2, 0, 5], backgroundColor: '#D32F2F' }] }, options: { plugins: { datalabels: { color: 'white', font: {weight: 'bold'} } } } });
+            window.graf1 = new Chart(ctxVel, {
+                type: 'bar',
+                data: {
+                    labels: labelsVel.length > 0 ? labelsVel : ['Sem Registros'],
+                    datasets: [{ label: 'Qtd. Excessos (>80km/h)', data: valsVel.length > 0 ? valsVel : [0], backgroundColor: '#D32F2F' }]
+                },
+                options: { plugins: { datalabels: { color: 'white', font: {weight: 'bold'} } } }
+            });
+
+            const labelsPar = Object.keys(paradosLigadosPorPlaca);
+            const valsPar = Object.values(paradosLigadosPorPlaca);
+
             const ctxPar = document.getElementById('graficoParado').getContext('2d');
-            window.graf2 = new Chart(ctxPar, { type: 'pie', data: { labels: ['ABC-1234', 'XYZ-9876', 'CAR-5050'], datasets: [{ data: [45, 120, 15], backgroundColor: ['#003366', '#FFC107', '#388E3C'] }] }, options: { plugins: { datalabels: { color: 'white', font: {weight: 'bold'}, formatter: (v) => v + ' min' }, title: {display: true, text: 'Tempo Parado e Ligado'} } } });
-            document.getElementById('tbodyDash').innerHTML = `<tr><td>CAR-5050</td><td>Excesso Vel.</td><td>5</td><td>85</td><td>2026-09-06 10:12:10</td></tr><tr><td>ABC-1234</td><td>Parado Ligado</td><td>45</td><td>0</td><td>2026-09-06 09:00:00</td></tr>`;
+            window.graf2 = new Chart(ctxPar, {
+                type: 'pie',
+                data: {
+                    labels: labelsPar.length > 0 ? labelsPar : ['Frota Normal'],
+                    datasets: [{ data: valsPar.length > 0 ? valsPar : [1], backgroundColor: ['#003366', '#FFC107', '#388E3C', '#008DDA'] }]
+                },
+                options: { plugins: { datalabels: { color: 'white', font: {weight: 'bold'}, formatter: (v) => v + 'x' }, title: {display: true, text: 'Veículos Parados com Ignição Ligada'} } }
+            });
         }
 
         function carregarAbastecimentos() {
