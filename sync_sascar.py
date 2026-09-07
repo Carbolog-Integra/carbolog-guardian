@@ -8,19 +8,19 @@ SASCAR_USER = os.getenv("SASCAR_USER")
 SASCAR_PASS = os.getenv("SASCAR_PASS")
 
 def buscar_e_sincronizar_sascar():
-    print(f"[{datetime.now()}] Conectando ao Web Service SASCAR via obterPacotePosicoesJSON...")
+    print(f"[{datetime.now()}] Conectando ao Web Service SASCAR via obterPacotePosicoes...")
     
     url_wsdl = "https://sasintegra.sascar.com.br/SasIntegra/SasIntegraWSService?wsdl"
     
-    # Utilizando o método equivalente em português mapeado no WSDL
+    # Utilizando o método clássico principal listado no WSDL
     soap_envelope = f"""<?xml version="1.0" encoding="utf-8"?>
     <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ws="http://ws.sasintegra.sascar.com.br/">
        <soapenv:Header/>
        <soapenv:Body>
-          <ws:obterPacotePosicoesJSON>
+          <ws:obterPacotePosicoes>
              <usuario>{SASCAR_USER}</usuario>
              <senha>{SASCAR_PASS}</senha>
-          </ws:obterPacotePosicoesJSON>
+          </ws:obterPacotePosicoes>
        </soapenv:Body>
     </soapenv:Envelope>"""
 
@@ -32,7 +32,7 @@ def buscar_e_sincronizar_sascar():
     try:
         response = requests.post(url_wsdl, data=soap_envelope, headers=headers, timeout=60)
         print(f"HTTP Status Code: {response.status_code}")
-        print(f"Resposta XML do Servidor SASCAR:\n{response.text[:1000]}") # Imprime os primeiros caracteres para validação
+        print(f"Resposta XML do Servidor SASCAR:\n{response.text[:1200]}")
 
     except Exception as e:
         print(f"Erro durante a execução do robô: {e}")
