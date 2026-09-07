@@ -10,6 +10,43 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 SASCAR_USER = os.getenv("SASCAR_USER")
 SASCAR_PASS = os.getenv("SASCAR_PASS")
 
+def obter_endereco_por_coordenadas(lat, lon):
+    """Busca rua, cidade e UF usando Nominatim (OpenStreetMap) de forma gratuita"""
+    if not lat or not lon:
+        return {"cidade": "Desconhecido", "uf": "SP", "rua": "Coordenada inválida"}
+    
+    try:
+        url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}&zoom=18&addressdetails=1"
+        headers = {'User-Agent': 'CarbologGuardianRobot/1.0'}
+        response = requests.get(url, headers=headers, timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            address = data.get('address', {})
+            
+            cidade = (
+                address.get('city') or 
+                address.get('town') or 
+                address.get('municipality') or 
+                address.get('village') or 
+                'Região Metropolitana'
+            )
+            uf = address.get('state_code') or address.get('state') or 'SP'
+            if len(uf) > 2:
+                uf = 'SP' # Padroniza sigla se vier por extenso
+                
+            rua = (
+                address.get('road') or 
+                address.get('pedestrian') or 
+                address.get('suburb') or 
+                address.get('highway') or 
+                'Rodovia / Via Pública'
+            )
+            return {"cidade": cidade, "uf": uf.upper(), "rua": rua}
+    except Exception as e:
+        print(f"Aviso: Erro ao buscar geocodificação reversa: {e}")
+    
+    return {"cidade": "Não mapeada", "uf": "SP", "rua": "Via não identificada"}
+
 def buscar_e_sincronizar_sascar():
     print(f"[{datetime.now()}] Conectando ao WSDL da SASCAR via Zeep...")
     url_wsdl = "https://sasintegra.sascar.com.br/SasIntegra/SasIntegraWSService?wsdl"
@@ -19,7 +56,7 @@ def buscar_e_sincronizar_sascar():
         transport = Transport(session=session)
         client = zeep.Client(wsdl=url_wsdl, transport=transport)
         
-        print("Buscando pacote de posições da frota...")
+        print("Buscando pacote de posições atualizadas da frota...")
         
         resposta = client.service.obterPacotePosicoes(
             usuario=SASCAR_USER, 
@@ -31,7 +68,7 @@ def buscar_e_sincronizar_sascar():
             print("Nenhum dado retornado pela SASCAR.")
             return
 
-        print(f"Total de registros obtidos: {len(resposta)}. Sincronizando com o Supabase...")
+        print(f"Total de registros obtidos: {len(resposta)}. Processando geolocalização e Supabase...")
 
         headers_sup = {
             "apikey": SUPABASE_KEY,
@@ -44,17 +81,20 @@ def buscar_e_sincronizar_sascar():
         fuso_brasilia = ZoneInfo("America/Sao_Paulo")
 
         for item in resposta:
-            data_original = getattr(item, 'data', None)
+            lat = float(getattr(item, 'latitude', 0.0))
+            lon = float(getattr(item, 'longitude', 0.0))
             
+            # Obtém endereço real através das coordenadas da SASCAR
+            endereco = obter_endereco_por_coordenadas(lat, lon)
+
+            data_original = getattr(item, 'data', None)
             if isinstance(data_original, datetime):
-                # Força a interpretação como UTC caso venha ingênua e converte para Brasília
                 if data_original.tzinfo is None:
                     data_original = data_original.replace(tzinfo=ZoneInfo("UTC"))
                 data_brasilia = data_original.astimezone(fuso_brasilia).isoformat()
             else:
                 data_brasilia = datetime.now(fuso_brasilia).isoformat()
 
-            # Tenta capturar a placa real por diferentes atributos possíveis no objeto SASCAR
             placa_veiculo = (
                 getattr(item, 'placa', None) or 
                 getattr(item, 'placaVeiculo', None) or 
@@ -63,17 +103,20 @@ def buscar_e_sincronizar_sascar():
 
             payload_supabase = {
                 "id_veiculo": placa_veiculo,
-                "latitude": float(getattr(item, 'latitude', 0.0)),
-                "longitude": float(getattr(item, 'longitude', 0.0)),
+                "latitude": lat,
+                "longitude": lon,
                 "velocidade": int(getattr(item, 'velocidade', 0)),
                 "ignicao": int(1 if getattr(item, 'ignicao', False) else 0),
                 "odometro": int(getattr(item, 'odometro', 0)),
-                "data_posicao": data_brasilia
+                "data_posicao": data_brasilia,
+                "cidade": endereco["cidade"],
+                "uf": endereco["uf"],
+                "rua": endereco["rua"]
             }
 
             res = requests.post(url_sup, json=payload_supabase, headers=headers_sup)
             if res.status_code not in [200, 201]:
-                print(f"Erro ao salvar veículo {payload_supabase['id_veiculo']}: {res.text}")
+                print(f"Erro ao salvar veículo {placa_veiculo}: {res.text}")
 
         print(f"[{datetime.now()}] Sincronização concluída com sucesso!")
 
