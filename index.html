@@ -103,7 +103,7 @@
     <!-- APLICAÇÃO PRINCIPAL -->
     <div id="app" class="app-container">
         <div class="navbar">
-            <div class="logo"><h3><i class="fas fa-satellite-dish"></i> Integrador de Frota</h3></div>
+            <div class="logo"><h3><i class="fas fa-satellite-dish"></i> Guardian Carbolog</h3></div>
             <div class="nav-menus">
                 <button class="active" onclick="mudarAba('operacional')">Grid Operacional</button>
                 <button onclick="mudarAba('dashboard')">Dashboard</button>
@@ -119,7 +119,7 @@
         <div id="operacional" class="tab-content active">
             <div class="card">
                 <div class="flex-row" style="justify-content: space-between;">
-                    <h3 style="color: var(--primary-blue);"><i class="fas fa-map"></i> Robô Monitor de Frota (SASCAR)</h3>
+                    <h3 style="color: var(--primary-blue);"><i class="fas fa-map"></i> Monitor de Frota</h3>
                     <div>
                         <span class="info-tag">Auto-Refresh Robô: <span id="timerRefresh">300</span>s</span>
                         <button class="btn" onclick="carregarDadosVeiculos()"><i class="fas fa-sync"></i> Executar Varredura Agora</button>
@@ -205,7 +205,7 @@
     <!-- MODAL DE ROTEIRIZAÇÃO IAM / GOOGLE PLACES -->
     <div id="modalEficiencia" class="modal">
         <div class="modal-content">
-            <div class="modal-header">Roteirizador Rodoviário (Google Places + IAM / Qualp) <span class="close-modal" onclick="fecharModal()">×</span></div>
+            <div class="modal-header">Roteirizador Rodoviário (Google Places + IAM) <span class="close-modal" onclick="fecharModal()">×</span></div>
             
             <div class="flex-row">
                 <div style="width: 50%;">
@@ -263,7 +263,7 @@
 
             // Credenciais restritas e válidas
             const usuarioValido = "v.menezes@carbolog.com.br";
-            const senhaValida = "123456"; // Altere para a senha desejada
+            const senhaValida = ".@Anasarahzoe26"; // Altere para a senha desejada
 
             if (email === usuarioValido && senha === senhaValida) {
                 erroEl.style.display = 'none';
