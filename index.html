@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guardian Carbolog - Gestão de Riscos</title>
+    <title>Sistema de Integração - Telemetria e Abastecimento</title>
 
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
@@ -92,13 +92,13 @@
         .info-tag { font-size: 12px; background: rgba(0,0,0,0.1); padding: 5px 10px; border-radius: 15px; }
         
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center;}
-        .modal-content { background: var(--card-bg); color: var(--text-color); padding: 25px; border-radius: 8px; width: 90%; max-width: 550px; max-height: 90vh; overflow-y: auto; }
+        .modal-content { background: var(--card-bg); color: var(--text-color); padding: 25px; border-radius: 8px; width: 90%; max-width: 850px; max-height: 90vh; overflow-y: auto; }
         .modal-header { font-size: 18px; font-weight: bold; margin-bottom: 15px; color: var(--accent-blue); border-bottom: 1px solid var(--border-color); padding-bottom: 10px;}
         .close-modal { float: right; cursor: pointer; color: var(--danger); font-size: 20px; }
         .eixos-control { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
         .eixos-btn { background: var(--primary-blue); color: white; border: none; width: 32px; height: 32px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 16px; }
         .eixos-btn:hover { background: var(--accent-blue); }
-        .badge-alerta { padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; color: white; margin-left: 5px; display: inline-block; cursor: pointer;}
+        .badge-alerta { padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; color: white; margin-left: 5px; display: inline-block; cursor: pointer; text-transform: uppercase; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
         .bg-danger { background-color: var(--danger); }
         .bg-warning { background-color: var(--warning); }
         
@@ -111,7 +111,7 @@
     <div id="login-screen">
         <div class="login-box">
             <h2><i class="fas fa-shield-alt"></i> Acesso ao Sistema</h2>
-            <p style="font-size: 14px; opacity: 0.8;">Guardian Carbolog</p>
+            <p style="font-size: 14px; opacity: 0.8;">Apenas e-mails corporativos autorizados</p>
             <input type="email" id="emailInput" placeholder="usuario@carbolog.com.br" value="v.menezes@carbolog.com.br" required>
             <select id="perfilInput">
                 <option value="Administrador">Administrador</option>
@@ -126,7 +126,7 @@
     <!-- APLICAÇÃO PRINCIPAL -->
     <div id="app" class="app-container">
         <div class="navbar">
-            <div class="logo"><h3><i class="fas fa-satellite-dish"></i> Guardian Carbolog</h3></div>
+            <div class="logo"><h3><i class="fas fa-satellite-dish"></i> Integrador de Frota</h3></div>
             <div class="nav-menus">
                 <button class="active" onclick="mudarAba('operacional')">Grid Operacional</button>
                 <button onclick="mudarAba('dashboard')">Dashboard</button>
@@ -147,11 +147,11 @@
         <div id="operacional" class="tab-content active">
             <div class="card" style="padding-bottom: 0;">
                 <div class="flex-row" style="justify-content: space-between;">
-                    <h3 style="color: var(--accent-blue);"><i class="fas fa-map"></i> Monitor de Frota</h3>
+                    <h3 style="color: var(--accent-blue);"><i class="fas fa-map"></i> Robô Monitor de Frota (SASCAR)</h3>
                     <div>
                         <span class="info-tag">Auto-Refresh Robô: <span id="timerRefresh">300</span>s</span>
-                        <button class="btn" onclick="carregarDadosVeiculos()"><i class="fas fa-sync"></i> Refresh</button>
-                        <button class="btn" style="background:#00838F;" onclick="carregarAcidentesWazeGoogle()"><i class="fas fa-traffic-light"></i> Tráfego em tempo real</button>
+                        <button class="btn" onclick="carregarDadosVeiculos()"><i class="fas fa-sync"></i> Varredura Agora</button>
+                        <button class="btn" style="background:#00838F;" onclick="carregarAcidentesWazeGoogle()"><i class="fas fa-traffic-light"></i> Tráfego / Waze Reais</button>
                         <button class="btn" onclick="abrirModalEficiencia()"><i class="fas fa-route"></i> Criar Nova Rota</button>
                     </div>
                 </div>
@@ -281,22 +281,20 @@
 
     <!-- JANELA / MODAL INTERATIVA DE DESENHO DE ÁREA -->
     <div id="modalJanelaCriarArea" class="modal">
-        <div class="modal-content" style="max-width: 850px; width: 95%;">
+        <div class="modal-content">
             <div class="modal-header">
                 <span><i class="fas fa-map-marked-alt"></i> Desenhar e Cadastrar Nova Área Geográfica</span> 
                 <span class="close-modal" onclick="fecharJanelaCriarArea()">×</span>
             </div>
             
-            <!-- Barra de Busca por Referência / Cidade / UF com ícone de Lupa -->
             <div class="flex-row" style="gap: 10px; margin-bottom: 15px;">
                 <div style="flex: 1; display: flex; align-items: center; position: relative;">
-                    <input type="text" id="inputBuscaRefArea" placeholder="Pesquisar por referência, cidade ou UF (Ex: Sorocaba SP)..." style="width: 100%; padding: 10px 40px 10px 12px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); color: var(--text-color);">
+                    <input type="text" id="inputBuscaRefArea" placeholder="Pesquisar por referência, cidade ou UF (Ex: Sorocaba SP)..." onkeydown="if(event.key === 'Enter') pesquisarLocalArea();" style="width: 100%; padding: 10px 40px 10px 12px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); color: var(--text-color);">
                     <i class="fas fa-search" onclick="pesquisarLocalArea()" style="position: absolute; right: 12px; cursor: pointer; color: var(--accent-blue); font-size: 16px;" title="Pesquisar localização"></i>
                 </div>
                 <button class="btn" style="background: var(--accent-blue); margin-top: 0; padding: 10px 15px;" onclick="pesquisarLocalArea()"><i class="fas fa-search"></i> Buscar</button>
             </div>
 
-            <!-- Barra de Ferramentas de Desenho e Edição -->
             <div class="flex-row" style="background: rgba(0,0,0,0.04); padding: 10px; border-radius: 6px; justify-content: space-between; margin-bottom: 15px;">
                 <div style="display: flex; gap: 8px;">
                     <button class="btn" style="background: var(--primary-blue); font-size: 12px; padding: 6px 12px; margin-top:0;" onclick="ativarFerramentaDesenho('polygon')"><i class="fas fa-draw-polygon"></i> Poligonal (Ponto a Ponto)</button>
@@ -309,10 +307,8 @@
                 </div>
             </div>
 
-            <!-- Mapa para Desenho da Área -->
             <div id="mapDesenhoArea" style="height: 380px; width: 100%; border-radius: 6px; margin-bottom: 15px;"></div>
 
-            <!-- Nome da Área e Botão Salvar -->
             <div class="flex-row" style="gap: 15px; align-items: flex-end;">
                 <div style="flex: 1;">
                     <label><b>Nome da Área:</b></label><br>
@@ -447,7 +443,6 @@
         
         let autocompleteOrigem = null;
         let autocompleteDestino = null;
-        let autocompleteBuscaArea = null;
         
         let rotasSalvas = [];
         let areasSalvas = [];
@@ -455,7 +450,6 @@
         let historicoPermanenciasDashboard = [];
         let historicoDesviosDashboard = [];
 
-        // Estado do desenho atual na janela de áreas
         let modoDesenhoAtual = null; // 'polygon', 'rectangle', 'circle'
         let pontosPoligonoTemp = [];
         let marcadorCentroRetangulo = null;
@@ -521,7 +515,6 @@
             if (window.google && google.maps && google.maps.places) {
                 autocompleteOrigem = new google.maps.places.Autocomplete(document.getElementById('iamOrigem'), { componentRestrictions: { country: 'br' } });
                 autocompleteDestino = new google.maps.places.Autocomplete(document.getElementById('iamDestino'), { componentRestrictions: { country: 'br' } });
-                autocompleteBuscaArea = new google.maps.places.Autocomplete(document.getElementById('inputBuscaRefArea'), { componentRestrictions: { country: 'br' } });
             }
 
             if (localStorage.getItem('tema') === 'claro') {
@@ -843,6 +836,49 @@
             countdown = 300;
         }
 
+        function abrirModalComboio(placaAlvo) {
+            document.getElementById('comboioVeiculoPrincipal').innerText = placaAlvo;
+            const container = document.getElementById('listaPlacasComboio');
+            container.innerHTML = '';
+
+            let vizinhos = [];
+            const vAlvo = veiculosCacheGlobal.find(v => {
+                let p = v.id_veiculo ? String(v.id_veiculo) : 'SEM-PLACA';
+                if (p.length === 7 && !isNaN(p)) p = p.substring(0,3) + '-' + p.substring(3);
+                return p === placaAlvo;
+            });
+
+            if (vAlvo && vAlvo.latitude && vAlvo.longitude) {
+                veiculosCacheGlobal.forEach(v => {
+                    let p = v.id_veiculo ? String(v.id_veiculo) : 'SEM-PLACA';
+                    if (p.length === 7 && !isNaN(p)) p = p.substring(0,3) + '-' + p.substring(3);
+                    if (p !== placaAlvo && v.latitude && v.longitude) {
+                        const dist = calcularDistanciaMetros(vAlvo.latitude, vAlvo.longitude, v.latitude, v.longitude);
+                        if (dist <= 300) {
+                            vizinhos.push({ placa: p, distancia: Math.round(dist), vel: Number(v.velocidade) || 0 });
+                        }
+                    }
+                });
+            }
+
+            if (vizinhos.length === 0) {
+                container.innerHTML = `<p style="font-size:13px; opacity:0.7;">Nenhum veículo próximo no momento.</p>`;
+            } else {
+                vizinhos.forEach(item => {
+                    container.innerHTML += `<div style="padding: 6px; border-bottom: 1px solid var(--border-color); font-size: 13px; display: flex; justify-content: space-between;">
+                        <span><b>Placa:</b> ${item.placa}</span>
+                        <span><b>Distância:</b> ~${item.distancia}m</span>
+                        <span><b>Vel:</b> ${item.vel} km/h</span>
+                    </div>`;
+                });
+            }
+            document.getElementById('modalComboio').style.display = 'flex';
+        }
+
+        function fecharModalComboio() {
+            document.getElementById('modalComboio').style.display = 'none';
+        }
+
         // --- JANELA DE CRIAÇÃO E DESENHO DE ÁREAS GEOGRÁFICAS ---
         function abrirJanelaCriarArea() {
             document.getElementById('modalJanelaCriarArea').style.display = 'flex';
@@ -936,7 +972,9 @@
         }
 
         async function pesquisarLocalArea() {
-            const termo = document.getElementById('inputBuscaRefArea').value.trim();
+            const inputEl = document.getElementById('inputBuscaRefArea');
+            if (!inputEl) return;
+            const termo = inputEl.value.trim();
             if (!termo) { alert("Digite uma referência, cidade ou UF."); return; }
             
             try {
