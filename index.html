@@ -124,10 +124,10 @@
         <div id="operacional" class="tab-content active">
             <div class="card">
                 <div class="flex-row" style="justify-content: space-between;">
-                    <h3 style="color: var(--primary-blue);"><i class="fas fa-map"></i> Mapa Interativo de Veículos</h3>
+                    <h3 style="color: var(--primary-blue);"><i class="fas fa-map"></i> Robô Monitor de Frota (SASCAR)</h3>
                     <div>
-                        <span class="info-tag">Auto-Refresh em: <span id="timerRefresh">300</span>s</span>
-                        <button class="btn" onclick="carregarDadosVeiculos()"><i class="fas fa-sync"></i> Refresh</button>
+                        <span class="info-tag">Auto-Refresh Robô: <span id="timerRefresh">300</span>s</span>
+                        <button class="btn" onclick="carregarDadosVeiculos()"><i class="fas fa-sync"></i> Executar Varredura Agora</button>
                         <button class="btn" style="background:#00838F;" onclick="toggleCamadaTransitoIAM()"><i class="fas fa-traffic-light"></i> Tráfego Rodoviário</button>
                         <button class="btn" onclick="abrirModalEficiencia()"><i class="fas fa-route"></i> Roteirizador IAM / Qualp</button>
                     </div>
@@ -137,7 +137,7 @@
 
             <div class="card">
                 <div class="flex-row">
-                    <h3 style="color: var(--primary-blue);"><i class="fas fa-list"></i> Grid de Monitoramento SASCAR (Com Alertas de Comboio e Velocidade)</h3>
+                    <h3 style="color: var(--primary-blue);"><i class="fas fa-list"></i> Grid de Monitoramento e Alertas Automáticos</h3>
                     <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(true)">Marcar Todos</button>
                     <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(false)">Desmarcar Todos</button>
                 </div>
@@ -255,7 +255,6 @@
             mapaNormal.addTo(map);
             L.control.layers({"Normal": mapaNormal, "Satélite": mapaSatelite}).addTo(map);
 
-            // Inicializa o Google Places Autocomplete de forma flexível sem travar texto livre
             if (window.google && google.maps && google.maps.places) {
                 autocompleteOrigem = new google.maps.places.Autocomplete(document.getElementById('iamOrigem'), { componentRestrictions: { country: 'br' } });
                 autocompleteDestino = new google.maps.places.Autocomplete(document.getElementById('iamDestino'), { componentRestrictions: { country: 'br' } });
@@ -283,16 +282,14 @@
             if(abaId === 'operacional' && map) setTimeout(() => map.invalidateSize(), 150);
         }
 
-        // Função para calcular distância em metros entre duas coordenadas (Fórmula de Haversine)
         function calcularDistanciaMetros(lat1, lon1, lat2, lon2) {
-            const R = 6371e3; // Raio da Terra em metros
+            const R = 6371e3;
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLon = (lon2 - lon1) * Math.PI / 180;
             const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
                       Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
                       Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c;
+            return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
         }
 
         async function carregarDadosVeiculos() {
@@ -326,7 +323,7 @@
                 return; 
             }
 
-            // REGRA DE COMBOIO: Analisa proximidade < 300m entre veículos ativos
+            // ROBÔ DE REGRAS: Análise de comboio (< 300m entre veículos ativos)
             const alertasComboio = new Set();
             for (let i = 0; i < veiculosDados.length; i++) {
                 for (let j = i + 1; j < veiculosDados.length; j++) {
@@ -355,7 +352,6 @@
 
             veiculosDados.forEach((v, index) => {
                 const tr = document.createElement('tr');
-                
                 const lat = v.latitude;
                 const lon = v.longitude;
                 
@@ -372,7 +368,6 @@
                 const ignicaoBool = v.ignicao === 1 || v.ignicao === true || String(v.ignicao) === '1';
                 const velFinal = Number(v.velocidade) || 0;
                 
-                // Geração das tags de alerta conforme regras solicitadas
                 let htmlAlertas = '';
                 if (velFinal > 80) {
                     htmlAlertas += `<span class="badge-alerta bg-danger" title="Velocidade acima de 80 km/h">EXCESSO VEL.</span>`;
@@ -494,15 +489,13 @@
             }
         }
 
-        // Dicionário corporativo para referências específicas (Unimetal) e fallback flexível para Google Places / Nominatim
         const referenciasConhecidas = {
             "unimetal sao vicente": { lat: -23.9618, lon: -46.3919, nome: "Unimetal - São Vicente, SP" },
             "unimetal cosmopolis": { lat: -22.6431, lon: -47.1978, nome: "Unimetal - Cosmópolis, SP" }
         };
 
         async function obterCoordenadasGoogle(inputElementId, autocompleteInstance) {
-            const inputEl = document.getElementById(inputElementId);
-            const val = inputEl.value.trim();
+            const val = document.getElementById(inputElementId).value.trim();
             const valLower = val.toLowerCase();
 
             for (let chave in referenciasConhecidas) {
@@ -541,7 +534,7 @@
             const res = document.getElementById('resultadoEficiencia');
 
             res.style.display = 'block';
-            res.innerHTML = `<h4 style="color:#00838F"><i class="fas fa-spinner fa-spin"></i> Localizando referências e calculando rota rodoviária...</h4>`;
+            res.innerHTML = `<h4 style="color:#00838F"><i class="fas fa-spinner fa-spin"></i> Robô roteirizador calculando malha rodoviária...</h4>`;
 
             try {
                 const origCoord = await obterCoordenadasGoogle('iamOrigem', autocompleteOrigem);
