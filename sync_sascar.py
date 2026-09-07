@@ -16,19 +16,21 @@ def buscar_e_sincronizar_sascar():
     try:
         session = requests.Session()
         transport = Transport(session=session)
-        
         client = zeep.Client(wsdl=url_wsdl, transport=transport)
         
-        print("Executando chamada SOAP via cliente WSDL...")
+        print("Executando chamada SOAP com o parâmetro quantidade...")
         
-        try:
-            resultado = client.service.obterVeiculos(usuario=SASCAR_USER, senha=SASCAR_PASS)
-            print(f"Sucesso! Dados obtidos: {str(resultado)[:300]}")
-        except Exception as e_metodo:
-            print(f"Erro ao chamar obterVeiculos: {e_metodo}")
-            
+        # Passando usuario, senha e quantidade conforme exigido pelo validador SASCAR
+        resultado = client.service.obterVeiculos(
+            usuario=SASCAR_USER, 
+            senha=SASCAR_PASS, 
+            quantidade=1000
+        )
+        
+        print(f"Sucesso absoluto! Veículos obtidos: {str(resultado)[:400]}")
+        
     except Exception as e:
-        print(f"Erro geral de conexão SOAP: {e}")
+        print(f"Erro na execução SOAP: {e}")
 
 if __name__ == "__main__":
     buscar_e_sincronizar_sascar()
