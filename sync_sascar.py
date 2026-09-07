@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import zeep
 from zeep.transports import Transport
 import requests
@@ -20,7 +21,6 @@ def buscar_e_sincronizar_sascar():
         
         print("Buscando pacote de posições da frota...")
         
-        # Chamada do método de posições com os parâmetros validados
         resposta = client.service.obterPacotePosicoes(
             usuario=SASCAR_USER, 
             senha=SASCAR_PASS, 
@@ -41,8 +41,20 @@ def buscar_e_sincronizar_sascar():
         }
         url_sup = f"{SUPABASE_URL}/rest/v1/posicoes_sascar"
 
+        # Fuso horário de Brasília
+        fuso_brasilia = ZoneInfo("America/Sao_Paulo")
+
         for item in resposta:
-            # Mapeamento dos campos retornados pela SASCAR para as colunas da sua tabela
+            data_original = getattr(item, 'data', None)
+            
+            if isinstance(data_original, datetime):
+                # Se vier sem timezone, assume UTC/local e converte para Brasília
+                if data_original.tzinfo is None:
+                    data_original = data_original.replace(tzinfo=ZoneInfo("UTC"))
+                data_brasilia = data_original.astimezone(fuso_brasilia).isoformat()
+            else:
+                data_brasilia = datetime.now(fuso_brasilia).isoformat()
+
             payload_supabase = {
                 "id_veiculo": str(getattr(item, 'placa', None) or getattr(item, 'idVeiculo', 'N/D')),
                 "latitude": float(getattr(item, 'latitude', 0.0)),
@@ -50,14 +62,14 @@ def buscar_e_sincronizar_sascar():
                 "velocidade": int(getattr(item, 'velocidade', 0)),
                 "ignicao": int(1 if getattr(item, 'ignicao', False) else 0),
                 "odometro": int(getattr(item, 'odometro', 0)),
-                "data_posicao": str(getattr(item, 'data', datetime.now().isoformat()))
+                "data_posicao": data_brasilia
             }
 
             res = requests.post(url_sup, json=payload_supabase, headers=headers_sup)
             if res.status_code not in [200, 201]:
                 print(f"Erro ao salvar veículo {payload_supabase['id_veiculo']}: {res.text}")
 
-        print(f"[{datetime.now()}] Sincronização concluída com sucesso!")
+        print(f"[{datetime.now()}] Sincronização e ajuste de fuso concluídos com sucesso!")
 
     except Exception as e:
         print(f"Erro na execução da sincronização: {e}")
