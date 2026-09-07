@@ -72,7 +72,7 @@
         .info-tag { font-size: 12px; background: #eee; padding: 5px 10px; border-radius: 15px; }
         
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;}
-        .modal-content { background: var(--white); padding: 25px; border-radius: 8px; width: 90%; max-width: 650px; }
+        .modal-content { background: var(--white); padding: 25px; border-radius: 8px; width: 90%; max-width: 650px; max-height: 90vh; overflow-y: auto; }
         .modal-header { font-size: 18px; font-weight: bold; margin-bottom: 15px; color: var(--primary-blue); border-bottom: 1px solid #ccc; padding-bottom: 10px;}
         .close-modal { float: right; cursor: pointer; color: var(--danger); font-size: 20px; }
         .eixos-control { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
@@ -438,10 +438,8 @@
             }
         }
 
-        // Conversor inteligente de Local/Cidade/Referência para Coordenadas via Nominatim (Padrão Qualp/IAM)
         async function gearLocal(termo) {
             termo = termo.trim();
-            // Se o usuário digitou coordenadas diretas (ex: -20.99, -51.80)
             if (termo.includes(',')) {
                 const p = termo.split(',');
                 const lat = parseFloat(p[0]);
@@ -462,7 +460,6 @@
             return null;
         }
 
-        // Roteirizador Avançado compatível com IAM / Qualp API (Malha Viária + Eixos + Pedágio + Combustível)
         async function calcularRotaRodoviariaIAM() {
             const origemInput = document.getElementById('iamOrigem').value;
             const destinoInput = document.getElementById('iamDestino').value;
@@ -480,7 +477,6 @@
                     throw new Error("Não foi possível localizar a origem ou o destino informados. Verifique o nome da cidade ou referência.");
                 }
 
-                // Roteirizador OSRM (Traçado geométrico exato em cima das rodovias)
                 const url = `https://router.project-osrm.org/route/v1/driving/${origCoord.lon},${origCoord.lat};${destCoord.lon},${destCoord.lat}?overview=full&geometries=geojson`;
                 const response = await fetch(url);
                 const data = await response.json();
@@ -494,25 +490,24 @@
                 const duracaoHoras = (rota.duration / 3600).toFixed(1);
                 const coordenadasMalha = rota.geometry.coordinates.map(coord => [coord[1], coord[0]]);
 
-                // Cálculos comerciais estimados com base na quantidade de eixos e distância
-                const consumoMedioKmPorL = 2.5; // Média estimada para veículo pesado
-                const precoLitroDiesel = 6.19;  // Preço médio do diesel
+                const consumoMedioKmPorL = 2.5;
+                const precoLitroDiesel = 6.19;
                 const totalLitros = (distanciaKm / consumoMedioKmPorL);
                 const custoCombustivel = (totalLitros * precoLitroDiesel).toFixed(2);
 
-                // Estimativa de praças de pedágio proporcional à distância e quantidade de eixos
                 const qtdPedagios = Math.max(1, Math.round(distanciaKm / 120)); 
                 const valorMedioPorEixoPraca = 11.50;
                 const valorTotalPedagios = (qtdPedagios * qtdEixos * valorMedioPorEixoPraca).toFixed(2);
 
                 res.innerHTML = `
                     <h4 style="color:#00838F"><i class="fas fa-route"></i> Rota Comercial Rodoviária Calculada</h4>
-                    <p><b>De:</b> ${origemInput} <br><b>Para:</b> ${destinoInput}</p>
+                    <p><b>De:</b> ${origCoord.nome} <br><b>Para:</b> ${destCoord.nome}</p>
                     <hr style="border:0; border-top:1px solid #ccc; margin:8px 0;">
                     <p><b>Distância Viária:</b> ${distanciaKm} km | <b>Tempo Estimado:</b> ~${duracaoHoras}h</p>
                     <p><b>Condição de Tráfego:</b> Monitorado (Fluido / Sem interdições severas)</p>
                     <p><b>Quantidade de Eixos:</b> ${qtdEixos} eixos</p>
-                    <p><b>Pedágios:</b> ${qtdPedagios} praças | <b>Valor Total Pedágio:</b> R$ ${valorTotalPedagios}</p>
+                    <p><b>Quantidade de Pedágios:</b> ${qtdPedagios} praças</p>
+                    <p><b>Valor Total de Pedágios:</b> R$ ${valorTotalPedagios}</p>
                     <p><b>Custo Estimado de Combustível:</b> R$ ${custoCombustivel} (${totalLitros.toFixed(1)} L)</p>
                     <p style="color: green; font-weight: bold; margin-top: 5px;">✓ Rota comercial rasterizada exatamente sobre as rodovias.</p>
                 `;
