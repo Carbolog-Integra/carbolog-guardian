@@ -5,23 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Integração - Telemetria e Abastecimento</title>
 
-    <!-- Fontes e Ícones -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
     
-    <!-- Leaflet (Mapas) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
-    <!-- Chart.js e DataLabels -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     
-    <!-- SheetJS (Excel) e html2pdf (PDF) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-    <!-- Google Maps Places API -->
     <script src="https://maps.googleapis.com/maps/api/js?key=SUA_GOOGLE_MAPS_API_KEY&libraries=places"></script>
 
     <style>
@@ -99,9 +94,9 @@
                 <option value="Administrador">Administrador</option>
                 <option value="Gestor">Gestor de Frota</option>
             </select>
-            <input type="password" id="passInput" placeholder="Senha" value="123456" required>
+            <input type="password" id="passInput" placeholder="Senha" value="" required>
             <button class="btn" onclick="fazerLogin()" style="width: 100%;">Entrar</button>
-            <p id="loginError" style="color: red; display: none; margin-top: 15px; font-size: 14px;">Domínio não autorizado!</p>
+            <p id="loginError" style="color: red; display: none; margin-top: 15px; font-size: 14px; font-weight: bold;"></p>
         </div>
     </div>
 
@@ -266,11 +261,11 @@
             const senha = document.getElementById('passInput').value.trim();
             const erroEl = document.getElementById('loginError');
 
-            // Defina aqui as credenciais autorizadas de acesso
-            const emailAutorizado = "v.menezes@carbolog.com.br";
-            const senhaAutorizada = "123456"; // Altere para a senha desejada
+            // Credenciais restritas e válidas
+            const usuarioValido = "v.menezes@carbolog.com.br";
+            const senhaValida = "123456"; // Altere para a senha desejada
 
-            if (email === emailAutorizado && senha === senhaAutorizada) {
+            if (email === usuarioValido && senha === senhaValida) {
                 erroEl.style.display = 'none';
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('app').style.display = 'block';
@@ -284,7 +279,7 @@
                     iniciarAutoRefresh();
                 }, 200);
             } else {
-                erroEl.innerText = "Acesso negado: E-mail ou senha incorretos!";
+                erroEl.innerText = "Acesso Negado: E-mail ou senha incorretos!";
                 erroEl.style.display = 'block';
             }
         }
@@ -338,7 +333,6 @@
                 return; 
             }
 
-            // ROBÔ DE REGRAS: Análise de comboio (< 300m entre veículos ativos)
             const alertasComboio = new Set();
             for (let i = 0; i < veiculosDados.length; i++) {
                 for (let j = i + 1; j < veiculosDados.length; j++) {
