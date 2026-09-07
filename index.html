@@ -1,4 +1,291 @@
-veiculosDados.forEach((v) => {
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Integração - Telemetria e Abastecimento</title>
+
+    <!-- Fontes e Ícones -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet (Mapas) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Chart.js e DataLabels -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    
+    <!-- SheetJS (Excel) e html2pdf (PDF) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        :root {
+            --bg-dark: #002244;
+            --primary-blue: #003366;
+            --accent-blue: #0055A4;
+            --white: #FFFFFF;
+            --light-gray: #F4F6F8;
+            --danger: #D32F2F;
+            --success: #388E3C;
+        }
+
+        body { font-family: 'Roboto', sans-serif; margin: 0; background-color: var(--light-gray); color: #333; }
+        
+        #login-screen {
+            display: flex; justify-content: center; align-items: center; height: 100vh;
+            background: linear-gradient(135deg, var(--bg-dark), var(--primary-blue));
+        }
+        .login-box {
+            background: var(--white); padding: 40px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            text-align: center; width: 100%; max-width: 400px;
+        }
+        .login-box h2 { color: var(--primary-blue); margin-bottom: 20px; }
+        .login-box input, .login-box select { width: 90%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; }
+        .btn { background: var(--primary-blue); color: var(--white); border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; font-weight: bold; margin-top: 10px; text-transform: uppercase;}
+        .btn:hover { background: var(--accent-blue); }
+
+        .navbar { background: var(--bg-dark); color: var(--white); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
+        .nav-menus button { background: none; border: none; color: var(--white); font-size: 16px; margin: 0 10px; cursor: pointer; padding-bottom: 5px; }
+        .nav-menus button.active { border-bottom: 3px solid var(--white); font-weight: bold; }
+        
+        .app-container { display: none; }
+        .tab-content { display: none; padding: 20px; }
+        .tab-content.active { display: block; }
+        .card { background: var(--white); padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        
+        #map { height: 400px; width: 100%; border-radius: 8px; border: 2px solid var(--primary-blue); z-index: 1;}
+        .custom-truck-icon { font-size: 24px; color: var(--primary-blue); text-shadow: 1px 1px 2px white; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: var(--primary-blue); color: var(--white); }
+        th input { width: 90%; padding: 5px; margin-top: 5px; font-size: 12px; color: #000; box-sizing: border-box;}
+        tr:hover { background-color: #f1f1f1; }
+        .table-actions a { color: var(--primary-blue); font-size: 18px; margin-right: 10px; text-decoration: none; }
+        .fa-waze { color: #33ccff; }
+        .fa-map-marker-alt { color: #ea4335; }
+
+        .flex-row { display: flex; gap: 15px; align-items: center; margin-bottom: 15px; }
+        .info-tag { font-size: 12px; background: #eee; padding: 5px 10px; border-radius: 15px; }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;}
+        .modal-content { background: var(--white); padding: 25px; border-radius: 8px; width: 90%; max-width: 600px; }
+        .modal-header { font-size: 18px; font-weight: bold; margin-bottom: 15px; color: var(--primary-blue); border-bottom: 1px solid #ccc; padding-bottom: 10px;}
+        .close-modal { float: right; cursor: pointer; color: var(--danger); font-size: 20px; }
+    </style>
+</head>
+<body>
+
+    <!-- TELA DE LOGIN -->
+    <div id="login-screen">
+        <div class="login-box">
+            <h2><i class="fas fa-shield-alt"></i> Acesso ao Sistema</h2>
+            <p style="font-size: 14px; color: #666;">Apenas e-mails corporativos autorizados</p>
+            <input type="email" id="emailInput" placeholder="usuario@carbolog.com.br" value="v.menezes@carbolog.com.br" required>
+            <select id="perfilInput" style="width: 95%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px;">
+                <option value="Administrador">Administrador</option>
+                <option value="Gestor">Gestor de Frota</option>
+            </select>
+            <input type="password" id="passInput" placeholder="Senha" value="123456" required>
+            <button class="btn" onclick="fazerLogin()" style="width: 100%;">Entrar</button>
+            <p id="loginError" style="color: red; display: none; margin-top: 15px; font-size: 14px;">Domínio não autorizado!</p>
+        </div>
+    </div>
+
+    <!-- APLICAÇÃO PRINCIPAL -->
+    <div id="app" class="app-container">
+        <div class="navbar">
+            <div class="logo"><h3><i class="fas fa-satellite-dish"></i> Integrador de Frota</h3></div>
+            <div class="nav-menus">
+                <button class="active" onclick="mudarAba('operacional')">Grid Operacional</button>
+                <button onclick="mudarAba('dashboard')">Dashboard</button>
+                <button onclick="mudarAba('abastecimentos')">Gestão de Abastecimentos</button>
+            </div>
+            <div>
+                <span id="userLogado" style="margin-right: 15px; font-size: 14px;"></span>
+                <button class="btn" style="padding: 5px 10px; font-size: 12px; background: var(--danger);" onclick="location.reload()">Sair</button>
+            </div>
+        </div>
+
+        <!-- ABA 1: GRID OPERACIONAL -->
+        <div id="operacional" class="tab-content active">
+            <div class="card">
+                <div class="flex-row" style="justify-content: space-between;">
+                    <h3 style="color: var(--primary-blue);"><i class="fas fa-map"></i> Mapa Interativo de Veículos</h3>
+                    <div>
+                        <span class="info-tag">Auto-Refresh em: <span id="timerRefresh">300</span>s</span>
+                        <button class="btn" onclick="carregarDadosVeiculos()"><i class="fas fa-sync"></i> Refresh Manual</button>
+                        <button class="btn" onclick="abrirModalEficiencia()"><i class="fas fa-route"></i> Analisar Eficiência</button>
+                    </div>
+                </div>
+                <div id="map"></div>
+            </div>
+
+            <div class="card">
+                <div class="flex-row">
+                    <h3 style="color: var(--primary-blue);"><i class="fas fa-list"></i> Grid de Monitoramento SASCAR (Supabase)</h3>
+                    <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(true)">Marcar Todos</button>
+                    <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(false)">Desmarcar Todos</button>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table id="gridOperacional">
+                        <thead>
+                            <tr>
+                                <th>Ver <br><input type="checkbox" id="checkAll" checked onclick="toggleCheckAll()"></th>
+                                <th>Placa <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" data-col="1"></th>
+                                <th>Data/Hora Com. <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" data-col="2"></th>
+                                <th>Ignição <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" data-col="3" placeholder="ON/OFF"></th>
+                                <th>Cidade <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" data-col="4"></th>
+                                <th>UF <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" data-col="5"></th>
+                                <th>Rua / Rodovia / Ponto <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" data-col="6"></th>
+                                <th>Velocidade <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" data-col="7" placeholder="km/h"></th>
+                                <th>Ações (Rotas)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyOperacional"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ABA 2: DASHBOARD -->
+        <div id="dashboard" class="tab-content">
+            <div class="card" id="exportAreaDash">
+                <div class="flex-row" style="justify-content: space-between;">
+                    <h3 style="color: var(--primary-blue);"><i class="fas fa-chart-pie"></i> Painel de Indicadores</h3>
+                    <div><button class="btn" style="background: #1D6F42;" onclick="exportarExcel('tabelaDash', 'Dashboard_Excesso')"><i class="fas fa-file-excel"></i> Exportar Dados</button></div>
+                </div>
+                <div class="flex-row">
+                    <div style="width: 50%;"><canvas id="graficoVelocidade"></canvas></div>
+                    <div style="width: 50%;"><canvas id="graficoParado"></canvas></div>
+                </div>
+                <hr>
+                <h4>Registros Brutos (Rastreador)</h4>
+                <table id="tabelaDash">
+                    <thead><tr><th>Placa</th><th>Ocorrência</th><th>Duração (Min)</th><th>Máx. Vel. (km/h)</th><th>Data/Hora</th></tr></thead>
+                    <tbody id="tbodyDash"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ABA 3: ABASTECIMENTOS -->
+        <div id="abastecimentos" class="tab-content">
+            <div class="card" id="exportAreaAbastecimento">
+                <div class="flex-row" style="justify-content: space-between;">
+                    <h3 style="color: var(--primary-blue);"><i class="fas fa-gas-pump"></i> Integração CTA x SASCAR</h3>
+                    <div>
+                        <button class="btn" style="background: #1D6F42;" onclick="exportarExcel('tabelaAbastecimento', 'Abastecimentos')"><i class="fas fa-file-excel"></i> Excel</button>
+                        <button class="btn" style="background: var(--danger);" onclick="exportarPDF('exportAreaAbastecimento', 'Abastecimentos')"><i class="fas fa-file-pdf"></i> PDF</button>
+                    </div>
+                </div>
+                <div style="width: 80%; margin: 0 auto 30px;"><canvas id="graficoConsumo"></canvas></div>
+                <table id="tabelaAbastecimento">
+                    <thead>
+                        <tr>
+                            <th>Placa</th><th>Data/Hora</th><th>Bomba (CTA)</th><th>Local (SASCAR)</th>
+                            <th>Litros (CTA)</th><th>Odômetro</th><th>Distância</th><th>Média (km/L)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyAbastecimentos"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE EFICIÊNCIA -->
+    <div id="modalEficiencia" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Analisar Eficiência da Viagem <span class="close-modal" onclick="fecharModal()">×</span></div>
+            <div class="flex-row">
+                <div style="width: 50%;"><label>Início</label><br><input type="datetime-local" id="effIni" style="width:90%; padding:8px;"></div>
+                <div style="width: 50%;"><label>Fim</label><br><input type="datetime-local" id="effFim" style="width:90%; padding:8px;"></div>
+            </div>
+            <button class="btn" style="width: 100%; margin-top: 15px;" onclick="executarPromptEficiencia()">Executar Análise</button>
+            <div id="resultadoEficiencia" style="margin-top: 20px; padding: 15px; background: var(--light-gray); border-radius: 5px; display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        Chart.register(ChartDataLabels);
+        let map = null;
+        let markers = {};
+        let countdown = 300;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            map = L.map('map').setView([-23.5505, -46.6333], 5);
+            const mapaNormal = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
+            const mapaSatelite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
+            mapaNormal.addTo(map);
+            L.control.layers({"Normal": mapaNormal, "Satélite": mapaSatelite}).addTo(map);
+        });
+
+        function fazerLogin() {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('app').style.display = 'block';
+            document.getElementById('userLogado').innerHTML = `<b>Usuário:</b> v.menezes@carbolog.com.br`;
+            setTimeout(() => {
+                if (map) map.invalidateSize();
+                carregarDadosVeiculos();
+                carregarAbastecimentos();
+                atualizarDashboards();
+                iniciarAutoRefresh();
+            }, 200);
+        }
+
+        function mudarAba(abaId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-menus button').forEach(el => el.classList.remove('active'));
+            document.getElementById(abaId).classList.add('active');
+            event.target.classList.add('active');
+            if(abaId === 'operacional' && map) setTimeout(() => map.invalidateSize(), 150);
+        }
+
+        async function carregarDadosVeiculos() {
+            let veiculosDados = [];
+            
+            try {
+                // Consulta direta à tabela correta 'posicoes_sascar'
+                const response = await fetch('https://oyrqywoctnyottwvqrji.supabase.co/rest/v1/posicoes_sascar?select=*', {
+                    method: 'GET',
+                    headers: {
+                        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95cnF5d29jdG55b3R0d3ZxcmppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMjMyOTQsImV4cCI6MjEwMzc5OTI5NH0.VdqJLc_u1VXFrnOe59Bw7wLWV-GZLnx6_fjzBV_TU8w',
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95cnF5d29jdG55b3R0d3ZxcmppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMjMyOTQsImV4cCI6MjEwMzc5OTI5NH0.VdqJLc_u1VXFrnOe59Bw7wLWV-GZLnx6_fjzBV_TU8w',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) throw new Error('Falha ao conectar com o Supabase');
+                veiculosDados = await response.json();
+                
+                // Se a tabela estiver vazia no Supabase, usa fallback automático temporário
+                if (!veiculosDados || veiculosDados.length === 0) {
+                    throw new Error('Nenhum registro encontrado na tabela posicoes_sascar');
+                }
+            } catch (e) {
+                console.warn("[SASCAR] Usando dados de demonstração (tabela vazia ou erro):", e);
+                veiculosDados = [
+                    { placa: 'ABC-1234', lat: -20.997711, lon: -51.800974, ignicao: 1, vel: 59, data: '2026-09-06 10:08:42', cidade: 'Tres Lagoas', uf: 'MS', rua: 'Rod P/ Brasilandia' },
+                    { placa: 'XYZ-9876', lat: -23.550520, lon: -46.633308, ignicao: 0, vel: 0, data: '2026-09-06 10:15:00', cidade: 'Sao Paulo', uf: 'SP', rua: 'Av. Paulista' },
+                    { placa: 'CAR-5050', lat: -22.906846, lon: -43.172896, ignicao: 1, vel: 85, data: '2026-09-06 10:12:10', cidade: 'Rio de Janeiro', uf: 'RJ', rua: 'Linha Vermelha' }
+                ];
+            }
+
+            const tbody = document.getElementById('tbodyOperacional');
+            tbody.innerHTML = '';
+            
+            // Limpa marcadores antigos do mapa
+            Object.values(markers).forEach(m => map.removeLayer(m));
+            markers = {};
+
+            const iconeCaminhao = L.divIcon({
+                html: '<i class="fas fa-truck custom-truck-icon"></i>',
+                className: '', iconSize: [24, 24], iconAnchor: [12, 12]
+            });
+
+            veiculosDados.forEach((v) => {
                 const tr = document.createElement('tr');
                 const lat = v.latitude;
                 const lon = v.longitude;
@@ -39,3 +326,84 @@ veiculosDados.forEach((v) => {
                         .addTo(map);
                 }
             });
+            countdown = 300;
+        }
+
+        function toggleMarker(placa) {
+            const chk = document.querySelector(`input[value="${placa}"]`);
+            if(chk && chk.checked) {
+                if (markers[placa]) markers[placa].addTo(map);
+            } else {
+                if (markers[placa]) map.removeLayer(markers[placa]);
+            }
+        }
+
+        function marcarTodos(status) {
+            document.querySelectorAll('.chk-veiculo').forEach(chk => {
+                if(chk.offsetParent !== null) {
+                    chk.checked = status;
+                    toggleMarker(chk.value);
+                }
+            });
+            document.getElementById('checkAll').checked = status;
+        }
+
+        function toggleCheckAll() {
+            marcarTodos(document.getElementById('checkAll').checked);
+        }
+
+        function filtrarGrid() {
+            const filtros = Array.from(document.querySelectorAll('.filtro-coluna')).map(input => input.value.toUpperCase());
+            const linhas = document.querySelectorAll('#tbodyOperacional tr');
+            linhas.forEach(linha => {
+                let visivel = true;
+                const colunas = linha.querySelectorAll('td');
+                filtros.forEach((termo, index) => {
+                    if (termo && colunas[index+1].innerText.toUpperCase().indexOf(termo) === -1) visivel = false;
+                });
+                linha.style.display = visivel ? '' : 'none';
+            });
+        }
+
+        function iniciarAutoRefresh() {
+            setInterval(() => {
+                countdown--;
+                const timerEl = document.getElementById('timerRefresh');
+                if (timerEl) timerEl.innerText = countdown;
+                if(countdown <= 0) carregarDadosVeiculos();
+            }, 1000);
+        }
+
+        function abrirModalEficiencia() { document.getElementById('modalEficiencia').style.display = 'flex'; }
+        function fecharModal() { document.getElementById('modalEficiencia').style.display = 'none'; }
+        
+        function executarPromptEficiencia() {
+            const res = document.getElementById('resultadoEficiencia');
+            res.style.display = 'block';
+            res.innerHTML = `<h4 style="color:var(--primary-blue)">Relatório Gerado</h4><p><b>Distância:</b> 907 km</p><p><b>Tempo em Trânsito:</b> 14h 30m</p>`;
+        }
+
+        function atualizarDashboards() {
+            document.getElementById('tbodyDash').innerHTML = `<tr><td>CAR-5050</td><td>Excesso Vel.</td><td>5</td><td>85</td><td>2026-09-06 10:12:10</td></tr>`;
+        }
+
+        function carregarAbastecimentos() {
+            const dados = [{placa: 'ABC-1234', data: '06/09/2026 07:58:52', bomba: '3654', local: 'Tres Lagoas - MS', volCTA: 500.34, odo: 338438, dist: 907, media: 1.81}];
+            document.getElementById('tbodyAbastecimentos').innerHTML = dados.map(d => `
+                <tr><td>${d.placa}</td><td>${d.data}</td><td>${d.bomba}</td><td>${d.local}</td>
+                <td style="font-weight:bold; color:var(--primary-blue)">${d.volCTA} L</td>
+                <td>${d.odo}</td><td>${d.dist} km</td><td>${d.media}</td></tr>
+            `).join('');
+        }
+
+        function exportarExcel(tableId, nome) {
+            let wb = XLSX.utils.table_to_book(document.getElementById(tableId), {sheet: "Planilha1"});
+            XLSX.writeFile(wb, nome + ".xlsx");
+        }
+
+        function exportarPDF(elementId, nome) {
+            html2pdf().from(document.getElementById(elementId)).save(nome + '.pdf');
+        }
+    </script>
+</body>
+</html>
