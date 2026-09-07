@@ -102,9 +102,9 @@
         .bg-danger { background-color: var(--danger); }
         .bg-warning { background-color: var(--warning); }
         
-        /* Correção para evitar ícones e sobreposições indesejadas do Google Places nos inputs */
-        .pac-container { z-index: 9999 !important; }
-        .input-limpo { width: 90%; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); color: var(--text-color); box-sizing: border-box; background-image: none !important; }
+        /* Garantindo inputs totalmente livres e acessíveis para digitação */
+        .pac-container { z-index: 9999 !important; pointer-events: auto !important; }
+        .input-livre { width: 90%; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); color: var(--text-color); box-sizing: border-box; font-size: 14px; }
 
         .leaflet-routing-container { display: none !important; }
     </style>
@@ -115,7 +115,7 @@
     <div id="login-screen">
         <div class="login-box">
             <h2><i class="fas fa-shield-alt"></i> Acesso ao Sistema</h2>
-            <p style="font-size: 14px; opacity: 0.8;">GUARDIAN CARBOLOG</p>
+            <p style="font-size: 14px; opacity: 0.8;">Guardian Carbolog</p>
             <input type="email" id="emailInput" placeholder="usuario@carbolog.com.br" value="v.menezes@carbolog.com.br" required>
             <select id="perfilInput">
                 <option value="Administrador">Administrador</option>
@@ -293,7 +293,7 @@
             
             <div class="flex-row" style="gap: 10px; margin-bottom: 15px;">
                 <div style="flex: 1; display: flex; align-items: center; position: relative;">
-                    <input type="text" id="inputBuscaRefArea" class="input-limpo" placeholder="Pesquisar por referência, cidade, UF ou localidade do Google (Ex: Unimetal, Sorocaba SP)..." onkeydown="if(event.key === 'Enter') pesquisarLocalArea();" style="width: 100%; padding-right: 40px;">
+                    <input type="text" id="inputBuscaRefArea" class="input-livre" placeholder="Pesquisar por referência, cidade, UF ou localidade do Google (Ex: Unimetal, Sorocaba SP)..." onkeydown="if(event.key === 'Enter') pesquisarLocalArea();" style="width: 100%; padding-right: 40px;">
                     <i class="fas fa-search" onclick="pesquisarLocalArea()" style="position: absolute; right: 12px; cursor: pointer; color: var(--accent-blue); font-size: 16px;" title="Pesquisar localização"></i>
                 </div>
                 <button class="btn" style="background: var(--accent-blue); margin-top: 0; padding: 10px 15px;" onclick="pesquisarLocalArea()"><i class="fas fa-search"></i> Buscar</button>
@@ -360,11 +360,11 @@
             <div class="flex-row">
                 <div style="width: 50%;">
                     <label><b>Origem</b></label><br>
-                    <input type="text" id="iamOrigem" class="input-limpo" value="Unimetal Sao Vicente SP">
+                    <input type="text" id="iamOrigem" class="input-livre" value="Unimetal Sao Vicente SP">
                 </div>
                 <div style="width: 50%;">
                     <label><b>Destino</b></label><br>
-                    <input type="text" id="iamDestino" class="input-limpo" value="Unimetal Cosmopolis SP">
+                    <input type="text" id="iamDestino" class="input-livre" value="Unimetal Cosmopolis SP">
                 </div>
             </div>
             <div style="margin-top: 15px; margin-bottom: 10px;">
@@ -1332,6 +1332,7 @@
             eixosAtuaisRota = atual;
         }
 
+        // --- MAPEAR REFERÊNCIAS ESPECÍFICAS PARA EVITAR MARCO ZERO DAS CIDADES ---
         const referenciasConhecidas = {
             "unimetal sao vicente": { lat: -23.9618, lon: -46.3919, nome: "Unimetal - São Vicente, SP" },
             "unimetal cosmopolis": { lat: -22.6431, lon: -47.1978, nome: "Unimetal - Cosmópolis, SP" },
@@ -1341,21 +1342,29 @@
         async function obterCoordenadasGoogle(inputElementId, autocompleteInstance) {
             const val = document.getElementById(inputElementId).value.trim();
             const valLower = val.toLowerCase();
+
+            // Verifica se contém alguma palavra-chave exata das referências conhecidas
             for (let chave in referenciasConhecidas) {
-                if (valLower.includes(chave)) return referenciasConhecidas[chave];
+                if (valLower.includes(chave)) {
+                    return referenciasConhecidas[chave];
+                }
             }
+
             if (autocompleteInstance) {
                 const place = autocompleteInstance.getPlace();
                 if (place && place.geometry && place.geometry.location) {
                     return { lat: place.geometry.location.lat(), lon: place.geometry.location.lng(), nome: place.formatted_address || val };
                 }
             }
+
+            // Fallback via API de busca georreferenciada exata
             try {
-                const termoBusca = val.toLowerCase().includes('sp') ? val : `${val}, Sao Paulo, Brazil`;
-                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termoBusca)}`;
+                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}`;
                 const res = await fetch(url);
                 const data = await res.json();
-                if (data && data.length > 0) return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), nome: data[0].display_name };
+                if (data && data.length > 0) {
+                    return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), nome: data[0].display_name };
+                }
             } catch(e) {}
             return null;
         }
@@ -1393,8 +1402,8 @@
                 const coordenadasMalha = route.coordinates.map(c => [c.lat, c.lng]);
 
                 dadosUltimaRotaCalculada = {
-                    origemTxt: document.getElementById('iamOrigem').value || 'Origem',
-                    destinoTxt: document.getElementById('iamDestino').value || 'Destino',
+                    origemTxt: origCoord.nome || 'Origem',
+                    destinoTxt: destCoord.nome || 'Destino',
                     eixos: eixosAtuaisRota,
                     distancia: distanciaKm,
                     custo: custoTotal,
