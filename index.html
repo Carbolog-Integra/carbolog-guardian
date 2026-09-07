@@ -207,12 +207,12 @@
             
             <div class="flex-row">
                 <div style="width: 50%;">
-                    <label><b>Origem</b> (Cidade, Ref. ou Lat,Lon)</label><br>
-                    <input type="text" id="iamOrigem" value="Tres Lagoas - MS" style="width:90%; padding:8px;">
+                    <label><b>Origem</b> (Cidade, Empresa ou Ref.)</label><br>
+                    <input type="text" id="iamOrigem" value="Unimetal Sao Vicente SP" style="width:90%; padding:8px;">
                 </div>
                 <div style="width: 50%;">
-                    <label><b>Destino</b> (Cidade, Ref. ou Lat,Lon)</label><br>
-                    <input type="text" id="iamDestino" value="Sao Paulo - SP" style="width:90%; padding:8px;">
+                    <label><b>Destino</b> (Cidade, Empresa ou Ref.)</label><br>
+                    <input type="text" id="iamDestino" value="Unimetal Cosmopolis SP" style="width:90%; padding:8px;">
                 </div>
             </div>
 
@@ -438,6 +438,7 @@
             }
         }
 
+        // Geocodificador universal aberto (conecta com a base global para buscar qualquer referência, cidade ou empresa)
         async function gearLocal(termo) {
             termo = termo.trim();
             if (termo.includes(',')) {
@@ -448,7 +449,7 @@
             }
 
             try {
-                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termo + ', Brazil')}`;
+                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termo)}`;
                 const res = await fetch(url);
                 const data = await res.json();
                 if (data && data.length > 0) {
@@ -467,14 +468,14 @@
             const res = document.getElementById('resultadoEficiencia');
 
             res.style.display = 'block';
-            res.innerHTML = `<h4 style="color:#00838F"><i class="fas fa-spinner fa-spin"></i> Geocodificando e calculando malha rodoviária (IAM / Qualp)...</h4>`;
+            res.innerHTML = `<h4 style="color:#00838F"><i class="fas fa-spinner fa-spin"></i> Localizando referências e calculando malha rodoviária...</h4>`;
 
             try {
                 const origCoord = await gearLocal(origemInput);
                 const destCoord = await gearLocal(destinoInput);
 
                 if (!origCoord || !destCoord) {
-                    throw new Error("Não foi possível localizar a origem ou o destino informados. Verifique o nome da cidade ou referência.");
+                    throw new Error("Não foi possível localizar o endereço ou referência informada. Tente especificar melhor o nome ou cidade.");
                 }
 
                 const url = `https://router.project-osrm.org/route/v1/driving/${origCoord.lon},${origCoord.lat};${destCoord.lon},${destCoord.lat}?overview=full&geometries=geojson`;
