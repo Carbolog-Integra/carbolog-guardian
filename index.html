@@ -146,7 +146,7 @@
         <div id="operacional" class="tab-content active">
             <div class="card" style="padding-bottom: 0;">
                 <div class="flex-row" style="justify-content: space-between;">
-                    <h3 style="color: var(--accent-blue);"><i class="fas fa-map"></i> Grid - GR</h3>
+                    <h3 style="color: var(--accent-blue);"><i class="fas fa-map"></i> Robô Monitor de Frota (SASCAR)</h3>
                     <div>
                         <span class="info-tag">Auto-Refresh Robô: <span id="timerRefresh">300</span>s</span>
                         <button class="btn" onclick="carregarDadosVeiculos()"><i class="fas fa-sync"></i> Varredura Agora</button>
@@ -155,25 +155,57 @@
                     </div>
                 </div>
                 
-                <!-- MAPA E PAINEL FLUTUANTE DE ROTA -->
-                <div style="position: relative; margin-top: 10px; margin-bottom: 20px;">
-                    <div id="map"></div>
-                    
-                    <!-- Painel Interativo Sobreposto ao Mapa -->
-                    <div id="route-panel" class="card" style="display: none; position: absolute; top: 10px; right: 10px; z-index: 999; width: 280px; background: var(--card-bg); padding: 15px; border: 2px solid var(--accent-blue); box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
-                        <h4 style="margin-top:0; margin-bottom: 10px; color: var(--accent-blue); border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">
-                            <i class="fas fa-route"></i> Rota Interativa
-                        </h4>
-                        <div id="route-stats" style="margin-bottom: 15px;"></div>
-                        <button id="btnSalvarRota" class="btn" style="width: 100%; background: var(--success); font-size: 13px; margin-bottom: 8px; display: none;" onclick="salvarRotaAtual()">
-                            <i class="fas fa-save"></i> Salvar Rota
-                        </button>
-                        <button class="btn" style="width: 100%; background: var(--danger); font-size: 13px;" onclick="limparRota()">
-                            <i class="fas fa-times"></i> Fechar Rota
-                        </button>
+                <!-- PAINEL FIXO DE ROTA (Seguro e fora do mapa) -->
+                <div id="route-panel" style="display: none; background: rgba(0, 131, 143, 0.1); padding: 15px; border: 2px solid #00838F; border-radius: 8px; margin-top: 15px; margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="flex-grow: 1;">
+                            <h4 style="margin-top:0; margin-bottom: 10px; color: #00838F;">
+                                <i class="fas fa-route"></i> Edição de Rota Interativa
+                            </h4>
+                            <div id="route-stats"></div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 10px; min-width: 180px; margin-left: 20px;">
+                            <button id="btnSalvarRota" class="btn" style="background: var(--success); display: none; width: 100%;" onclick="salvarRotaAtual()">
+                                <i class="fas fa-save"></i> Salvar Rota Editada
+                            </button>
+                            <button class="btn" style="background: var(--danger); width: 100%;" onclick="limparRota()">
+                                <i class="fas fa-times"></i> Cancelar / Fechar
+                            </button>
+                        </div>
                     </div>
                 </div>
+
+                <!-- MAPA -->
+                <div id="map" style="margin-bottom: 20px;"></div>
             </div>
+
+            <div class="card">
+                <div class="flex-row">
+                    <h3 style="color: var(--accent-blue);"><i class="fas fa-list"></i> Grid de Monitoramento e Alertas Automáticos</h3>
+                    <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(true)">Marcar Todos</button>
+                    <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(false)">Desmarcar Todos</button>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table id="gridOperacional">
+                        <thead>
+                            <tr>
+                                <th>Nº</th>
+                                <th>Ver <br><input type="checkbox" id="checkAll" checked onclick="toggleCheckAll()"></th>
+                                <th>Placa <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" data-col="2"></th>
+                                <th>Data/Hora Com. <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" data-col="3"></th>
+                                <th>Ignição <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" data-col="4" placeholder="ON/OFF"></th>
+                                <th>Cidade <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" data-col="5"></th>
+                                <th>UF <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" data-col="6"></th>
+                                <th>Rua / Rodovia <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" data-col="7"></th>
+                                <th>Velocidade <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" data-col="8" placeholder="km/h"></th>
+                                <th>Alertas e Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyOperacional"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
 
             <div class="card">
                 <div class="flex-row">
