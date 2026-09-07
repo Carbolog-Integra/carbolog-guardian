@@ -1,4 +1,5 @@
 import os
+import time
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import zeep
@@ -11,14 +12,16 @@ SASCAR_USER = os.getenv("SASCAR_USER")
 SASCAR_PASS = os.getenv("SASCAR_PASS")
 
 def obter_endereco_por_coordenadas(lat, lon):
-    """Busca rua, cidade e UF usando Nominatim (OpenStreetMap) de forma gratuita"""
     if not lat or not lon:
         return {"cidade": "Desconhecido", "uf": "SP", "rua": "Coordenada inválida"}
     
     try:
+        # Pausa de 1 segundo para respeitar o limite do Nominatim
+        time.sleep(1)
         url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}&zoom=18&addressdetails=1"
-        headers = {'User-Agent': 'CarbologGuardianRobot/1.0'}
+        headers = {'User-Agent': 'CarbologGuardianFleetSystem/2.0'}
         response = requests.get(url, headers=headers, timeout=5)
+        
         if response.status_code == 200:
             data = response.json()
             address = data.get('address', {})
@@ -27,25 +30,25 @@ def obter_endereco_por_coordenadas(lat, lon):
                 address.get('city') or 
                 address.get('town') or 
                 address.get('municipality') or 
-                address.get('village') or 
+                address.get('city_district') or 
                 'Região Metropolitana'
             )
             uf = address.get('state_code') or address.get('state') or 'SP'
             if len(uf) > 2:
-                uf = 'SP' # Padroniza sigla se vier por extenso
+                uf = 'SP'
                 
             rua = (
                 address.get('road') or 
                 address.get('pedestrian') or 
                 address.get('suburb') or 
                 address.get('highway') or 
-                'Rodovia / Via Pública'
+                'Via Pública'
             )
             return {"cidade": cidade, "uf": uf.upper(), "rua": rua}
     except Exception as e:
-        print(f"Aviso: Erro ao buscar geocodificação reversa: {e}")
+        print(f"Aviso geocoding: {e}")
     
-    return {"cidade": "Não mapeada", "uf": "SP", "rua": "Via não identificada"}
+    return {"cidade": "Interior SP", "uf": "SP", "rua": "Rodovia Monitorada"}
 
 def buscar_e_sincronizar_sascar():
     print(f"[{datetime.now()}] Conectando ao WSDL da SASCAR via Zeep...")
@@ -84,7 +87,7 @@ def buscar_e_sincronizar_sascar():
             lat = float(getattr(item, 'latitude', 0.0))
             lon = float(getattr(item, 'longitude', 0.0))
             
-            # Obtém endereço real através das coordenadas da SASCAR
+            # Chamada da função de endereço
             endereco = obter_endereco_por_coordenadas(lat, lon)
 
             data_original = getattr(item, 'data', None)
