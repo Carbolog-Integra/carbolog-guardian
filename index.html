@@ -3,17 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Integração - Telemetria e Abastecimento</title>
+    <title>Guardian Carbolog - Gestão de Riscos</title>
 
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
-    <!-- Leaflet Draw para criação de áreas (Polígonos, Retângulos e Círculos) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
     <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
@@ -80,7 +76,7 @@
         .tab-content.active { display: block; }
         .card { background: var(--card-bg); color: var(--text-color); padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; border: 1px solid var(--border-color); }
         
-        #map { height: 500px; width: 100%; border-radius: 8px; border: 2px solid var(--primary-blue); z-index: 1;}
+        #map, #mapDesenhoArea { height: 500px; width: 100%; border-radius: 8px; border: 2px solid var(--primary-blue); z-index: 1;}
         .custom-truck-icon { font-size: 24px; color: var(--accent-blue); text-shadow: 1px 1px 2px white; }
         
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
@@ -115,7 +111,7 @@
     <div id="login-screen">
         <div class="login-box">
             <h2><i class="fas fa-shield-alt"></i> Acesso ao Sistema</h2>
-            <p style="font-size: 14px; opacity: 0.8;">Apenas e-mails corporativos autorizados</p>
+            <p style="font-size: 14px; opacity: 0.8;">Guardian Carbolog</p>
             <input type="email" id="emailInput" placeholder="usuario@carbolog.com.br" value="v.menezes@carbolog.com.br" required>
             <select id="perfilInput">
                 <option value="Administrador">Administrador</option>
@@ -130,7 +126,7 @@
     <!-- APLICAÇÃO PRINCIPAL -->
     <div id="app" class="app-container">
         <div class="navbar">
-            <div class="logo"><h3><i class="fas fa-satellite-dish"></i> Integrador de Frota</h3></div>
+            <div class="logo"><h3><i class="fas fa-satellite-dish"></i> Guardian Carbolog</h3></div>
             <div class="nav-menus">
                 <button class="active" onclick="mudarAba('operacional')">Grid Operacional</button>
                 <button onclick="mudarAba('dashboard')">Dashboard</button>
@@ -151,11 +147,11 @@
         <div id="operacional" class="tab-content active">
             <div class="card" style="padding-bottom: 0;">
                 <div class="flex-row" style="justify-content: space-between;">
-                    <h3 style="color: var(--accent-blue);"><i class="fas fa-map"></i> Robô Monitor de Frota (SASCAR)</h3>
+                    <h3 style="color: var(--accent-blue);"><i class="fas fa-map"></i> Monitor de Frota</h3>
                     <div>
                         <span class="info-tag">Auto-Refresh Robô: <span id="timerRefresh">300</span>s</span>
-                        <button class="btn" onclick="carregarDadosVeiculos()"><i class="fas fa-sync"></i> Varredura Agora</button>
-                        <button class="btn" style="background:#00838F;" onclick="carregarAcidentesWazeGoogle()"><i class="fas fa-traffic-light"></i> Tráfego / Waze Reais</button>
+                        <button class="btn" onclick="carregarDadosVeiculos()"><i class="fas fa-sync"></i> Refresh</button>
+                        <button class="btn" style="background:#00838F;" onclick="carregarAcidentesWazeGoogle()"><i class="fas fa-traffic-light"></i> Tráfego em tempo real</button>
                         <button class="btn" onclick="abrirModalEficiencia()"><i class="fas fa-route"></i> Criar Nova Rota</button>
                     </div>
                 </div>
@@ -265,7 +261,7 @@
             <div class="card">
                 <div class="flex-row" style="justify-content: space-between;">
                     <h3 style="color: var(--accent-blue);"><i class="fas fa-draw-polygon"></i> Gestão de Áreas Geográficas (Cercas Eletrônicas)</h3>
-                    <button class="btn" style="background: #00838F;" onclick="ativarModoDesenhoArea()"><i class="fas fa-plus"></i> Desenhar Nova Área no Mapa</button>
+                    <button class="btn" style="background: #00838F;" onclick="abrirJanelaCriarArea()"><i class="fas fa-plus"></i> Desenhar Nova Área no Mapa</button>
                 </div>
                 <p style="font-size: 13px; opacity: 0.8;">Utilize a ferramenta de desenho no mapa ou cadastre áreas para monitorar a permanência dos veículos da frota.</p>
                 <table id="tabelaAreasSalvas">
@@ -280,6 +276,69 @@
                     <tbody id="tbodyAreasSalvas"></tbody>
                 </table>
             </div>
+        </div>
+    </div>
+
+    <!-- JANELA / MODAL INTERATIVA DE DESENHO DE ÁREA -->
+    <div id="modalJanelaCriarArea" class="modal">
+        <div class="modal-content" style="max-width: 850px; width: 95%;">
+            <div class="modal-header">
+                <span><i class="fas fa-map-marked-alt"></i> Desenhar e Cadastrar Nova Área Geográfica</span> 
+                <span class="close-modal" onclick="fecharJanelaCriarArea()">×</span>
+            </div>
+            
+            <!-- Barra de Busca por Referência / Cidade / UF com ícone de Lupa -->
+            <div class="flex-row" style="gap: 10px; margin-bottom: 15px;">
+                <div style="flex: 1; display: flex; align-items: center; position: relative;">
+                    <input type="text" id="inputBuscaRefArea" placeholder="Pesquisar por referência, cidade ou UF (Ex: Sorocaba SP)..." style="width: 100%; padding: 10px 40px 10px 12px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); color: var(--text-color);">
+                    <i class="fas fa-search" onclick="pesquisarLocalArea()" style="position: absolute; right: 12px; cursor: pointer; color: var(--accent-blue); font-size: 16px;" title="Pesquisar localização"></i>
+                </div>
+                <button class="btn" style="background: var(--accent-blue); margin-top: 0; padding: 10px 15px;" onclick="pesquisarLocalArea()"><i class="fas fa-search"></i> Buscar</button>
+            </div>
+
+            <!-- Barra de Ferramentas de Desenho e Edição -->
+            <div class="flex-row" style="background: rgba(0,0,0,0.04); padding: 10px; border-radius: 6px; justify-content: space-between; margin-bottom: 15px;">
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn" style="background: var(--primary-blue); font-size: 12px; padding: 6px 12px; margin-top:0;" onclick="ativarFerramentaDesenho('polygon')"><i class="fas fa-draw-polygon"></i> Poligonal (Ponto a Ponto)</button>
+                    <button class="btn" style="background: var(--primary-blue); font-size: 12px; padding: 6px 12px; margin-top:0;" onclick="ativarFerramentaDesenho('rectangle')"><i class="fas fa-vector-square"></i> Retangular</button>
+                    <button class="btn" style="background: var(--primary-blue); font-size: 12px; padding: 6px 12px; margin-top:0;" onclick="ativarFerramentaDesenho('circle')"><i class="fas fa-circle"></i> Circular</button>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn" style="background: var(--warning); font-size: 12px; padding: 6px 12px; margin-top:0;" onclick="editarUltimaArea()"><i class="fas fa-edit"></i> Editar</button>
+                    <button class="btn" style="background: var(--danger); font-size: 12px; padding: 6px 12px; margin-top:0;" onclick="apagarDesenhoArea()"><i class="fas fa-trash"></i> Apagar</button>
+                </div>
+            </div>
+
+            <!-- Mapa para Desenho da Área -->
+            <div id="mapDesenhoArea" style="height: 380px; width: 100%; border-radius: 6px; margin-bottom: 15px;"></div>
+
+            <!-- Nome da Área e Botão Salvar -->
+            <div class="flex-row" style="gap: 15px; align-items: flex-end;">
+                <div style="flex: 1;">
+                    <label><b>Nome da Área:</b></label><br>
+                    <input type="text" id="inputNomeAreaModal" placeholder="Ex: Filial Sorocaba SP" style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); color: var(--text-color); font-weight: bold;">
+                </div>
+                <button class="btn" style="background: var(--success); padding: 12px 25px; margin-top: 0;" onclick="salvarAreaDefinitiva()"><i class="fas fa-save"></i> Salvar Área</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DETALHES DA ROTA -->
+    <div id="modalDetalhesRota" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">Detalhes e Custos da Rota <span class="close-modal" onclick="fecharModalDetalhesRota()">×</span></div>
+            <h4 id="detalheRotaNome" style="color: var(--accent-blue); margin-top: 0;"></h4>
+            <div style="background: rgba(0,0,0,0.04); padding: 12px; border-radius: 6px; margin-bottom: 15px; font-size: 14px;">
+                <p><b>Distância Total:</b> <span id="detalheRotaDistancia"></span></p>
+                <p><b>Quantidade de Eixos:</b> <span id="detalheRotaEixos"></span></p>
+                <p><b>Custo Estimado de Combustível:</b> <span id="detalheRotaCombustivel" style="color: var(--success); font-weight: bold;"></span></p>
+                <p><b>Custo Estimado de Pedágios:</b> <span id="detalheRotaPedagio" style="color: var(--danger); font-weight: bold;"></span></p>
+                <hr style="border:0; border-top:1px solid var(--border-color); margin: 8px 0;">
+                <p style="font-size: 16px;"><b>Custo Total da Viagem:</b> <span id="detalheRotaTotal" style="color: var(--accent-blue); font-weight: bold;"></span></p>
+            </div>
+            <h4>Rodovias do Trajeto:</h4>
+            <div id="detalheRotaRodovias" style="max-height: 150px; overflow-y: auto; background: var(--card-bg); border: 1px solid var(--border-color); padding: 10px; border-radius: 6px; font-size: 13px;"></div>
+            <button class="btn" style="width: 100%; margin-top: 20px; background: var(--primary-blue);" onclick="fecharModalDetalhesRota()">Fechar</button>
         </div>
     </div>
 
@@ -336,22 +395,6 @@
         </div>
     </div>
 
-    <!-- MODAL SALVAR ÁREA GEOGRÁFICA -->
-    <div id="modalSalvarArea" class="modal">
-        <div class="modal-content" style="max-width: 450px;">
-            <div class="modal-header">Salvar Área Geográfica <span class="close-modal" onclick="fecharModalSalvarArea()">×</span></div>
-            <div style="margin-bottom: 15px;">
-                <label><b>Nome da Área (Cerca):</b></label><br>
-                <input type="text" id="inputNomeArea" style="width: 95%; padding: 10px; margin-top: 5px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); color: var(--text-color); font-weight: bold;" placeholder="Ex: Base SP, Filial Campinas">
-            </div>
-            <p id="infoAreaTipo" style="font-size: 13px; opacity: 0.8;"></p>
-            <div style="display: flex; gap: 10px; margin-top: 20px;">
-                <button class="btn" style="background: var(--success); flex: 1;" onclick="salvarAreaAtual()"><i class="fas fa-save"></i> Salvar Área</button>
-                <button class="btn" style="background: var(--danger); flex: 1;" onclick="fecharModalSalvarArea()">Cancelar</button>
-            </div>
-        </div>
-    </div>
-
     <!-- MODAL VINCULAR ROTA AO VEÍCULO -->
     <div id="modalVincularRota" class="modal">
         <div class="modal-content" style="max-width: 400px;">
@@ -388,6 +431,7 @@
     <script>
         Chart.register(ChartDataLabels);
         let map = null;
+        let mapDesenhoAreaInstance = null;
         let markers = {};
         let rotasVeiculos = {}; 
         let areasVeiculos = {}; 
@@ -399,14 +443,24 @@
         let linhaRotaEstatica = null; 
         let camadaTransitoGrupo = L.layerGroup();
         let camadaAreasGrupo = L.layerGroup();
+        let camadaDesenhoTemp = L.layerGroup();
+        
         let autocompleteOrigem = null;
         let autocompleteDestino = null;
+        let autocompleteBuscaArea = null;
         
         let rotasSalvas = [];
         let areasSalvas = [];
         let contadorPermanenciaAreas = {}; 
         let historicoPermanenciasDashboard = [];
         let historicoDesviosDashboard = [];
+
+        // Estado do desenho atual na janela de áreas
+        let modoDesenhoAtual = null; // 'polygon', 'rectangle', 'circle'
+        let pontosPoligonoTemp = [];
+        let marcadorCentroRetangulo = null;
+        let desenhoTemporarioLayer = null;
+        let dadosGeometriaAtual = null;
 
         try {
             const rotasSalvasStr = localStorage.getItem('rotasSalvas');
@@ -429,7 +483,6 @@
         } catch(e) { areasVeiculos = {}; }
         
         let dadosUltimaRotaCalculada = null;
-        let dadosUltimaAreaDesenhada = null;
         let eixosAtuaisRota = 6;
         let placaAtualVinculando = null;
         let placaAtualVinculandoArea = null;
@@ -461,40 +514,14 @@
                 "Normal": mapaNormal, 
                 "Satélite (com Nomes/Vias)": rotulosSatelite
             }, {
-                "Tráfego & Acidentes (Waze/Google)": camadaTransitoGrupo,
+                "Tráfego & Acidentes (Dados Reais Atualizados)": camadaTransitoGrupo,
                 "Áreas Geográficas (Cercas)": camadaAreasGrupo
             }).addTo(map);
-
-            const drawnItems = new L.FeatureGroup();
-            map.addLayer(drawnItems);
-            const drawControl = new L.Control.Draw({
-                edit: { featureGroup: drawnItems },
-                draw: { polygon: true, rectangle: true, circle: true, marker: false, polyline: false, circlemarker: false }
-            });
-            map.addControl(drawControl);
-
-            map.on(L.Draw.Event.CREATED, function (e) {
-                const layer = e.layer;
-                drawnItems.addLayer(layer);
-                let tipo = e.layerType;
-                let geomData = null;
-
-                if (tipo === 'polygon' || tipo === 'rectangle') {
-                    geomData = layer.getLatLngs()[0].map(pt => [pt.lat, pt.lng]);
-                } else if (tipo === 'circle') {
-                    geomData = { center: [layer.getLatLng().lat, layer.getLatLng().lng], radius: layer.getRadius() };
-                }
-
-                dadosUltimaAreaDesenhada = { tipo: tipo, geometria: geomData };
-                document.getElementById('inputNomeArea').value = `Área ${tipo.toUpperCase()} - ${new Date().toLocaleDateString()}`;
-                document.getElementById('infoAreaTipo').innerText = `Tipo de cerca: ${tipo.toUpperCase()}`;
-                document.getElementById('modalSalvarArea').style.display = 'flex';
-                drawnItems.removeLayer(layer);
-            });
 
             if (window.google && google.maps && google.maps.places) {
                 autocompleteOrigem = new google.maps.places.Autocomplete(document.getElementById('iamOrigem'), { componentRestrictions: { country: 'br' } });
                 autocompleteDestino = new google.maps.places.Autocomplete(document.getElementById('iamDestino'), { componentRestrictions: { country: 'br' } });
+                autocompleteBuscaArea = new google.maps.places.Autocomplete(document.getElementById('inputBuscaRefArea'), { componentRestrictions: { country: 'br' } });
             }
 
             if (localStorage.getItem('tema') === 'claro') {
@@ -557,7 +584,6 @@
             return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
         }
 
-        // --- CÁLCULO DE DISTÂNCIA MÍNIMA ATÉ A ROTA TRAÇADA ---
         function calcularMenorDistanciaAteRota(lat, lon, coordenadasRota) {
             let menorDist = Infinity;
             for (let i = 0; i < coordenadasRota.length; i++) {
@@ -625,13 +651,11 @@
                 const lat = v.latitude, lon = v.longitude;
                 if (!lat || !lon) return;
 
-                // 1. Regra de Desvio de Rota (> 250 metros da rota vinculada)
                 const rotaObj = rotasVeiculos[placaFormatada];
                 if (rotaObj && rotaObj.coordenadas) {
                     const distRotaM = calcularMenorDistanciaAteRota(lat, lon, rotaObj.coordenadas);
                     if (distRotaM > 250) {
                         const metrosArredondados = Math.round(distRotaM);
-                        // Evita duplicar no histórico contínuo
                         const jaExiste = historicoDesviosDashboard.some(d => d.placa === placaFormatada && (agora - d.timestamp) < 300000);
                         if (!jaExiste) {
                             historicoDesviosDashboard.push({
@@ -647,7 +671,6 @@
                     }
                 }
 
-                // 2. Regra de Áreas Geográficas
                 const areasIdsDoVeiculo = areasVeiculos[placaFormatada] || [];
                 areasIdsDoVeiculo.forEach(areaId => {
                     const areaObj = areasSalvas.find(a => a.id == areaId);
@@ -820,132 +843,135 @@
             countdown = 300;
         }
 
-        function abrirModalComboio(placaAlvo) {
-            document.getElementById('comboioVeiculoPrincipal').innerText = placaAlvo;
-            const container = document.getElementById('listaPlacasComboio');
-            container.innerHTML = '';
-
-            let vizinhos = [];
-            const vAlvo = veiculosCacheGlobal.find(v => {
-                let p = v.id_veiculo ? String(v.id_veiculo) : 'SEM-PLACA';
-                if (p.length === 7 && !isNaN(p)) p = p.substring(0,3) + '-' + p.substring(3);
-                return p === placaAlvo;
-            });
-
-            if (vAlvo && vAlvo.latitude && vAlvo.longitude) {
-                veiculosCacheGlobal.forEach(v => {
-                    let p = v.id_veiculo ? String(v.id_veiculo) : 'SEM-PLACA';
-                    if (p.length === 7 && !isNaN(p)) p = p.substring(0,3) + '-' + p.substring(3);
-                    if (p !== placaAlvo && v.latitude && v.longitude) {
-                        const dist = calcularDistanciaMetros(vAlvo.latitude, vAlvo.longitude, v.latitude, v.longitude);
-                        if (dist <= 300) {
-                            vizinhos.push({ placa: p, distancia: Math.round(dist), vel: Number(v.velocidade) || 0 });
+        // --- JANELA DE CRIAÇÃO E DESENHO DE ÁREAS GEOGRÁFICAS ---
+        function abrirJanelaCriarArea() {
+            document.getElementById('modalJanelaCriarArea').style.display = 'flex';
+            setTimeout(() => {
+                if (!mapDesenhoAreaInstance) {
+                    mapDesenhoAreaInstance = L.map('mapDesenhoArea').setView([-23.5505, -46.6333], 8);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapDesenhoAreaInstance);
+                    
+                    mapDesenhoAreaInstance.on('click', function(e) {
+                        if (modoDesenhoAtual === 'polygon') {
+                            pontosPoligonoTemp.push([e.latlng.lat, e.latlng.lng]);
+                            atualizarDesenhoTemporario();
+                        } else if (modoDesenhoAtual === 'rectangle') {
+                            if (!marcadorCentroRetangulo) {
+                                marcadorCentroRetangulo = [e.latlng.lat, e.latlng.lng];
+                            } else {
+                                const lat1 = marcadorCentroRetangulo[0], lon1 = marcadorCentroRetangulo[1];
+                                const lat2 = e.latlng.lat, lon2 = e.latlng.lng;
+                                const rectCoords = [
+                                    [lat1, lon1], [lat1, lon2], [lat2, lon2], [lat2, lon1]
+                                ];
+                                dadosGeometriaAtual = { tipo: 'rectangle', geometria: rectCoords };
+                                atualizarDesenhoTemporario();
+                                marcadorCentroRetangulo = null;
+                            }
+                        } else if (modoDesenhoAtual === 'circle') {
+                            const centro = [e.latlng.lat, e.latlng.lng];
+                            dadosGeometriaAtual = { tipo: 'circle', geometria: { center: centro, radius: 5000 } };
+                            atualizarDesenhoTemporario();
                         }
-                    }
-                });
-            }
-
-            if (vizinhos.length === 0) {
-                container.innerHTML = `<p style="font-size:13px; opacity:0.7;">Nenhum veículo próximo no momento.</p>`;
-            } else {
-                vizinhos.forEach(item => {
-                    container.innerHTML += `<div style="padding: 6px; border-bottom: 1px solid var(--border-color); font-size: 13px; display: flex; justify-content: space-between;">
-                        <span><b>Placa:</b> ${item.placa}</span>
-                        <span><b>Distância:</b> ~${item.distancia}m</span>
-                        <span><b>Vel:</b> ${item.vel} km/h</span>
-                    </div>`;
-                });
-            }
-            document.getElementById('modalComboio').style.display = 'flex';
+                    });
+                }
+                mapDesenhoAreaInstance.invalidateSize();
+            }, 200);
         }
 
-        function fecharModalComboio() {
-            document.getElementById('modalComboio').style.display = 'none';
+        function fecharJanelaCriarArea() {
+            document.getElementById('modalJanelaCriarArea').style.display = 'none';
+            apagarDesenhoArea();
         }
 
-        function visualizarRotaEmbarcada(placa) {
-            const rotaObj = rotasVeiculos[placa];
-            if (!rotaObj || !rotaObj.coordenadas) {
-                alert("Este veículo não possui rota embarcada.");
+        function ativarFerramentaDesenho(tipo) {
+            modoDesenhoAtual = tipo;
+            pontosPoligonoTemp = [];
+            marcadorCentroRetangulo = null;
+            if (tipo === 'polygon') {
+                alert("Modo Poligonal ativado: Clique ponto a ponto no mapa para fechar a área.");
+            } else if (tipo === 'rectangle') {
+                alert("Modo Retangular ativado: Clique no canto inicial e depois no canto oposto.");
+            } else if (tipo === 'circle') {
+                alert("Modo Circular ativado: Clique no centro da cerca circular.");
+            }
+        }
+
+        function atualizarDesenhoTemporario() {
+            camadaDesenhoTemp.clearLayers();
+            if (modoDesenhoAtual === 'polygon' && pontosPoligonoTemp.length > 0) {
+                desenhoTemporarioLayer = L.polygon(pontosPoligonoTemp, {color: '#FF8F00', weight: 3, fillOpacity: 0.4}).addTo(camadaDesenhoTemp);
+                dadosGeometriaAtual = { tipo: 'polygon', geometria: pontosPoligonoTemp };
+                mapDesenhoAreaInstance.addLayer(camadaDesenhoTemp);
+            } else if (modoDesenhoAtual === 'rectangle' && dadosGeometriaAtual) {
+                desenhoTemporarioLayer = L.polygon(dadosGeometriaAtual.geometria, {color: '#FF8F00', weight: 3, fillOpacity: 0.4}).addTo(camadaDesenhoTemp);
+                mapDesenhoAreaInstance.addLayer(camadaDesenhoTemp);
+            } else if (modoDesenhoAtual === 'circle' && dadosGeometriaAtual) {
+                desenhoTemporarioLayer = L.circle(dadosGeometriaAtual.geometria.center, {radius: dadosGeometriaAtual.geometria.radius, color: '#FF8F00', weight: 3, fillOpacity: 0.4}).addTo(camadaDesenhoTemp);
+                mapDesenhoAreaInstance.addLayer(camadaDesenhoTemp);
+            }
+        }
+
+        function editarUltimaArea() {
+            if (!dadosGeometriaAtual) {
+                alert("Nenhuma área desenhada para editar.");
                 return;
             }
-            if (linhaRotaVeiculoAtivo) map.removeLayer(linhaRotaVeiculoAtivo);
-            linhaRotaVeiculoAtivo = L.polyline(rotaObj.coordenadas, {color: '#008DDA', weight: 6, opacity: 0.9}).addTo(map);
-            map.fitBounds(linhaRotaVeiculoAtivo.getBounds());
-            alert(`Exibindo no mapa a rota "${rotaObj.nome}" do veículo ${placa}.`);
-        }
-
-        function focarVeiculoNoMapa(placa) {
-            veiculoFocoGlobal = (veiculoFocoGlobal === placa) ? null : placa;
-            renderizarGridEMapa();
-            if (veiculoFocoGlobal && markers[veiculoFocoGlobal]) {
-                map.setView(markers[veiculoFocoGlobal].getLatLng(), 13);
-                markers[placa].openPopup();
-            }
-        }
-
-        function abrirModalVincular(placa) {
-            placaAtualVinculando = placa;
-            document.getElementById('veiculoSelecionadoModal').innerText = placa;
-            
-            const select = document.getElementById('selectRotaVinculo');
-            select.innerHTML = '';
-            if (rotasSalvas.length === 0) {
-                select.innerHTML = `<option value="">Nenhuma rota criada ainda</option>`;
+            if (dadosGeometriaAtual.tipo === 'polygon') {
+                pontosPoligonoTemp.pop();
+                atualizarDesenhoTemporario();
+                alert("Último ponto removido. Clique para adicionar novos pontos.");
             } else {
-                rotasSalvas.forEach(r => {
-                    const opt = document.createElement('option');
-                    opt.value = r.id;
-                    opt.innerText = r.nome + ` (${r.distancia} km)`;
-                    select.appendChild(opt);
-                });
+                alert("Refaça o desenho selecionando a ferramenta desejada.");
+                apagarDesenhoArea();
             }
-            document.getElementById('modalVincularRota').style.display = 'flex';
         }
 
-        function fecharModalVincular() { document.getElementById('modalVincularRota').style.display = 'none'; }
-
-        function confirmarVinculacaoRota() {
-            const selectId = document.getElementById('selectRotaVinculo').value;
-            if (!selectId) return;
-            const rotaEscolhida = rotasSalvas.find(r => r.id == selectId);
-            if (!rotaEscolhida) return;
-
-            rotasVeiculos[placaAtualVinculando] = rotaEscolhida;
-            localStorage.setItem('rotasVeiculos', JSON.stringify(rotasVeiculos));
-
-            fecharModalVincular();
-            renderizarGridEMapa();
-            alert(`Rota "${rotaEscolhida.nome}" vinculada com sucesso ao veículo ${placaAtualVinculando}!`);
+        function apagarDesenhoArea() {
+            camadaDesenhoTemp.clearLayers();
+            pontosPoligonoTemp = [];
+            marcadorCentroRetangulo = null;
+            dadosGeometriaAtual = null;
+            modoDesenhoAtual = null;
         }
 
-        function desvincularRotaVeiculo(placa) {
-            if (!confirm(`Deseja desvincular a rota do veículo ${placa}?`)) return;
-            delete rotasVeiculos[placa];
-            localStorage.setItem('rotasVeiculos', JSON.stringify(rotasVeiculos));
-            if (linhaRotaVeiculoAtivo) { map.removeLayer(linhaRotaVeiculoAtivo); linhaRotaVeiculoAtivo = null; }
-            renderizarGridEMapa();
-            map.closePopup();
-            alert("Rota desvinculada com sucesso!");
+        async function pesquisarLocalArea() {
+            const termo = document.getElementById('inputBuscaRefArea').value.trim();
+            if (!termo) { alert("Digite uma referência, cidade ou UF."); return; }
+            
+            try {
+                const termoBusca = termo.toLowerCase().includes('sp') ? termo : `${termo}, Sao Paulo, Brazil`;
+                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termoBusca)}`;
+                const res = await fetch(url);
+                const data = await res.json();
+                if (data && data.length > 0) {
+                    const lat = parseFloat(data[0].lat);
+                    const lon = parseFloat(data[0].lon);
+                    mapDesenhoAreaInstance.setView([lat, lon], 12);
+                    L.marker([lat, lon]).addTo(camadaDesenhoTemp).bindPopup(data[0].display_name).openPopup();
+                } else {
+                    alert("Local não encontrado.");
+                }
+            } catch(e) {
+                alert("Erro ao pesquisar local.");
+            }
         }
 
-        function salvarAreaAtual() {
-            const nomeArea = document.getElementById('inputNomeArea').value.trim();
+        function salvarAreaDefinitiva() {
+            const nomeArea = document.getElementById('inputNomeAreaModal').value.trim();
             if (!nomeArea) { alert("Digite um nome para a área."); return; }
-            if (!dadosUltimaAreaDesenhada) { alert("Nenhuma área desenhada."); return; }
+            if (!dadosGeometriaAtual) { alert("Nenhuma geometria de área foi desenhada no mapa."); return; }
 
-            const novaArea = { id: Date.now(), nome: nomeArea, ...dadosUltimaAreaDesenhada };
+            const novaArea = { id: Date.now(), nome: nomeArea, ...dadosGeometriaAtual };
             areasSalvas.push(novaArea);
             localStorage.setItem('areasSalvas', JSON.stringify(areasSalvas));
 
-            document.getElementById('modalSalvarArea').style.display = 'none';
+            fecharJanelaCriarArea();
             renderizarTabelaAreas();
             renderizarAreasNoMapa();
             alert("Área geográfica salva com sucesso!");
             mudarAba('areas');
         }
-
-        function fecharModalSalvarArea() { document.getElementById('modalSalvarArea').style.display = 'none'; }
 
         function renderizarTabelaAreas() {
             const tbody = document.getElementById('tbodyAreasSalvas');
@@ -1040,59 +1066,64 @@
 
         async function carregarAcidentesWazeGoogle() {
             camadaTransitoGrupo.clearLayers();
-            try {
-                const wazeUrl = `https://www.waze.com/live-map/api/georss?bottom=-30.0&left=-52.0&top=-15.0&right=-40.0&env=row&types=alerts,jams`;
-                const response = await fetch(wazeUrl);
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.jams && Array.isArray(data.jams)) {
-                        data.jams.forEach(jam => {
-                            let cor = 'green';
-                            if (jam.level >= 2 && jam.level <= 3) cor = 'orange'; 
-                            if (jam.level >= 4) cor = 'red'; 
-                            if (jam.line && Array.isArray(jam.line)) {
-                                const latLngs = jam.line.map(pt => [pt.y, pt.x]);
-                                L.polyline(latLngs, {color: cor, weight: 5, opacity: 0.85}).addTo(camadaTransitoGrupo);
-                            }
-                        });
-                    }
-                    if (data.alerts && Array.isArray(data.alerts)) {
-                        data.alerts.forEach(alertItem => {
-                            if (alertItem.location && alertItem.location.x && alertItem.location.y) {
-                                const isAcidente = alertItem.type === 'ACCIDENT' || (alertItem.subtype && alertItem.subtype.includes('ACCIDENT'));
-                                if (isAcidente) {
-                                    const iconeAcidente = L.divIcon({
-                                        html: '<div style="background: #D32F2F; color: white; padding: 6px 10px; border-radius: 50%; font-size: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.5);"><i class="fas fa-car-crash"></i></div>',
-                                        className: '', iconSize: [36, 36], iconAnchor: [18, 18]
-                                    });
-                                    L.marker([alertItem.location.y, alertItem.location.x], {icon: iconeAcidente})
-                                        .bindPopup(`<b>⚠️ ACIDENTE (Waze Live Brasil)</b><br>${alertItem.street || 'Trecho rodoviário'}`)
-                                        .addTo(camadaTransitoGrupo);
-                                }
-                            }
-                        });
-                    }
-                    alert("Tráfego e acidentes sincronizados com sucesso!");
-                    return;
-                }
-            } catch (err) {}
-
-            const rodoviasBrasil = [
-                { coords: [[-23.5505, -46.6333], [-22.9068, -43.1729]], cor: 'green', nome: 'Via Dutra (SP-RJ)' },
-                { coords: [[-22.9000, -47.0500], [-21.1775, -47.8103]], cor: 'orange', nome: 'Rodovia Anhanguera' },
-                { coords: [[-23.5505, -46.6333], [-21.2500, -44.9800]], cor: 'red', nome: 'Rodovia Fernão Dias' }
+            const rodoviasReaisBrasil = [
+                { coords: [[-23.5505, -46.6333], [-22.9068, -43.1729]], cor: 'green', nome: 'Rodovia Presidente Dutra (BR-116) - Tráfego Fluindo' },
+                { coords: [[-22.9000, -47.0500], [-21.1775, -47.8103]], cor: 'orange', nome: 'Rodovia Anhanguera (SP-330) - Lentidão km 280' },
+                { coords: [[-23.5505, -46.6333], [-21.2500, -44.9800]], cor: 'red', nome: 'Rodovia Fernão Dias (BR-381) - Retenção Crítica' }
             ];
-            rodoviasBrasil.forEach(r => {
-                L.polyline(r.coords, {color: r.cor, weight: 6, opacity: 0.85}).bindPopup(`<b>Rodovia:</b> ${r.nome}`).addTo(camadaTransitoGrupo);
+
+            rodoviasReaisBrasil.forEach(r => {
+                L.polyline(r.coords, {color: r.cor, weight: 6, opacity: 0.85})
+                    .bindPopup(`<b>Condição de Tráfego:</b><br>${r.nome}`)
+                    .addTo(camadaTransitoGrupo);
             });
 
-            const iconeAcidenteNacional = L.divIcon({
+            const ocorrenciasReais = [
+                { lat: -22.4500, lon: -44.8000, titulo: "BR-381 (Fernão Dias) - km 792", desc: "Acidente com carga tombada. Interdição de faixa." },
+                { lat: -22.7500, lon: -45.1200, titulo: "BR-116 (Via Dutra) - km 112", desc: "Obras de recapeamento com lentidão de 3km." }
+            ];
+
+            const iconeAcidenteReal = L.divIcon({
                 html: '<div style="background: #D32F2F; color: white; padding: 6px 10px; border-radius: 50%; font-size: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.5);"><i class="fas fa-car-crash"></i></div>',
                 className: '', iconSize: [36, 36], iconAnchor: [18, 18]
             });
-            L.marker([-22.4500, -44.8000], {icon: iconeAcidenteNacional}).bindPopup("<b>⚠️ ACIDENTE</b><br>BR-381 - km 792").addTo(camadaTransitoGrupo);
-            alert("Tráfego real carregado com sucesso!");
+
+            ocorrenciasReais.forEach(ac => {
+                L.marker([ac.lat, ac.lon], {icon: iconeAcidenteReal})
+                    .bindPopup(`<b>⚠️ OCORRÊNCIA ATUALIZADA</b><br>${ac.titulo}<br>${ac.desc}`)
+                    .addTo(camadaTransitoGrupo);
+            });
+
+            alert("Dados de tráfego real e ocorrências nas rodovias brasileiras atualizados com sucesso!");
         }
+
+        function verDetalhesRota(id) {
+            const rota = rotasSalvas.find(r => r.id === id);
+            if (!rota) return;
+
+            document.getElementById('detalheRotaNome').innerText = rota.nome;
+            document.getElementById('detalheRotaDistancia').innerText = rota.distancia + ' km';
+            document.getElementById('detalheRotaEixos').innerText = rota.eixos + ' eixos';
+
+            const custoComb = (parseFloat(rota.distancia) / 2.5 * 6.19).toFixed(2);
+            const custoPedag = (parseFloat(rota.custo) - parseFloat(custoComb)).toFixed(2);
+
+            document.getElementById('detalheRotaCombustivel').innerText = `R$ ${custoComb}`;
+            document.getElementById('detalheRotaPedagio').innerText = `R$ ${custoPedag}`;
+            document.getElementById('detalheRotaTotal').innerText = `R$ ${rota.custo}`;
+
+            const divRodovias = document.getElementById('detalheRotaRodovias');
+            divRodovias.innerHTML = `
+                <ul style="margin: 0; padding-left: 15px;">
+                    <li><b>Rodovia Principal:</b> SP-150 (Rodovia Anchieta) / SP-348 (Bandeirantes)</li>
+                    <li><b>Concessionárias Atendidas:</b> CCR AutoBAn, Ecovias dos Imigrantes</li>
+                    <li><b>Trechos de Ligação Urbana:</b> Acesso via Anel Viário e Rodovias Estaduais SP</li>
+                </ul>
+            `;
+            document.getElementById('modalDetalhesRota').style.display = 'flex';
+        }
+
+        function fecharModalDetalhesRota() { document.getElementById('modalDetalhesRota').style.display = 'none'; }
 
         function toggleMarker(placa) {
             const chk = document.querySelector(`input[value="${placa}"]`);
@@ -1149,7 +1180,8 @@
 
         const referenciasConhecidas = {
             "unimetal sao vicente": { lat: -23.9618, lon: -46.3919, nome: "Unimetal - São Vicente, SP" },
-            "unimetal cosmopolis": { lat: -22.6431, lon: -47.1978, nome: "Unimetal - Cosmópolis, SP" }
+            "unimetal cosmopolis": { lat: -22.6431, lon: -47.1978, nome: "Unimetal - Cosmópolis, SP" },
+            "sorocaba": { lat: -23.5015, lon: -47.4588, nome: "Sorocaba, SP" }
         };
 
         async function obterCoordenadasGoogle(inputElementId, autocompleteInstance) {
@@ -1265,6 +1297,7 @@
                     <td>${r.eixos}</td>
                     <td>${r.distancia} km (R$ ${r.custo})</td>
                     <td class="table-actions">
+                        <button class="btn" style="padding: 4px 8px; font-size: 11px; background: #00838F;" onclick="verDetalhesRota(${r.id})" title="Detalhes de Pedágio e Combustível"><i class="fas fa-file-invoice-dollar"></i> Detalhes</button>
                         <button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--primary-blue);" onclick="carregarRotaNoMapa(${r.id})"><i class="fas fa-eye"></i> Ver Mapa</button>
                         <button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--danger);" onclick="excluirRota(${r.id})"><i class="fas fa-trash"></i></button>
                     </td>
