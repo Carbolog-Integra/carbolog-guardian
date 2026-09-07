@@ -33,6 +33,7 @@
             --light-gray: #F4F6F8;
             --danger: #D32F2F;
             --success: #388E3C;
+            --warning: #FF8F00;
         }
 
         body { font-family: 'Roboto', sans-serif; margin: 0; background-color: var(--light-gray); color: #333; }
@@ -81,6 +82,9 @@
         .eixos-control { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
         .eixos-btn { background: #003366; color: white; border: none; width: 32px; height: 32px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 16px; }
         .eixos-btn:hover { background: #0055A4; }
+        .badge-alerta { padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; color: white; margin-left: 5px; display: inline-block;}
+        .bg-danger { background-color: var(--danger); }
+        .bg-warning { background-color: var(--warning); }
     </style>
 </head>
 <body>
@@ -133,7 +137,7 @@
 
             <div class="card">
                 <div class="flex-row">
-                    <h3 style="color: var(--primary-blue);"><i class="fas fa-list"></i> Grid de Monitoramento SASCAR</h3>
+                    <h3 style="color: var(--primary-blue);"><i class="fas fa-list"></i> Grid de Monitoramento SASCAR (Com Alertas de Comboio e Velocidade)</h3>
                     <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(true)">Marcar Todos</button>
                     <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(false)">Desmarcar Todos</button>
                 </div>
@@ -150,7 +154,7 @@
                                 <th>UF <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" data-col="6"></th>
                                 <th>Rua / Rodovia <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" data-col="7"></th>
                                 <th>Velocidade <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" data-col="8" placeholder="km/h"></th>
-                                <th>Ações (Rotas)</th>
+                                <th>Alertas e Ações</th>
                             </tr>
                         </thead>
                         <tbody id="tbodyOperacional"></tbody>
@@ -206,15 +210,15 @@
     <!-- MODAL DE ROTEIRIZAÇÃO IAM / GOOGLE PLACES -->
     <div id="modalEficiencia" class="modal">
         <div class="modal-content">
-            <div class="modal-header">Roteirizador Rodoviário (IAM / Qualp) <span class="close-modal" onclick="fecharModal()">×</span></div>
+            <div class="modal-header">Roteirizador Rodoviário (Google Places + IAM / Qualp) <span class="close-modal" onclick="fecharModal()">×</span></div>
             
             <div class="flex-row">
                 <div style="width: 50%;">
-                    <label><b>Origem</b> (Referência ou Cidade)</label><br>
+                    <label><b>Origem</b> (Busca Inteligente)</label><br>
                     <input type="text" id="iamOrigem" value="Unimetal Sao Vicente SP" style="width:90%; padding:8px;">
                 </div>
                 <div style="width: 50%;">
-                    <label><b>Destino</b> (Referência ou Cidade)</label><br>
+                    <label><b>Destino</b> (Busca Inteligente)</label><br>
                     <input type="text" id="iamDestino" value="Unimetal Cosmopolis SP" style="width:90%; padding:8px;">
                 </div>
             </div>
@@ -251,10 +255,10 @@
             mapaNormal.addTo(map);
             L.control.layers({"Normal": mapaNormal, "Satélite": mapaSatelite}).addTo(map);
 
+            // Inicializa o Google Places Autocomplete de forma flexível sem travar texto livre
             if (window.google && google.maps && google.maps.places) {
-                const options = { componentRestrictions: { country: 'br' } };
-                autocompleteOrigem = new google.maps.places.Autocomplete(document.getElementById('iamOrigem'), options);
-                autocompleteDestino = new google.maps.places.Autocomplete(document.getElementById('iamDestino'), options);
+                autocompleteOrigem = new google.maps.places.Autocomplete(document.getElementById('iamOrigem'), { componentRestrictions: { country: 'br' } });
+                autocompleteDestino = new google.maps.places.Autocomplete(document.getElementById('iamDestino'), { componentRestrictions: { country: 'br' } });
             }
         });
 
@@ -277,6 +281,18 @@
             document.getElementById(abaId).classList.add('active');
             event.target.classList.add('active');
             if(abaId === 'operacional' && map) setTimeout(() => map.invalidateSize(), 150);
+        }
+
+        // Função para calcular distância em metros entre duas coordenadas (Fórmula de Haversine)
+        function calcularDistanciaMetros(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // Raio da Terra em metros
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
         }
 
         async function carregarDadosVeiculos() {
@@ -310,6 +326,22 @@
                 return; 
             }
 
+            // REGRA DE COMBOIO: Analisa proximidade < 300m entre veículos ativos
+            const alertasComboio = new Set();
+            for (let i = 0; i < veiculosDados.length; i++) {
+                for (let j = i + 1; j < veiculosDados.length; j++) {
+                    const v1 = veiculosDados[i];
+                    const v2 = veiculosDados[j];
+                    if (v1.latitude && v1.longitude && v2.latitude && v2.longitude) {
+                        const distancia = calcularDistanciaMetros(v1.latitude, v1.longitude, v2.latitude, v2.longitude);
+                        if (distancia <= 300) {
+                            alertasComboio.add(v1.id_veiculo ? String(v1.id_veiculo) : 'SEM-PLACA');
+                            alertasComboio.add(v2.id_veiculo ? String(v2.id_veiculo) : 'SEM-PLACA');
+                        }
+                    }
+                }
+            }
+
             const tbody = document.getElementById('tbodyOperacional');
             tbody.innerHTML = '';
             
@@ -338,7 +370,19 @@
                 const linkWaze = `https://waze.com/ul?ll=${lat},${lon}&navigate=yes`;
                 
                 const ignicaoBool = v.ignicao === 1 || v.ignicao === true || String(v.ignicao) === '1';
-                const velFinal = v.velocidade || 0;
+                const velFinal = Number(v.velocidade) || 0;
+                
+                // Geração das tags de alerta conforme regras solicitadas
+                let htmlAlertas = '';
+                if (velFinal > 80) {
+                    htmlAlertas += `<span class="badge-alerta bg-danger" title="Velocidade acima de 80 km/h">EXCESSO VEL.</span>`;
+                }
+                if (alertasComboio.has(placaRaw)) {
+                    htmlAlertas += `<span class="badge-alerta bg-warning" title="Veículo a menos de 300m de outro">POSSÍVEL COMBOIO</span>`;
+                }
+                if (htmlAlertas === '') {
+                    htmlAlertas = `<span style="color: green; font-size: 12px;">Normal</span>`;
+                }
                 
                 const dataFormatada = v.data_posicao ? new Date(v.data_posicao).toLocaleString('pt-BR') : '-';
                 
@@ -353,7 +397,8 @@
                     <td>-</td>
                     <td><b>${velFinal} km/h</b></td>
                     <td class="table-actions">
-                        <a href="${linkGoogle}" target="_blank" title="Google Maps"><i class="fas fa-map-marker-alt"></i></a>
+                        ${htmlAlertas}
+                        <a href="${linkGoogle}" target="_blank" title="Google Maps" style="margin-left: 10px;"><i class="fas fa-map-marker-alt"></i></a>
                         <a href="${linkWaze}" target="_blank" title="Waze"><i class="fab fa-waze"></i></a>
                     </td>
                 `;
@@ -449,24 +494,23 @@
             }
         }
 
-        // Dicionário exato de referências corporativas prioritárias (garante precisão absoluta para Unimetal)
+        // Dicionário corporativo para referências específicas (Unimetal) e fallback flexível para Google Places / Nominatim
         const referenciasConhecidas = {
             "unimetal sao vicente": { lat: -23.9618, lon: -46.3919, nome: "Unimetal - São Vicente, SP" },
             "unimetal cosmopolis": { lat: -22.6431, lon: -47.1978, nome: "Unimetal - Cosmópolis, SP" }
         };
 
         async function obterCoordenadasGoogle(inputElementId, autocompleteInstance) {
-            const val = document.getElementById(inputElementId).value.trim();
+            const inputEl = document.getElementById(inputElementId);
+            const val = inputEl.value.trim();
             const valLower = val.toLowerCase();
 
-            // 1. Verifica se corresponde diretamente às referências conhecidas da Unimetal
             for (let chave in referenciasConhecidas) {
                 if (valLower.includes(chave)) {
                     return referenciasConhecidas[chave];
                 }
             }
-            
-            // 2. Se selecionado no autocomplete do Google Places
+
             if (autocompleteInstance) {
                 const place = autocompleteInstance.getPlace();
                 if (place && place.geometry && place.geometry.location) {
@@ -478,7 +522,6 @@
                 }
             }
 
-            // 3. Fallback de busca textual restrita ao Estado de São Paulo
             try {
                 const termoBusca = val.toLowerCase().includes('sp') ? val : `${val}, Sao Paulo, Brazil`;
                 const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termoBusca)}`;
