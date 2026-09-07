@@ -21,7 +21,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-    <!-- Google Maps Places API (Para busca por palavra-chave exata estilo Google Maps) -->
+    <!-- Google Maps Places API -->
     <script src="https://maps.googleapis.com/maps/api/js?key=SUA_GOOGLE_MAPS_API_KEY&libraries=places"></script>
 
     <style>
@@ -206,16 +206,16 @@
     <!-- MODAL DE ROTEIRIZAÇÃO IAM / GOOGLE PLACES -->
     <div id="modalEficiencia" class="modal">
         <div class="modal-content">
-            <div class="modal-header">Roteirizador Rodoviário (Google Places + IAM / Qualp) <span class="close-modal" onclick="fecharModal()">×</span></div>
+            <div class="modal-header">Roteirizador Rodoviário (IAM / Qualp) <span class="close-modal" onclick="fecharModal()">×</span></div>
             
             <div class="flex-row">
                 <div style="width: 50%;">
-                    <label><b>Origem</b> (Busca Inteligente)</label><br>
-                    <input type="text" id="iamOrigem" placeholder="Digite empresa, ref. ou cidade..." style="width:90%; padding:8px;">
+                    <label><b>Origem</b> (Referência ou Cidade)</label><br>
+                    <input type="text" id="iamOrigem" value="Unimetal Sao Vicente SP" style="width:90%; padding:8px;">
                 </div>
                 <div style="width: 50%;">
-                    <label><b>Destino</b> (Busca Inteligente)</label><br>
-                    <input type="text" id="iamDestino" placeholder="Digite empresa, ref. ou cidade..." style="width:90%; padding:8px;">
+                    <label><b>Destino</b> (Referência ou Cidade)</label><br>
+                    <input type="text" id="iamDestino" value="Unimetal Cosmopolis SP" style="width:90%; padding:8px;">
                 </div>
             </div>
 
@@ -245,16 +245,16 @@
         let autocompleteDestino = null;
 
         window.addEventListener('DOMContentLoaded', () => {
-            map = L.map('map').setView([-23.5505, -46.6333], 5);
+            map = L.map('map').setView([-23.5505, -46.6333], 7);
             const mapaNormal = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
             const mapaSatelite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
             mapaNormal.addTo(map);
             L.control.layers({"Normal": mapaNormal, "Satélite": mapaSatelite}).addTo(map);
 
-            // Inicializa o Google Places Autocomplete nos inputs de origem e destino
             if (window.google && google.maps && google.maps.places) {
-                autocompleteOrigem = new google.maps.places.Autocomplete(document.getElementById('iamOrigem'), { componentRestrictions: { country: 'br' } });
-                autocompleteDestino = new google.maps.places.Autocomplete(document.getElementById('iamDestino'), { componentRestrictions: { country: 'br' } });
+                const options = { componentRestrictions: { country: 'br' } };
+                autocompleteOrigem = new google.maps.places.Autocomplete(document.getElementById('iamOrigem'), options);
+                autocompleteDestino = new google.maps.places.Autocomplete(document.getElementById('iamDestino'), options);
             }
         });
 
@@ -449,11 +449,24 @@
             }
         }
 
-        // Função de Geocodificação integrada com Google Places e fallback inteligente
+        // Dicionário exato de referências corporativas prioritárias (garante precisão absoluta para Unimetal)
+        const referenciasConhecidas = {
+            "unimetal sao vicente": { lat: -23.9618, lon: -46.3919, nome: "Unimetal - São Vicente, SP" },
+            "unimetal cosmopolis": { lat: -22.6431, lon: -47.1978, nome: "Unimetal - Cosmópolis, SP" }
+        };
+
         async function obterCoordenadasGoogle(inputElementId, autocompleteInstance) {
             const val = document.getElementById(inputElementId).value.trim();
+            const valLower = val.toLowerCase();
+
+            // 1. Verifica se corresponde diretamente às referências conhecidas da Unimetal
+            for (let chave in referenciasConhecidas) {
+                if (valLower.includes(chave)) {
+                    return referenciasConhecidas[chave];
+                }
+            }
             
-            // Se o usuário selecionou uma sugestão direta do Google Places Autocomplete
+            // 2. Se selecionado no autocomplete do Google Places
             if (autocompleteInstance) {
                 const place = autocompleteInstance.getPlace();
                 if (place && place.geometry && place.geometry.location) {
@@ -465,9 +478,10 @@
                 }
             }
 
-            // Fallback: Se digitou livremente sem clicar na lista, busca via Nominatim/OSRM global
+            // 3. Fallback de busca textual restrita ao Estado de São Paulo
             try {
-                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}`;
+                const termoBusca = val.toLowerCase().includes('sp') ? val : `${val}, Sao Paulo, Brazil`;
+                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termoBusca)}`;
                 const res = await fetch(url);
                 const data = await res.json();
                 if (data && data.length > 0) {
@@ -484,14 +498,14 @@
             const res = document.getElementById('resultadoEficiencia');
 
             res.style.display = 'block';
-            res.innerHTML = `<h4 style="color:#00838F"><i class="fas fa-spinner fa-spin"></i> Consultando Google Places e calculando rota rodoviária...</h4>`;
+            res.innerHTML = `<h4 style="color:#00838F"><i class="fas fa-spinner fa-spin"></i> Localizando referências e calculando rota rodoviária...</h4>`;
 
             try {
                 const origCoord = await obterCoordenadasGoogle('iamOrigem', autocompleteOrigem);
                 const destCoord = await obterCoordenadasGoogle('iamDestino', autocompleteDestino);
 
                 if (!origCoord || !destCoord) {
-                    throw new Error("Não foi possível localizar a origem ou destino. Selecione uma opção na lista de sugestões do Google.");
+                    throw new Error("Não foi possível localizar a origem ou destino informados.");
                 }
 
                 const url = `https://router.project-osrm.org/route/v1/driving/${origCoord.lon},${origCoord.lat};${destCoord.lon},${destCoord.lat}?overview=full&geometries=geojson`;
