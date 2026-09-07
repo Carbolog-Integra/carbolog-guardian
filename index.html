@@ -11,7 +11,6 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
-    <!-- Leaflet Routing Machine para arrastar e editar a rota no mapa -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
     <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
 
@@ -93,7 +92,7 @@
         .info-tag { font-size: 12px; background: rgba(0,0,0,0.1); padding: 5px 10px; border-radius: 15px; }
         
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center;}
-        .modal-content { background: var(--card-bg); color: var(--text-color); padding: 25px; border-radius: 8px; width: 90%; max-width: 650px; max-height: 90vh; overflow-y: auto; }
+        .modal-content { background: var(--card-bg); color: var(--text-color); padding: 25px; border-radius: 8px; width: 90%; max-width: 550px; max-height: 90vh; overflow-y: auto; }
         .modal-header { font-size: 18px; font-weight: bold; margin-bottom: 15px; color: var(--accent-blue); border-bottom: 1px solid var(--border-color); padding-bottom: 10px;}
         .close-modal { float: right; cursor: pointer; color: var(--danger); font-size: 20px; }
         .eixos-control { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
@@ -287,13 +286,20 @@
         </div>
     </div>
 
-    <!-- MODAL FLUTUANTE DE SALVAMENTO DE ROTA (Aparece centralizado na tela ao calcular) -->
+    <!-- MODAL FLUTUANTE DE SALVAMENTO DE ROTA COM INPUT DE NOME -->
     <div id="modalSalvarRota" class="modal">
-        <div class="modal-content" style="max-width: 500px; text-align: center;">
-            <div class="modal-header" style="text-align: left;">Salvar Trajeto Calculado <span class="close-modal" onclick="fecharModalSalvar()">×</span></div>
-            <div id="modal-route-stats" style="margin: 15px 0; text-align: left; font-size: 14px; line-height: 1.5;"></div>
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">Salvar Trajeto Calculado <span class="close-modal" onclick="fecharModalSalvar()">×</span></div>
+            
+            <div style="margin-bottom: 15px;">
+                <label><b>Nome Identificador da Rota:</b></label><br>
+                <input type="text" id="inputNomeRota" style="width: 95%; padding: 10px; margin-top: 5px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); color: var(--text-color); font-weight: bold;" placeholder="Ex: Rota Matriz x Filial">
+            </div>
+
+            <div id="modal-route-stats" style="margin: 15px 0; font-size: 14px; line-height: 1.5; background: rgba(0,0,0,0.05); padding: 10px; border-radius: 4px;"></div>
+            
             <div style="display: flex; gap: 10px; margin-top: 20px;">
-                <button class="btn" style="background: var(--success); flex: 1;" onclick="salvarRotaAtual()"><i class="fas fa-save"></i> Confirmar e Salvar</button>
+                <button class="btn" style="background: var(--success); flex: 1;" onclick="salvarRotaAtual()"><i class="fas fa-save"></i> Salvar Definitivamente</button>
                 <button class="btn" style="background: var(--danger); flex: 1;" onclick="fecharModalSalvar()"><i class="fas fa-times"></i> Cancelar</button>
             </div>
         </div>
@@ -592,15 +598,14 @@
                     coordenadas: coordenadasMalha
                 };
 
-                // Exibe o modal centralizado para confirmar e salvar
+                // Sugere um nome padrão direto no campo de texto
+                const nomeSugerido = `${dadosUltimaRotaCalculada.origemTxt.split(',')[0]} -> ${dadosUltimaRotaCalculada.destinoTxt.split(',')[0]}`;
+                document.getElementById('inputNomeRota').value = nomeSugerido;
+
                 document.getElementById('modal-route-stats').innerHTML = `
-                    <p><b>Distância Total:</b> ${distanciaKm} km</p>
-                    <p><b>Tempo Estimado:</b> ~${duracaoHoras} horas</p>
-                    <p><b>Qtd. Eixos:</b> ${eixosAtuaisRota} eixos</p>
-                    <p><b>Pedágios (Est.):</b> R$ ${valorTotalPedagios}</p>
-                    <p><b>Combustível (Est.):</b> R$ ${custoCombustivel}</p>
-                    <hr style="border-top:1px solid var(--border-color); margin: 10px 0;">
-                    <p style="color: var(--warning); font-size: 13px;"><i class="fas fa-info-circle"></i> Você pode arrastar a linha azul no mapa para ajustar o trajeto antes de salvar.</p>
+                    <p><b>Distância Total:</b> ${distanciaKm} km | <b>Tempo:</b> ~${duracaoHoras} h</p>
+                    <p><b>Eixos:</b> ${eixosAtuaisRota} | <b>Pedágios:</b> R$ ${valorTotalPedagios} | <b>Combustível:</b> R$ ${custoCombustivel}</p>
+                    <p style="color: var(--warning); font-size: 12px; margin-top: 5px;"><i class="fas fa-info-circle"></i> Você pode arrastar a linha no mapa para ajustar o trajeto antes de salvar.</p>
                 `;
                 document.getElementById('modalSalvarRota').style.display = 'flex';
             });
@@ -619,10 +624,11 @@
                     return;
                 }
                 
-                const nomePadrao = `${dadosUltimaRotaCalculada.origemTxt.split(',')[0]} -> ${dadosUltimaRotaCalculada.destinoTxt.split(',')[0]}`;
-                const nomeRota = prompt("Digite um nome para identificar esta rota:", nomePadrao);
-                
-                if (!nomeRota) return;
+                const nomeRota = document.getElementById('inputNomeRota').value.trim();
+                if (!nomeRota) {
+                    alert("Por favor, digite um nome para identificar a rota.");
+                    return;
+                }
 
                 const novaRota = { id: Date.now(), nome: nomeRota, ...dadosUltimaRotaCalculada };
                 rotasSalvas.push(novaRota);
