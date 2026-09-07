@@ -7,15 +7,18 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 SASCAR_USER = os.getenv("SASCAR_USER")
 SASCAR_PASS = os.getenv("SASCAR_PASS")
 
-def sincronizar_dados():
-    print(f"[{datetime.now()}] Conectando ao integrador SASCAR...")
-    
-    # Exemplo de payload padronizado para ingestão na tabela posicoes_sascar do Supabase
-    # Insira aqui os dados retornados pela API ou sua rotina de integração de frotas
-    payload_exemplo = []
+def buscar_telemetria_sascar():
+    print(f"[{datetime.now()}] Buscando posições na SASCAR...")
+    # Insira aqui a requisição real para a API da SASCAR usando SASCAR_USER e SASCAR_PASS
+    # Exemplo estruturado que retorna uma lista de dicionários com os veículos:
+    posicoes_atualizadas = [
+        # Exemplo: {"id_veiculo": "FRS2A84", "latitude": -23.9618, "longitude": -46.3919, "velocidade": 65, "ignicao": 1, "ododmetro": 501404, "data_posicao": datetime.now().isoformat()}
+    ]
+    return posicoes_atualizadas
 
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        print("Erro: Credenciais do Supabase não configuradas nas Secrets.")
+def atualizar_banco_supabase(veiculos):
+    if not veiculos:
+        print("Nenhuma posição nova retornada pela SASCAR nesta execução.")
         return
 
     headers = {
@@ -27,13 +30,13 @@ def sincronizar_dados():
 
     url = f"{SUPABASE_URL}/rest/v1/posicoes_sascar"
 
-    # Se houver dados novos capturados, enviamos para o Supabase
-    for item in payload_exemplo:
-        response = requests.post(url, json=item, headers=headers)
+    for v in veiculos:
+        response = requests.post(url, json=v, headers=headers)
         if response.status_code in [200, 201]:
-            print(f"Registro do veículo {item.get('id_veiculo')} atualizado com sucesso.")
+            print(f"Veículo {v.get('id_veiculo')} atualizado no Supabase.")
         else:
-            print(f"Falha ao salvar: {response.text}")
+            print(f"Erro ao atualizar {v.get('id_veiculo')}: {response.text}")
 
 if __name__ == "__main__":
-    sincronizar_dados()
+    dados_frota = buscar_telemetria_sascar()
+    atualizar_banco_supabase(dados_frota)
