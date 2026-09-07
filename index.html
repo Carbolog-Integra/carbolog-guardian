@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Integração - Telemetria e Abastecimento</title>
+    <title>Guardian Carbolog - Gestão de Riscos</title>
 
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
@@ -111,7 +111,7 @@
     <div id="login-screen">
         <div class="login-box">
             <h2><i class="fas fa-shield-alt"></i> Acesso ao Sistema</h2>
-            <p style="font-size: 14px; opacity: 0.8;">Apenas e-mails corporativos autorizados</p>
+            <p style="font-size: 14px; opacity: 0.8;">GUARDIAN CARBOLOG</p>
             <input type="email" id="emailInput" placeholder="usuario@carbolog.com.br" value="v.menezes@carbolog.com.br" required>
             <select id="perfilInput">
                 <option value="Administrador">Administrador</option>
@@ -126,7 +126,7 @@
     <!-- APLICAÇÃO PRINCIPAL -->
     <div id="app" class="app-container">
         <div class="navbar">
-            <div class="logo"><h3><i class="fas fa-satellite-dish"></i> Integrador de Frota</h3></div>
+            <div class="logo"><h3><i class="fas fa-satellite-dish"></i> GUARDIAN CARBOLOG</h3></div>
             <div class="nav-menus">
                 <button class="active" onclick="mudarAba('operacional')">Grid Operacional</button>
                 <button onclick="mudarAba('dashboard')">Dashboard</button>
@@ -147,10 +147,10 @@
         <div id="operacional" class="tab-content active">
             <div class="card" style="padding-bottom: 0;">
                 <div class="flex-row" style="justify-content: space-between;">
-                    <h3 style="color: var(--accent-blue);"><i class="fas fa-map"></i> Robô Monitor de Frota (SASCAR)</h3>
+                    <h3 style="color: var(--accent-blue);"><i class="fas fa-map"></i> Monitor de Frota</h3>
                     <div>
                         <span class="info-tag">Auto-Refresh Robô: <span id="timerRefresh">300</span>s</span>
-                        <button class="btn" onclick="carregarDadosVeiculos()"><i class="fas fa-sync"></i> Varredura Agora</button>
+                        <button class="btn" onclick="carregarDadosVeiculos()"><i class="fas fa-sync"></i> Refresh</button>
                         <button class="btn" style="background:#00838F;" onclick="carregarAcidentesWazeGoogle()"><i class="fas fa-traffic-light"></i> Tráfego / Waze Reais</button>
                         <button class="btn" onclick="abrirModalEficiencia()"><i class="fas fa-route"></i> Criar Nova Rota</button>
                     </div>
@@ -289,7 +289,7 @@
             
             <div class="flex-row" style="gap: 10px; margin-bottom: 15px;">
                 <div style="flex: 1; display: flex; align-items: center; position: relative;">
-                    <input type="text" id="inputBuscaRefArea" placeholder="Pesquisar por referência, cidade ou UF (Ex: Sorocaba SP)..." onkeydown="if(event.key === 'Enter') pesquisarLocalArea();" style="width: 100%; padding: 10px 40px 10px 12px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); color: var(--text-color);">
+                    <input type="text" id="inputBuscaRefArea" placeholder="Pesquisar por referência, cidade, UF ou localidade do Google (Ex: Unimetal, Sorocaba SP)..." onkeydown="if(event.key === 'Enter') pesquisarLocalArea();" style="width: 100%; padding: 10px 40px 10px 12px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); color: var(--text-color);">
                     <i class="fas fa-search" onclick="pesquisarLocalArea()" style="position: absolute; right: 12px; cursor: pointer; color: var(--accent-blue); font-size: 16px;" title="Pesquisar localização"></i>
                 </div>
                 <button class="btn" style="background: var(--accent-blue); margin-top: 0; padding: 10px 15px;" onclick="pesquisarLocalArea()"><i class="fas fa-search"></i> Buscar</button>
@@ -443,6 +443,7 @@
         
         let autocompleteOrigem = null;
         let autocompleteDestino = null;
+        let autocompleteBuscaArea = null;
         
         let rotasSalvas = [];
         let areasSalvas = [];
@@ -884,8 +885,20 @@
             document.getElementById('modalJanelaCriarArea').style.display = 'flex';
             setTimeout(() => {
                 if (!mapDesenhoAreaInstance) {
-                    mapDesenhoAreaInstance = L.map('mapDesenhoArea').setView([-23.5505, -46.6333], 8);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapDesenhoAreaInstance);
+                    const mapaNormalArea = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
+                    const mapaSateliteArea = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
+                    const rotulosSateliteArea = L.layerGroup([mapaSateliteArea, L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 })]);
+
+                    mapDesenhoAreaInstance = L.map('mapDesenhoArea', {
+                        center: [-23.5505, -46.6333],
+                        zoom: 8,
+                        layers: [mapaNormalArea]
+                    });
+
+                    L.control.layers({
+                        "Normal": mapaNormalArea,
+                        "Satélite (com Nomes/Vias)": rotulosSateliteArea
+                    }).addTo(mapDesenhoAreaInstance);
                     
                     mapDesenhoAreaInstance.on('click', function(e) {
                         if (modoDesenhoAtual === 'polygon') {
@@ -910,6 +923,19 @@
                             atualizarDesenhoTemporario();
                         }
                     });
+
+                    if (window.google && google.maps && google.maps.places) {
+                        autocompleteBuscaArea = new google.maps.places.Autocomplete(document.getElementById('inputBuscaRefArea'), { componentRestrictions: { country: 'br' } });
+                        autocompleteBuscaArea.addListener('place_changed', function() {
+                            const place = autocompleteBuscaArea.getPlace();
+                            if (place && place.geometry && place.geometry.location) {
+                                const lat = place.geometry.location.lat();
+                                const lon = place.geometry.location.lng();
+                                mapDesenhoAreaInstance.setView([lat, lon], 13);
+                                L.marker([lat, lon]).addTo(camadaDesenhoTemp).bindPopup(place.formatted_address || place.name).openPopup();
+                            }
+                        });
+                    }
                 }
                 mapDesenhoAreaInstance.invalidateSize();
             }, 200);
@@ -977,6 +1003,17 @@
             const termo = inputEl.value.trim();
             if (!termo) { alert("Digite uma referência, cidade ou UF."); return; }
             
+            if (autocompleteBuscaArea) {
+                const place = autocompleteBuscaArea.getPlace();
+                if (place && place.geometry && place.geometry.location) {
+                    const lat = place.geometry.location.lat();
+                    const lon = place.geometry.location.lng();
+                    mapDesenhoAreaInstance.setView([lat, lon], 13);
+                    L.marker([lat, lon]).addTo(camadaDesenhoTemp).bindPopup(place.formatted_address || termo).openPopup();
+                    return;
+                }
+            }
+
             try {
                 const termoBusca = termo.toLowerCase().includes('sp') ? termo : `${termo}, Sao Paulo, Brazil`;
                 const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termoBusca)}`;
@@ -1065,6 +1102,72 @@
             localStorage.setItem('areasSalvas', JSON.stringify(areasSalvas));
             renderizarTabelaAreas();
             renderizarAreasNoMapa();
+        }
+
+        function abrirModalVincular(placa) {
+            placaAtualVinculando = placa;
+            document.getElementById('veiculoSelecionadoModal').innerText = placa;
+            
+            const select = document.getElementById('selectRotaVinculo');
+            select.innerHTML = '';
+            if (rotasSalvas.length === 0) {
+                select.innerHTML = `<option value="">Nenhuma rota criada ainda</option>`;
+            } else {
+                rotasSalvas.forEach(r => {
+                    const opt = document.createElement('option');
+                    opt.value = r.id;
+                    opt.innerText = r.nome + ` (${r.distancia} km)`;
+                    select.appendChild(opt);
+                });
+            }
+            document.getElementById('modalVincularRota').style.display = 'flex';
+        }
+
+        function fecharModalVincular() { document.getElementById('modalVincularRota').style.display = 'none'; }
+
+        function confirmarVinculacaoRota() {
+            const selectId = document.getElementById('selectRotaVinculo').value;
+            if (!selectId) return;
+            const rotaEscolhida = rotasSalvas.find(r => r.id == selectId);
+            if (!rotaEscolhida) return;
+
+            rotasVeiculos[placaAtualVinculando] = rotaEscolhida;
+            localStorage.setItem('rotasVeiculos', JSON.stringify(rotasVeiculos));
+
+            fecharModalVincular();
+            renderizarGridEMapa();
+            alert(`Rota "${rotaEscolhida.nome}" vinculada com sucesso ao veículo ${placaAtualVinculando}!`);
+        }
+
+        function desvincularRotaVeiculo(placa) {
+            if (!confirm(`Deseja desvincular a rota do veículo ${placa}?`)) return;
+            delete rotasVeiculos[placa];
+            localStorage.setItem('rotasVeiculos', JSON.stringify(rotasVeiculos));
+            if (linhaRotaVeiculoAtivo) { map.removeLayer(linhaRotaVeiculoAtivo); linhaRotaVeiculoAtivo = null; }
+            renderizarGridEMapa();
+            map.closePopup();
+            alert("Rota desvinculada com sucesso!");
+        }
+
+        function visualizarRotaEmbarcada(placa) {
+            const rotaObj = rotasVeiculos[placa];
+            if (!rotaObj || !rotaObj.coordenadas) {
+                alert("Este veículo não possui rota embarcada.");
+                return;
+            }
+            if (linhaRotaVeiculoAtivo) map.removeLayer(linhaRotaVeiculoAtivo);
+            linhaRotaVeiculoAtivo = L.polyline(rotaObj.coordenadas, {color: '#008DDA', weight: 6, opacity: 0.9}).addTo(map);
+            map.fitBounds(linhaRotaVeiculoAtivo.getBounds());
+            alert(`Exibindo no mapa a rota "${rotaObj.nome}" do veículo ${placa}.`);
+        }
+
+        function focarVeiculoNoMapa(placa) {
+            veiculoFocoGlobal = (veiculoFocoGlobal === placa) ? null : placa;
+            renderizarGridEMapa();
+            if (veiculoFocoGlobal && markers[veiculoFocoGlobal]) {
+                map.setView(markers[veiculoFocoGlobal].getLatLng(), 13);
+                markers[placa].openPopup();
+            }
         }
 
         function abrirModalVincularArea(placa) {
@@ -1304,7 +1407,7 @@
             try {
                 if (!dadosUltimaRotaCalculada) return;
                 const nomeRota = document.getElementById('inputNomeRota').value.trim();
-                if (!nomeRota) { alert("Digite um nome para a rota."); return; }
+                if (!nomeRota) { alert("Digite um nome para la rota."); return; }
 
                 const novaRota = { id: Date.now(), nome: nomeRota, ...dadosUltimaRotaCalculada };
                 rotasSalvas.push(novaRota);
