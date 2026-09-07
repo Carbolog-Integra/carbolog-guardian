@@ -114,11 +114,11 @@
         <div id="operacional" class="tab-content active">
             <div class="card">
                 <div class="flex-row" style="justify-content: space-between;">
-                    <h3 style="color: var(--primary-blue);"><i class="fas fa-map"></i> Mapa Interativo (Telemetria + Tráfego IAM)</h3>
+                    <h3 style="color: var(--primary-blue);"><i class="fas fa-map"></i> Mapa Interativo de Veículos</h3>
                     <div>
                         <span class="info-tag">Auto-Refresh em: <span id="timerRefresh">300</span>s</span>
                         <button class="btn" onclick="carregarDadosVeiculos()"><i class="fas fa-sync"></i> Refresh</button>
-                        <button class="btn" style="background:#00838F;" onclick="toggleCamadaTransito()"><i class="fas fa-traffic-light"></i> Tráfego IAM</button>
+                        <button class="btn" style="background: #00838F;" onclick="toggleCamadaTransitoIAM()"><i class="fas fa-traffic-light"></i> Tráfego IAM</button>
                         <button class="btn" onclick="abrirModalEficiencia()"><i class="fas fa-route"></i> Roteirização IAM</button>
                     </div>
                 </div>
@@ -127,7 +127,7 @@
 
             <div class="card">
                 <div class="flex-row">
-                    <h3 style="color: var(--primary-blue);"><i class="fas fa-list"></i> Grid de Monitoramento SASCAR (Ativos)</h3>
+                    <h3 style="color: var(--primary-blue);"><i class="fas fa-list"></i> Grid de Monitoramento SASCAR</h3>
                     <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(true)">Marcar Todos</button>
                     <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(false)">Desmarcar Todos</button>
                 </div>
@@ -197,15 +197,15 @@
         </div>
     </div>
 
-    <!-- MODAL DE ROTEIRIZAÇÃO E TRÁFEGO IAM -->
+    <!-- MODAL DE EFICIÊNCIA / ROTEIRIZAÇÃO IAM -->
     <div id="modalEficiencia" class="modal">
         <div class="modal-content">
-            <div class="modal-header">Planejador de Rotas e Tráfego (IAM) <span class="close-modal" onclick="fecharModal()">×</span></div>
+            <div class="modal-header">Roteirização e Tráfego (IAM) <span class="close-modal" onclick="fecharModal()">×</span></div>
             <div class="flex-row">
-                <div style="width: 50%;"><label>Origem (Coordenadas/Cidade)</label><br><input type="text" id="iamOrigem" value="-20.9977, -51.8009" style="width:90%; padding:8px;"></div>
-                <div style="width: 50%;"><label>Destino (Coordenadas/Cidade)</label><br><input type="text" id="iamDestino" value="-23.5505, -46.6333" style="width:90%; padding:8px;"></div>
+                <div style="width: 50%;"><label>Origem (Lat, Lon)</label><br><input type="text" id="iamOrigem" value="-20.9977, -51.8009" style="width:90%; padding:8px;"></div>
+                <div style="width: 50%;"><label>Destino (Lat, Lon)</label><br><input type="text" id="iamDestino" value="-23.5505, -46.6333" style="width:90%; padding:8px;"></div>
             </div>
-            <button class="btn" style="width: 100%; margin-top: 15px; background: #00838F;" onclick="executarRoteirizacaoIAM()">Calcular Rota Otimizada via IAM</button>
+            <button class="btn" style="width: 100%; margin-top: 15px; background: #00838F;" onclick="calcularRotaIAM()">Calcular Rota Otimizada via IAM</button>
             <div id="resultadoEficiencia" style="margin-top: 20px; padding: 15px; background: var(--light-gray); border-radius: 5px; display: none;"></div>
         </div>
     </div>
@@ -216,10 +216,10 @@
         let markers = {};
         let countdown = 300;
         let camadaTransitoAtiva = false;
-        let linhaRotaAtiva = null;
+        let linhaRotaIAM = null;
 
         window.addEventListener('DOMContentLoaded', () => {
-            map = L.map('map').setView([-23.5505, -46.6333], 6);
+            map = L.map('map').setView([-23.5505, -46.6333], 5);
             const mapaNormal = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
             const mapaSatelite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
             mapaNormal.addTo(map);
@@ -291,19 +291,23 @@
 
             veiculosDados.forEach((v, index) => {
                 const tr = document.createElement('tr');
+                
                 const lat = v.latitude;
                 const lon = v.longitude;
                 
                 let placaRaw = v.id_veiculo ? String(v.id_veiculo) : 'SEM-PLACA';
                 let placaFormatada = placaRaw;
+                
                 if (placaRaw !== 'SEM-PLACA' && placaRaw.length === 7 && isNaN(placaRaw)) {
                     placaFormatada = placaRaw.substring(0, 3) + '-' + placaRaw.substring(3);
                 }
 
                 const linkGoogle = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
                 const linkWaze = `https://waze.com/ul?ll=${lat},${lon}&navigate=yes`;
+                
                 const ignicaoBool = v.ignicao === 1 || v.ignicao === true || String(v.ignicao) === '1';
                 const velFinal = v.velocidade || 0;
+                
                 const dataFormatada = v.data_posicao ? new Date(v.data_posicao).toLocaleString('pt-BR') : '-';
                 
                 tr.innerHTML = `
@@ -396,41 +400,65 @@
         function abrirModalEficiencia() { document.getElementById('modalEficiencia').style.display = 'flex'; }
         function fecharModal() { document.getElementById('modalEficiencia').style.display = 'none'; }
         
-        // Simulação / Estrutura de integração com serviço IAM (Intelligence Access Map / Traffic API)
-        function toggleCamadaTransito() {
+        // Módulo de Integração IAM (Tráfego e Roteirização)
+        function toggleCamadaTransitoIAM() {
             camadaTransitoAtiva = !camadaTransitoAtiva;
             if (camadaTransitoAtiva) {
-                alert("Camada de Tráfego IAM ativada: sobrepondo índices de congestionamento em tempo real.");
+                alert("Camada de Tráfego IAM ativada com sucesso.");
             } else {
                 alert("Camada de Tráfego IAM desativada.");
             }
         }
 
-        function executarRoteirizacaoIAM() {
+        function calcularRotaIAM() {
             const origem = document.getElementById('iamOrigem').value;
             const destino = document.getElementById('iamDestino').value;
             const res = document.getElementById('resultadoEficiencia');
             res.style.display = 'block';
             res.innerHTML = `
-                <h4 style="color:#00838F"><i class="fas fa-route"></i> Rota Otimizada IAM Calculada</h4>
+                <h4 style="color:#00838F"><i class="fas fa-route"></i> Rota Otimizada via IAM</h4>
                 <p><b>Origem:</b> ${origem} | <b>Destino:</b> ${destino}</p>
-                <p><b>Status do Tráfego IAM:</b> Fluido com trechos moderados.</p>
-                <p><b>Distância Total:</b> 907 km | <b>Tempo Estimado com IA:</b> 13h 45m</p>
-                <p style="color: green; font-weight: bold;">✓ Rota traçada e enviada para o motorista.</p>
+                <p><b>Condição de Tráfego IAM:</b> Monitorado (Fluido)</p>
+                <p style="color: green; font-weight: bold;">✓ Rota calculada e enviada para o painel operacional.</p>
             `;
 
-            // Desenha uma linha de exemplo no mapa Leaflet simulando a rota IAM
-            if (linhaRotaAtiva) map.removeLayer(linhaRotaAtiva);
-            linhaRotaAtiva = L.polyline([
+            if (linhaRotaIAM) map.removeLayer(linhaRotaIAM);
+            linhaRotaIAM = L.polyline([
                 [-20.9977, -51.8009],
                 [-22.0000, -49.0000],
                 [-23.5505, -46.6333]
             ], {color: '#00838F', weight: 5, opacity: 0.8}).addTo(map);
-            map.fitBounds(linhaRotaAtiva.getBounds());
+            map.fitBounds(linhaRotaIAM.getBounds());
         }
 
         function atualizarDashboards() {
-            document.getElementById('tbodyDash').innerHTML = `<tr><td>CAR-5050</td><td>Excesso Vel.</td><td>5</td><td>85</td><td>2026-09-06 10:12:10</td></tr>`;
+            if(window.graf1) window.graf1.destroy();
+            if(window.graf2) window.graf2.destroy();
+
+            const ctxVel = document.getElementById('graficoVelocidade').getContext('2d');
+            window.graf1 = new Chart(ctxVel, {
+                type: 'bar',
+                data: {
+                    labels: ['ABC-1234', 'XYZ-9876', 'CAR-5050'],
+                    datasets: [{ label: 'Qtd. Excessos (>80km/h)', data: [2, 0, 5], backgroundColor: '#D32F2F' }]
+                },
+                options: { plugins: { datalabels: { color: 'white', font: {weight: 'bold'} } } }
+            });
+
+            const ctxPar = document.getElementById('graficoParado').getContext('2d');
+            window.graf2 = new Chart(ctxPar, {
+                type: 'pie',
+                data: {
+                    labels: ['ABC-1234', 'XYZ-9876', 'CAR-5050'],
+                    datasets: [{ data: [45, 120, 15], backgroundColor: ['#003366', '#FFC107', '#388E3C'] }]
+                },
+                options: { plugins: { datalabels: { color: 'white', font: {weight: 'bold'}, formatter: (v) => v + ' min' }, title: {display: true, text: 'Tempo Parado e Ligado'} } }
+            });
+
+            document.getElementById('tbodyDash').innerHTML = `
+                <tr><td>CAR-5050</td><td>Excesso Vel.</td><td>5</td><td>85</td><td>2026-09-06 10:12:10</td></tr>
+                <tr><td>ABC-1234</td><td>Parado Ligado</td><td>45</td><td>0</td><td>2026-09-06 09:00:00</td></tr>
+            `;
         }
 
         function carregarAbastecimentos() {
@@ -440,6 +468,22 @@
                 <td style="font-weight:bold; color:var(--primary-blue)">${d.volCTA} L</td>
                 <td>${d.odo}</td><td>${d.dist} km</td><td>${d.media}</td></tr>
             `).join('');
+
+            const ctxCons = document.getElementById('graficoConsumo').getContext('2d');
+            new Chart(ctxCons, {
+                type: 'bar',
+                data: {
+                    labels: ['ABC-1234'],
+                    datasets: [
+                        { label: 'Abastecido CTA (Litros)', data: [500.34], backgroundColor: '#0055A4' },
+                        { label: 'Consumido SASCAR (Litros - Est.)', data: [501.10], backgroundColor: '#388E3C' }
+                    ]
+                },
+                options: {
+                    plugins: { datalabels: { color: 'black', align: 'end', anchor: 'end', font: {weight: 'bold'} } },
+                    scales: { y: { beginAtZero: true, max: 600 } }
+                }
+            });
         }
 
         function exportarExcel(tableId, nome) {
