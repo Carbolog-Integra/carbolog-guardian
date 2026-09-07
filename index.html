@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guardian Carbolog - Integrador Inteligente</title>
+    <title>Sistema de Integração - Telemetria e Abastecimento</title>
 
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
@@ -121,11 +121,12 @@
     <!-- APLICAÇÃO PRINCIPAL -->
     <div id="app" class="app-container">
         <div class="navbar">
-            <div class="logo"><h3><i class="fas fa-satellite-dish"></i> Guardian Carbolog</h3></div>
+            <div class="logo"><h3><i class="fas fa-satellite-dish"></i> Integrador de Frota</h3></div>
             <div class="nav-menus">
                 <button class="active" onclick="mudarAba('operacional')">Grid Operacional</button>
                 <button onclick="mudarAba('dashboard')">Dashboard</button>
                 <button onclick="mudarAba('abastecimentos')">Gestão de Abastecimentos</button>
+                <button onclick="mudarAba('rotas')">Rotas Criadas</button>
             </div>
             <div style="display: flex; align-items: center; gap: 10px;">
                 <button class="btn" style="background: #555; padding: 6px 12px; font-size: 13px;" onclick="alternarTema()">
@@ -140,12 +141,12 @@
         <div id="operacional" class="tab-content active">
             <div class="card">
                 <div class="flex-row" style="justify-content: space-between;">
-                    <h3 style="color: var(--accent-blue);"><i class="fas fa-map"></i> Monitor de Frota</h3>
+                    <h3 style="color: var(--accent-blue);"><i class="fas fa-map"></i> Robô Monitor de Frota (SASCAR)</h3>
                     <div>
                         <span class="info-tag">Auto-Refresh Robô: <span id="timerRefresh">300</span>s</span>
-                        <button class="btn" onclick="carregarDadosVeiculos()"><i class="fas fa-sync"></i> REFRESH MANUAL</button>
+                        <button class="btn" onclick="carregarDadosVeiculos()"><i class="fas fa-sync"></i> Executar Varredura Agora</button>
                         <button class="btn" style="background:#00838F;" onclick="toggleCamadaTransitoIAM()"><i class="fas fa-traffic-light"></i> Tráfego Rodoviário</button>
-                        <button class="btn" onclick="abrirModalEficiencia()"><i class="fas fa-route"></i> Roteirizador</button>
+                        <button class="btn" onclick="abrirModalEficiencia()"><i class="fas fa-route"></i> Roteirizador IAM / Qualp</button>
                     </div>
                 </div>
                 <div id="map"></div>
@@ -221,12 +222,37 @@
                 </table>
             </div>
         </div>
+
+        <!-- ABA 4: ROTAS CRIADAS -->
+        <div id="rotas" class="tab-content">
+            <div class="card">
+                <div class="flex-row" style="justify-content: space-between;">
+                    <h3 style="color: var(--accent-blue);"><i class="fas fa-route"></i> Gestão e Filtro de Rotas Salvas</h3>
+                    <input type="text" id="filtroRotasInput" placeholder="Filtrar por nome ou origem/destino..." onkeyup="filtrarRotasSalvas()" style="padding: 8px; width: 300px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-color);">
+                </div>
+                <table id="tabelaRotasSalvas">
+                    <thead>
+                        <tr>
+                            <th>Nome da Rota</th>
+                            <th>Origem</th>
+                            <th>Destino</th>
+                            <th>Eixos</th>
+                            <th>Distância / Custo</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyRotasSalvas">
+                        <!-- Preenchido dinamicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <!-- MODAL DE ROTEIRIZAÇÃO IAM / GOOGLE PLACES -->
     <div id="modalEficiencia" class="modal">
         <div class="modal-content">
-            <div class="modal-header">Roteirizador Rodoviário (Google Places + IAM) <span class="close-modal" onclick="fecharModal()">×</span></div>
+            <div class="modal-header">Roteirizador Rodoviário (Google Places + IAM / Qualp) <span class="close-modal" onclick="fecharModal()">×</span></div>
             
             <div class="flex-row">
                 <div style="width: 50%;">
@@ -263,6 +289,8 @@
         let linhaRotaIAM = null;
         let autocompleteOrigem = null;
         let autocompleteDestino = null;
+        let rotasSalvas = JSON.parse(localStorage.getItem('rotasSalvas') || '[]');
+        let dadosUltimaRotaCalculada = null;
 
         window.addEventListener('DOMContentLoaded', () => {
             map = L.map('map').setView([-23.5505, -46.6333], 7);
@@ -281,6 +309,7 @@
                 const icone = document.getElementById('iconeTema');
                 if (icone) icone.className = "fas fa-moon";
             }
+            renderizarTabelaRotas();
         });
 
         function alternarTema() {
@@ -600,21 +629,26 @@
                 const valorMedioPorEixoPraca = 11.50;
                 const valorTotalPedagios = (qtdPedagios * qtdEixos * valorMedioPorEixoPraca).toFixed(2);
 
+                dadosUltimaRotaCalculada = {
+                    origemTxt: origCoord.nome,
+                    destinoTxt: destCoord.nome,
+                    eixos: qtdEixos,
+                    distancia: distanciaKm,
+                    custo: (parseFloat(custoCombustivel) + parseFloat(valorTotalPedagios)).toFixed(2),
+                    coordenadas: coordenadasMalha
+                };
+
                 res.innerHTML = `
                     <h4 style="color:#00838F"><i class="fas fa-route"></i> Rota Comercial Rodoviária Calculada</h4>
                     <p><b>De:</b> ${origCoord.nome} <br><b>Para:</b> ${destCoord.nome}</p>
                     <hr style="border:0; border-top:1px solid #ccc; margin:8px 0;">
                     <p><b>Distância Viária:</b> ${distanciaKm} km | <b>Tempo Estimado:</b> ~${duracaoHoras}h</p>
-                    <p><b>Condição de Tráfego:</b> Monitorado (Fluido / Sem interdições severas)</p>
-                    <p><b>Quantidade de Eixos:</b> ${qtdEixos} eixos</p>
-                    <p><b>Quantidade de Pedágios:</b> ${qtdPedagios} praças</p>
-                    <p><b>Valor Total de Pedágios:</b> R$ ${valorTotalPedagios}</p>
-                    <p><b>Custo Estimado de Combustível:</b> R$ ${custoCombustivel} (${totalLitros.toFixed(1)} L)</p>
-                    <p style="color: var(--success); font-weight: bold; margin-top: 5px;">✓ Rota comercial rasterizada exatamente sobre as rodovias.</p>
+                    <p><b>Quantidade de Eixos:</b> ${qtdEixos} eixos | <b>Pedágios:</b> R$ ${valorTotalPedagios}</p>
+                    <p><b>Custo Combustível:</b> R$ ${custoCombustivel}</p>
+                    <button class="btn" style="background: var(--success); margin-top: 10px; width: 100%;" onclick="salvarRotaAtual()"><i class="fas fa-save"></i> Salvar Esta Rota</button>
                 `;
 
                 if (linhaRotaIAM) map.removeLayer(linhaRotaIAM);
-                
                 linhaRotaIAM = L.polyline(coordenadasMalha, {color: '#00838F', weight: 5, opacity: 0.85}).addTo(map);
                 map.fitBounds(linhaRotaIAM.getBounds());
 
@@ -622,6 +656,96 @@
                 console.error(err);
                 res.innerHTML = `<p style="color: red;">Erro: ${err.message}</p>`;
             }
+        }
+
+        function salvarRotaAtual() {
+            if (!dadosUltimaRotaCalculada) return;
+            const nomeRota = prompt("Digite um nome para identificar esta rota:", `${dadosUltimaRotaCalculada.origemTxt.split(',')[0]} -> ${dadosUltimaRotaCalculada.destinoTxt.split(',')[0]}`);
+            if (!nomeRota) return;
+
+            const novaRota = {
+                id: Date.now(),
+                nome: nomeRota,
+                ...dadosUltimaRotaCalculada
+            };
+
+            rotasSalvas.push(novaRota);
+            localStorage.setItem('rotasSalvas', JSON.stringify(rotasSalvas));
+            renderizarTabelaRotas();
+            alert("Rota salva com sucesso! Você pode visualizá-la na aba 'Rotas Criadas'.");
+            fecharModal();
+            mudarAba('rotas');
+        }
+
+        function renderizarTabelaRotas(filtro = '') {
+            const tbody = document.getElementById('tbodyRotasSalvas');
+            tbody.innerHTML = '';
+
+            const filtradas = rotasSalvas.filter(r => 
+                r.nome.toLowerCase().includes(filtro.toLowerCase()) ||
+                r.origemTxt.toLowerCase().includes(filtro.toLowerCase()) ||
+                r.destinoTxt.toLowerCase().includes(filtro.toLowerCase())
+            );
+
+            if (filtradas.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#888;">Nenhuma rota encontrada.</td></tr>`;
+                return;
+            }
+
+            filtradas.forEach(r => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><b>${r.nome}</b></td>
+                    <td>${r.origemTxt}</td>
+                    <td>${r.destinoTxt}</td>
+                    <td>${r.eixos} eixos</td>
+                    <td>${r.distancia} km (Est. R$ ${r.custo})</td>
+                    <td class="table-actions">
+                        <button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--primary-blue);" onclick="carregarRotaNoMapa(${r.id})"><i class="fas fa-eye"></i> Ver</button>
+                        <button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--warning);" onclick="editarPontosRota(${r.id})"><i class="fas fa-edit"></i> Editar</button>
+                        <button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--danger);" onclick="excluirRota(${r.id})"><i class="fas fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filtrarRotasSalvas() {
+            const termo = document.getElementById('filtroRotasInput').value;
+            renderizarTabelaRotas(termo);
+        }
+
+        function carregarRotaNoMapa(id) {
+            const rota = rotasSalvas.find(r => r.id === id);
+            if (!rota) return;
+
+            mudarAba('operacional');
+            if (linhaRotaIAM) map.removeLayer(linhaRotaIAM);
+            linhaRotaIAM = L.polyline(rota.coordenadas, {color: '#00838F', weight: 5, opacity: 0.85}).addTo(map);
+            map.fitBounds(linhaRotaIAM.getBounds());
+        }
+
+        function editarPontosRota(id) {
+            const rota = rotasSalvas.find(r => r.id === id);
+            if (!rota) return;
+
+            const novaOrigem = prompt("Editar Ponto de Origem:", rota.origemTxt);
+            if (novaOrigem === null) return;
+            const novoDestino = prompt("Editar Ponto de Destino:", rota.destinoTxt);
+            if (novoDestino === null) return;
+
+            rota.origemTxt = novaOrigem;
+            rota.destinoTxt = novoDestino;
+            localStorage.setItem('rotasSalvas', JSON.stringify(rotasSalvas));
+            renderizarTabelaRotas();
+            alert("Pontos da rota atualizados com sucesso!");
+        }
+
+        function excluirRota(id) {
+            if (!confirm("Deseja realmente excluir esta rota salva?")) return;
+            rotasSalvas = rotasSalvas.filter(r => r.id !== id);
+            localStorage.setItem('rotasSalvas', JSON.stringify(rotasSalvas));
+            renderizarTabelaRotas();
         }
 
         function atualizarDashboards() {
