@@ -208,11 +208,11 @@
             <div class="flex-row">
                 <div style="width: 50%;">
                     <label><b>Origem</b> (Cidade, Empresa ou Ref.)</label><br>
-                    <input type="text" id="iamOrigem" value="Unimetal Sao Vicente SP" style="width:90%; padding:8px;">
+                    <input type="text" id="iamOrigem" value="Sao Vicente SP" style="width:90%; padding:8px;">
                 </div>
                 <div style="width: 50%;">
                     <label><b>Destino</b> (Cidade, Empresa ou Ref.)</label><br>
-                    <input type="text" id="iamDestino" value="Unimetal Cosmopolis SP" style="width:90%; padding:8px;">
+                    <input type="text" id="iamDestino" value="Cosmopolis SP" style="width:90%; padding:8px;">
                 </div>
             </div>
 
@@ -220,9 +220,9 @@
                 <label><b>Quantidade de Eixos (Pedágio/Custo):</b></label>
                 <div class="eixos-control">
                     <button class="eixos-btn" onclick="alterarEixos(-1)">-</button>
-                    <input type="text" id="iamEixos" value="6" readonly style="width: 50px; text-align: center; font-weight: bold; font-size: 16px; padding: 5px;">
+                    <input type="text" id="iamEixos" value="9" readonly style="width: 50px; text-align: center; font-weight: bold; font-size: 16px; padding: 5px;">
                     <button class="eixos-btn" onclick="alterarEixos(1)">+</button>
-                    <span style="font-size: 13px; color: #666; margin-left: 10px;">(Ex: 2 para utilitário, 6 para truck/carreta)</span>
+                    <span style="font-size: 13px; color: #666; margin-left: 10px;">(Ex: 2 para utilitário, 6/9 para carreta)</span>
                 </div>
             </div>
 
@@ -438,7 +438,7 @@
             }
         }
 
-        // Geocodificador universal aberto (conecta com a base global para buscar qualquer referência, cidade ou empresa)
+        // Sistema de busca resiliente (Tenta achar a referência exata, se não achar, busca pela cidade principal informada)
         async function gearLocal(termo) {
             termo = termo.trim();
             if (termo.includes(',')) {
@@ -449,11 +449,24 @@
             }
 
             try {
-                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termo)}`;
-                const res = await fetch(url);
-                const data = await res.json();
+                // 1. Tenta busca exata
+                let url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termo)}`;
+                let res = await fetch(url);
+                let data = await res.json();
                 if (data && data.length > 0) {
                     return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), nome: data[0].display_name };
+                }
+
+                // 2. Fallback: Se não achar a referência específica (ex: Unimetal), pega apenas as palavras finais (Cidade/Estado)
+                const palavras = termo.split(' ');
+                if (palavras.length > 1) {
+                    const cidadeEstado = palavras.slice(-2).join(' '); // Ex: "sao vicente sp"
+                    url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cidadeEstado)}`;
+                    res = await fetch(url);
+                    data = await res.json();
+                    if (data && data.length > 0) {
+                        return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), nome: `${termo} (${data[0].display_name})` };
+                    }
                 }
             } catch(e) {
                 console.warn("Erro no geocoding:", e);
@@ -475,7 +488,7 @@
                 const destCoord = await gearLocal(destinoInput);
 
                 if (!origCoord || !destCoord) {
-                    throw new Error("Não foi possível localizar o endereço ou referência informada. Tente especificar melhor o nome ou cidade.");
+                    throw new Error("Não foi possível localizar a origem ou destino. Tente informar o nome da cidade e estado (Ex: 'Santos SP').");
                 }
 
                 const url = `https://router.project-osrm.org/route/v1/driving/${origCoord.lon},${origCoord.lat};${destCoord.lon},${destCoord.lat}?overview=full&geometries=geojson`;
