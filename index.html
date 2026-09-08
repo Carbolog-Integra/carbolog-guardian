@@ -111,7 +111,7 @@
     <div id="login-screen">
         <div class="login-box">
             <h2><i class="fas fa-shield-alt"></i> Acesso ao Sistema</h2>
-            <p style="font-size: 14px; opacity: 0.8;">GUARDIAN CARBOLOG</p>
+            <p style="font-size: 14px; opacity: 0.8;">Guardian Carbolog</p>
             <input type="email" id="emailInput" placeholder="usuario@carbolog.com.br" value="v.menezes@carbolog.com.br" required>
             <select id="perfilInput">
                 <option value="Administrador">Administrador</option>
@@ -164,8 +164,8 @@
             <div class="card">
                 <div class="flex-row">
                     <h3 style="color: var(--accent-blue);"><i class="fas fa-list"></i> Grid de Monitoramento e Alertas Automáticos</h3>
-                    <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(true)">Marcar Todos de Veículos</button>
-                    <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(false)">Desmarcar Todos de Veículos</button>
+                    <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(true)">Marcar Todos os Veículos</button>
+                    <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(false)">Desmarcar Todos os Veículos</button>
                 </div>
                 <div style="overflow-x: auto;">
                     <table id="gridOperacional">
@@ -212,7 +212,7 @@
             <div class="card" id="exportAreaDash">
                 <div class="flex-row" style="justify-content: space-between;">
                     <h3 style="color: var(--accent-blue);"><i class="fas fa-chart-pie"></i> Painel de Indicadores</h3>
-                    <div><button class="btn" style="background: #1D6F42;" onclick="exportarExcel('tabelaDash', 'Dashboard_Excesso')"><i class="fas fa-file-excel"></i> Exportar Dados</button></div>
+                    <div><button class="btn" style="background: #1D6F42;" onclick="exportarDashboardCompletoExcel()"><i class="fas fa-file-excel"></i> Exportar Toda Dashboard (Excel)</button></div>
                 </div>
                 <div class="flex-row">
                     <div style="width: 50%;"><canvas id="graficoVelocidade"></canvas></div>
@@ -222,7 +222,7 @@
                 <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 20px 0;">
                 
                 <!-- TABELA: REGISTROS BRUTOS -->
-                <h4 style="color: var(--accent-blue);"><i class="fas fa-history"></i> Registros Brutos (Histórico de Desvios e Permanência)</h4>
+                <h4 style="color: var(--accent-blue);"><i class="fas fa-history"></i> Registros Brutos (Histórico de Alertas)</h4>
                 <table id="tabelaDash" style="margin-bottom: 25px;">
                     <thead><tr><th>Placa</th><th>Ocorrência</th><th>Duração (Min)</th><th>Máx. Vel. (km/h)</th><th>Data/Hora</th></tr></thead>
                     <tbody id="tbodyDash"></tbody>
@@ -231,7 +231,17 @@
                 <!-- TABELA: ROTAS EMBARCADAS -->
                 <h4 style="color: var(--accent-blue);"><i class="fas fa-route"></i> Veículos com Rota Embarcada</h4>
                 <table id="tabelaDashRotas" style="margin-bottom: 25px;">
-                    <thead><tr><th>Placa</th><th>Data/Hora Última Pos.</th><th>Localização</th><th>Rota Embarcada</th><th>Custo da Viagem</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th>Placa</th>
+                            <th>Data/Hora Última Pos.</th>
+                            <th>Localização</th>
+                            <th>Rota Embarcada</th>
+                            <th>Custo de Pedágio</th>
+                            <th>Custo de Combustível</th>
+                            <th>Custo da Viagem</th>
+                        </tr>
+                    </thead>
                     <tbody id="tbodyDashRotas"></tbody>
                 </table>
 
@@ -452,7 +462,7 @@
         </div>
     </div>
 
-    <!-- MODAL CRIAR ROTA (COM PONTOS DE REFERÊNCIA) -->
+    <!-- MODAL CRIAR ROTA -->
     <div id="modalEficiencia" class="modal">
         <div class="modal-content">
             <div class="modal-header">Criar Rota (Com Pontos de Referência) <span class="close-modal" onclick="fecharModal()">×</span></div>
@@ -549,7 +559,7 @@
         let rotasSalvas = [];
         let areasSalvas = [];
         let pontosReferenciaSalvos = [];
-        let alertasFinalizados = {}; // Armazena IDs/chaves de alertas finalizados
+        let alertasFinalizados = {}; 
 
         let contadorPermanenciaAreas = {}; 
         let historicoPermanenciasDashboard = [];
@@ -970,7 +980,6 @@
             atualizarDashboards();
         }
 
-        // --- FUNÇÕES DE TRATATIVA DE ALERTAS NO GRID OPERACIONAL ---
         function abrirModalFinalizarAlerta(placa, tipoAlerta, chaveAlerta) {
             alertaSelecionadoParaFinalizar = chaveAlerta;
             document.getElementById('alertaPlacaModal').innerText = placa;
@@ -999,7 +1008,6 @@
             alert("Alerta tratado e finalizado com sucesso!");
         }
 
-        // --- GESTÃO DE PONTOS DE REFERÊNCIA ---
         function abrirModalPontoRef() {
             document.getElementById('refNome').value = '';
             document.getElementById('refBuscaGoogle').value = '';
@@ -1137,12 +1145,17 @@
 
                 if (rotasVeiculos[p]) {
                     const r = rotasVeiculos[p];
+                    const custoComb = (parseFloat(r.distancia) / 2.5 * 6.19);
+                    const custoPedag = (parseFloat(r.custo) - custoComb);
+
                     htmlRotas += `<tr style="border-bottom: 1px solid var(--border-color);">
                                     <td><b>${p}</b></td>
                                     <td>${dataFmt}</td>
                                     <td>${loc}</td>
                                     <td>${r.nome}</td>
-                                    <td style="color:var(--success); font-weight:bold;">R$ ${r.custo}</td>
+                                    <td style="color:var(--danger); font-weight:bold;">R$ ${custoPedag.toFixed(2)}</td>
+                                    <td style="color:var(--success); font-weight:bold;">R$ ${custoComb.toFixed(2)}</td>
+                                    <td style="color:var(--accent-blue); font-weight:bold;">R$ ${r.custo}</td>
                                   </tr>`;
                 }
 
@@ -1170,7 +1183,7 @@
             if (kParados) kParados.innerText = paradosLigados;
 
             const tbRotas = document.getElementById('tbodyDashRotas');
-            if (tbRotas) tbRotas.innerHTML = htmlRotas || '<tr><td colspan="5" style="text-align:center; opacity:0.7;">Nenhum veículo com rota embarcada.</td></tr>';
+            if (tbRotas) tbRotas.innerHTML = htmlRotas || '<tr><td colspan="7" style="text-align:center; opacity:0.7;">Nenhum veículo com rota embarcada.</td></tr>';
 
             const tbAreas = document.getElementById('tbodyDashAreas');
             if (tbAreas) tbAreas.innerHTML = htmlAreas || '<tr><td colspan="5" style="text-align:center; opacity:0.7;">Nenhum veículo em área/cerca neste exato momento.</td></tr>';
@@ -1678,7 +1691,6 @@
             const val = document.getElementById(inputId).value.trim();
             const valLower = val.toLowerCase();
 
-            // Verifica se bate com algum ponto de referência salvo
             const pontoSalvo = pontosReferenciaSalvos.find(p => p.nome.toLowerCase() === valLower);
             if (pontoSalvo) {
                 return { lat: pontoSalvo.lat, lon: pontoSalvo.lon, nome: pontoSalvo.nome };
@@ -1903,6 +1915,31 @@
                     scales: { y: { beginAtZero: true } }
                 }
             });
+        }
+
+        // --- EXPORTAÇÃO COMPLETA DA DASHBOARD EM MÚLTIPLAS ABAS NO EXCEL ---
+        function exportarDashboardCompletoExcel() {
+            const wb = XLSX.utils.book_new();
+
+            const tabela1 = document.getElementById('tabelaDash');
+            if (tabela1) {
+                const ws1 = XLSX.utils.table_to_sheet(tabela1);
+                XLSX.utils.book_append_sheet(wb, ws1, "Registros Brutos");
+            }
+
+            const tabela2 = document.getElementById('tabelaDashRotas');
+            if (tabela2) {
+                const ws2 = XLSX.utils.table_to_sheet(tabela2);
+                XLSX.utils.book_append_sheet(wb, ws2, "Rotas Embarcadas");
+            }
+
+            const tabela3 = document.getElementById('tabelaDashAreas');
+            if (tabela3) {
+                const ws3 = XLSX.utils.table_to_sheet(tabela3);
+                XLSX.utils.book_append_sheet(wb, ws3, "Áreas Geográficas");
+            }
+
+            XLSX.writeFile(wb, "Dashboard_Completa_Frota.xlsx");
         }
 
         function carregarAbastecimentos() {
