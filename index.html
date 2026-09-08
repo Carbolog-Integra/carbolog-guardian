@@ -111,7 +111,7 @@
     <div id="login-screen">
         <div class="login-box">
             <h2><i class="fas fa-shield-alt"></i> Acesso ao Sistema</h2>
-            <p style="font-size: 14px; opacity: 0.8;">Guardian Carbolog</p>
+            <p style="font-size: 14px; opacity: 0.8;">GUARDIAN CARBOLOG</p>
             <input type="email" id="emailInput" placeholder="usuario@carbolog.com.br" value="v.menezes@carbolog.com.br" required>
             <select id="perfilInput">
                 <option value="Administrador">Administrador</option>
@@ -162,7 +162,7 @@
 
             <div class="card">
                 <div class="flex-row">
-                    <h3 style="color: var(--accent-blue);"><i class="fas fa-list"></i> Grid de Monitoramento e Alertas</h3>
+                    <h3 style="color: var(--accent-blue);"><i class="fas fa-list"></i> Grid de Monitoramento e Alertas Automáticos</h3>
                     <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(true)">Marcar Todos os Veículos</button>
                     <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(false)">Desmarcar Todos os Veículos</button>
                 </div>
@@ -192,6 +192,22 @@
 
         <!-- ABA 2: DASHBOARD -->
         <div id="dashboard" class="tab-content">
+            <!-- NOVOS KPIS DE CONTAGEM EM TEMPO REAL -->
+            <div class="flex-row" style="margin-bottom: 20px;">
+                <div class="card" style="flex: 1; text-align: center; border-left: 4px solid var(--success); padding: 15px; margin-bottom: 0;">
+                    <h4 style="margin: 0; color: var(--accent-blue); font-size: 14px;"><i class="fas fa-truck-moving"></i> Em Trânsito (>10km/h)</h4>
+                    <h2 id="kpiEmTransito" style="margin: 10px 0 0 0; color: var(--text-color);">0</h2>
+                </div>
+                <div class="card" style="flex: 1; text-align: center; border-left: 4px solid #757575; padding: 15px; margin-bottom: 0;">
+                    <h4 style="margin: 0; color: var(--accent-blue); font-size: 14px;"><i class="fas fa-truck"></i> Desligados (0km/h)</h4>
+                    <h2 id="kpiDesligados" style="margin: 10px 0 0 0; color: var(--text-color);">0</h2>
+                </div>
+                <div class="card" style="flex: 1; text-align: center; border-left: 4px solid var(--warning); padding: 15px; margin-bottom: 0;">
+                    <h4 style="margin: 0; color: var(--accent-blue); font-size: 14px;"><i class="fas fa-pause-circle"></i> Parados Ligados</h4>
+                    <h2 id="kpiParadosLigados" style="margin: 10px 0 0 0; color: var(--text-color);">0</h2>
+                </div>
+            </div>
+
             <div class="card" id="exportAreaDash">
                 <div class="flex-row" style="justify-content: space-between;">
                     <h3 style="color: var(--accent-blue);"><i class="fas fa-chart-pie"></i> Painel de Indicadores</h3>
@@ -201,11 +217,28 @@
                     <div style="width: 50%;"><canvas id="graficoVelocidade"></canvas></div>
                     <div style="width: 50%;"><canvas id="graficoParado"></canvas></div>
                 </div>
-                <hr>
-                <h4>Registros Brutos (Rastreador, Permanência e Desvios de Rota)</h4>
-                <table id="tabelaDash">
+                
+                <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 20px 0;">
+                
+                <!-- TABELA: REGISTROS BRUTOS (HISTÓRICO) -->
+                <h4 style="color: var(--accent-blue);"><i class="fas fa-history"></i> Registros Brutos (Histórico de Desvios e Permanência)</h4>
+                <table id="tabelaDash" style="margin-bottom: 25px;">
                     <thead><tr><th>Placa</th><th>Ocorrência</th><th>Duração (Min)</th><th>Máx. Vel. (km/h)</th><th>Data/Hora</th></tr></thead>
                     <tbody id="tbodyDash"></tbody>
+                </table>
+
+                <!-- TABELA: ROTAS EMBARCADAS (TEMPO REAL) -->
+                <h4 style="color: var(--accent-blue);"><i class="fas fa-route"></i> Veículos com Rota Embarcada</h4>
+                <table id="tabelaDashRotas" style="margin-bottom: 25px;">
+                    <thead><tr><th>Placa</th><th>Data/Hora Última Pos.</th><th>Localização</th><th>Rota Embarcada</th><th>Custo da Viagem</th></tr></thead>
+                    <tbody id="tbodyDashRotas"></tbody>
+                </table>
+
+                <!-- TABELA: ÁREAS ACESSADAS (TEMPO REAL) -->
+                <h4 style="color: var(--accent-blue);"><i class="fas fa-map-marked-alt"></i> Veículos em Áreas Geográficas (Cercas em Tempo Real)</h4>
+                <table id="tabelaDashAreas">
+                    <thead><tr><th>Placa</th><th>Data/Hora Última Pos.</th><th>Localização</th><th>Área Acessada</th><th>Tempo de Permanência</th></tr></thead>
+                    <tbody id="tbodyDashAreas"></tbody>
                 </table>
             </div>
         </div>
@@ -338,7 +371,7 @@
         </div>
     </div>
 
-    <!-- MODAL DE PLACAS PRÓXIMAS (COMBOIO) - LARGURA AUMENTADA PARA 550px -->
+    <!-- MODAL DE PLACAS PRÓXIMAS (COMBOIO) -->
     <div id="modalComboio" class="modal">
         <div class="modal-content" style="max-width: 550px;">
             <div class="modal-header">Veículos em Comboio (Próximos) <span class="close-modal" onclick="fecharModalComboio()">×</span></div>
@@ -540,6 +573,7 @@
                 carregarDadosVeiculos();
                 carregarAbastecimentos();
                 atualizarDashboards();
+                atualizarKpisETabelasDash();
                 iniciarAutoRefresh();
             }, 200);
         }
@@ -715,11 +749,9 @@
                     const vel1 = Number(v1.velocidade) || 0;
                     const vel2 = Number(v2.velocidade) || 0;
                     
-                    // REGRA: Ambos precisam ter coordenadas válidas e estarem a MAIS de 10 km/h
                     if (v1.latitude && v1.longitude && v2.latitude && v2.longitude && vel1 > 10 && vel2 > 10) {
                         const distancia = calcularDistanciaMetros(v1.latitude, v1.longitude, v2.latitude, v2.longitude);
                         
-                        // REGRA: Distância até 300 metros
                         if (distancia <= 300) {
                             let p1 = v1.id_veiculo ? String(v1.id_veiculo) : 'SEM-PLACA';
                             if (p1.length === 7 && !isNaN(p1)) p1 = p1.substring(0,3) + '-' + p1.substring(3);
@@ -832,6 +864,79 @@
             }
 
             countdown = 300;
+            
+            // Atualiza em tempo real as tabelas e KPIs da Dashboard a cada nova varredura
+            atualizarKpisETabelasDash();
+        }
+
+        // --- NOVA FUNÇÃO SEGURA PARA ATUALIZAR OS KPIS E TABELAS DA DASHBOARD ---
+        function atualizarKpisETabelasDash() {
+            let emTransito = 0;
+            let desligados = 0;
+            let paradosLigados = 0;
+
+            let htmlRotas = '';
+            let htmlAreas = '';
+
+            veiculosCacheGlobal.forEach(v => {
+                let p = v.id_veiculo ? String(v.id_veiculo) : 'SEM-PLACA';
+                if (p.length === 7 && !isNaN(p)) p = p.substring(0,3) + '-' + p.substring(3);
+                
+                const vel = Number(v.velocidade) || 0;
+                const ign = v.ignicao === 1 || v.ignicao === true || String(v.ignicao) === '1';
+                
+                // Lógica de Contagem de Frota (KPIs)
+                if (ign && vel > 10) emTransito++;
+                else if (!ign && vel === 0) desligados++;
+                else if (ign && vel === 0) paradosLigados++;
+
+                const loc = (v.cidade || 'Não informada') + (v.uf ? ' - ' + v.uf : '');
+                const dataFmt = formatarDataHoraPtBr(v.data_posicao);
+
+                // Geração da Tabela de Rotas Embarcadas
+                if (rotasVeiculos[p]) {
+                    const r = rotasVeiculos[p];
+                    htmlRotas += `<tr style="border-bottom: 1px solid var(--border-color);">
+                                    <td><b>${p}</b></td>
+                                    <td>${dataFmt}</td>
+                                    <td>${loc}</td>
+                                    <td>${r.nome}</td>
+                                    <td style="color:var(--success); font-weight:bold;">R$ ${r.custo}</td>
+                                  </tr>`;
+                }
+
+                // Geração da Tabela de Áreas Acessadas (Tempo Real)
+                // Usando as chaves do contadorPermanenciaAreas para saber exatamente se e onde o veículo está agorinha
+                Object.keys(contadorPermanenciaAreas).forEach(key => {
+                    if (key.startsWith(p + '_')) {
+                        const perm = contadorPermanenciaAreas[key];
+                        const duracaoMin = Math.max(0, Math.round((Date.now() - perm.inicio) / 60000));
+                        htmlAreas += `<tr style="border-bottom: 1px solid var(--border-color);">
+                                        <td><b>${p}</b></td>
+                                        <td>${dataFmt}</td>
+                                        <td>${loc}</td>
+                                        <td>${perm.nomeArea}</td>
+                                        <td style="color:var(--warning); font-weight:bold;">${duracaoMin} min (Em curso)</td>
+                                      </tr>`;
+                    }
+                });
+            });
+
+            // Atualiza a View dos Indicadores
+            const kTransito = document.getElementById('kpiEmTransito');
+            const kDeslig = document.getElementById('kpiDesligados');
+            const kParados = document.getElementById('kpiParadosLigados');
+            
+            if (kTransito) kTransito.innerText = emTransito;
+            if (kDeslig) kDeslig.innerText = desligados;
+            if (kParados) kParados.innerText = paradosLigados;
+
+            // Atualiza a View das Tabelas
+            const tbRotas = document.getElementById('tbodyDashRotas');
+            if (tbRotas) tbRotas.innerHTML = htmlRotas || '<tr><td colspan="5" style="text-align:center; opacity:0.7;">Nenhum veículo com rota embarcada.</td></tr>';
+
+            const tbAreas = document.getElementById('tbodyDashAreas');
+            if (tbAreas) tbAreas.innerHTML = htmlAreas || '<tr><td colspan="5" style="text-align:center; opacity:0.7;">Nenhum veículo em área/cerca neste exato momento.</td></tr>';
         }
 
         function abrirModalComboio(placaAlvo) {
@@ -846,7 +951,6 @@
                 return p === placaAlvo;
             });
 
-            // REGRA: O veículo principal deve estar acima de 10 km/h para considerarmos que ele está em comboio
             if (vAlvo && vAlvo.latitude && vAlvo.longitude && Number(vAlvo.velocidade) > 10) {
                 veiculosCacheGlobal.forEach(v => {
                     let p = v.id_veiculo ? String(v.id_veiculo) : 'SEM-PLACA';
@@ -856,7 +960,6 @@
                         const velVizinho = Number(v.velocidade) || 0;
                         const dist = calcularDistanciaMetros(vAlvo.latitude, vAlvo.longitude, v.latitude, v.longitude);
                         
-                        // REGRA: Distância <= 300m E Velocidade do vizinho > 10 km/h
                         if (dist <= 300 && velVizinho > 10) {
                             let cidadeStr = v.cidade ? v.cidade : 'Não informada';
                             if (v.uf && v.cidade) cidadeStr += ` - ${v.uf}`;
@@ -1340,14 +1443,12 @@
             const val = document.getElementById(inputId).value.trim();
             const valLower = val.toLowerCase();
 
-            // Verifica se a referência digitada contém termos conhecidos exatos
             for (let chave in referenciasConhecidas) {
                 if (valLower.includes(chave)) {
                     return referenciasConhecidas[chave];
                 }
             }
 
-            // Caso contrário, busca a geolocalização exata do termo digitado
             try {
                 const termoBusca = val.toLowerCase().includes('sp') ? val : `${val}, Sao Paulo, Brazil`;
                 const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termoBusca)}`;
@@ -1370,7 +1471,6 @@
 
             if (!origCoord || !destCoord) { alert("Não foi possível localizar origem ou destino."); return; }
 
-            // Marca os pontos exatos no mapa para visualização clara
             L.marker([origCoord.lat, origCoord.lon]).addTo(map).bindPopup(`<b>Origem:</b> ${origCoord.nome}`).openPopup();
             L.marker([destCoord.lat, destCoord.lon]).addTo(map).bindPopup(`<b>Destino:</b> ${destCoord.nome}`);
 
@@ -1525,7 +1625,7 @@
                 tbodyHtml += `<tr><td><b>${item.placa}</b></td><td style="color:var(--danger); font-weight:bold;">${item.ocorrencia} (${item.metrosDesvio}m fora)</td><td>${item.duracao} min</td><td>${item.maxVel}</td><td>${item.dataHora}</td></tr>`;
             });
 
-            document.getElementById('tbodyDash').innerHTML = tbodyHtml || `<tr><td colspan="5" style="text-align:center;">Nenhum alerta crítico no momento.</td></tr>`;
+            document.getElementById('tbodyDash').innerHTML = tbodyHtml || `<tr><td colspan="5" style="text-align:center; opacity:0.7;">Nenhum alerta crítico no momento.</td></tr>`;
 
             const labelsVel = Object.keys(excessosPorPlaca);
             const valsVel = Object.values(excessosPorPlaca);
