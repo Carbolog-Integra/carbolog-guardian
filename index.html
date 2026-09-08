@@ -133,6 +133,7 @@
                 <button onclick="mudarAba('abastecimentos')">Gestão de Abastecimentos</button>
                 <button onclick="mudarAba('rotas')">Rotas Criadas</button>
                 <button onclick="mudarAba('areas')">Áreas Geográficas</button>
+                <button onclick="mudarAba('pontosRef')">Pontos de Referência</button>
             </div>
             <div style="display: flex; align-items: center; gap: 10px;">
                 <button class="btn" style="background: #555; padding: 6px 12px; font-size: 13px;" onclick="alternarTema()">
@@ -162,9 +163,9 @@
 
             <div class="card">
                 <div class="flex-row">
-                    <h3 style="color: var(--accent-blue);"><i class="fas fa-list"></i> Grid de Monitoramento e Alertas</h3>
-                    <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(true)">Marcar Todos os Veículos</button>
-                    <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(false)">Desmarcar Todos os Veículos</button>
+                    <h3 style="color: var(--accent-blue);"><i class="fas fa-list"></i> Grid de Monitoramento e Alertas Automáticos</h3>
+                    <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(true)">Marcar Todos de Veículos</button>
+                    <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(false)">Desmarcar Todos de Veículos</button>
                 </div>
                 <div style="overflow-x: auto;">
                     <table id="gridOperacional">
@@ -310,6 +311,75 @@
                 </table>
             </div>
         </div>
+
+        <!-- ABA 6: PONTOS DE REFERÊNCIA -->
+        <div id="pontosRef" class="tab-content">
+            <div class="card">
+                <div class="flex-row" style="justify-content: space-between;">
+                    <h3 style="color: var(--accent-blue);"><i class="fas fa-map-pin"></i> Gestão de Pontos de Referência</h3>
+                    <button class="btn" style="background: var(--success);" onclick="abrirModalPontoRef()"><i class="fas fa-plus"></i> Cadastrar Novo Ponto</button>
+                </div>
+                <p style="font-size: 13px; opacity: 0.8;">Cadastre pontos de referência por latitude/longitude ou pesquisa de cidades/empresas para utilizar na criação e edição de rotas.</p>
+                <table id="tabelaPontosRef">
+                    <thead>
+                        <tr>
+                            <th>Nome do Ponto</th>
+                            <th>Latitude</th>
+                            <th>Longitude</th>
+                            <th>Origem da Busca</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyPontosRef"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE CADASTRO DE PONTOS DE REFERÊNCIA -->
+    <div id="modalPontoRef" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">Cadastrar Ponto de Referência <span class="close-modal" onclick="fecharModalPontoRef()">×</span></div>
+            <div style="margin-bottom: 12px;">
+                <label><b>Nome do Ponto:</b></label><br>
+                <input type="text" id="refNome" class="input-livre" placeholder="Ex: Filial Campinas SP">
+            </div>
+            <div style="margin-bottom: 12px;">
+                <label><b>Pesquisar Cidade ou Empresa (Google/OSM):</b></label><br>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="refBuscaGoogle" class="input-livre" placeholder="Ex: Unimetal Campinas ou Paulínia SP">
+                    <button class="btn" style="margin-top:0;" onclick="buscarCoordenadasRef()">Buscar</button>
+                </div>
+            </div>
+            <div class="flex-row">
+                <div style="width: 50%;">
+                    <label><b>Latitude:</b></label><br>
+                    <input type="text" id="refLat" class="input-livre" placeholder="-23.5505">
+                </div>
+                <div style="width: 50%;">
+                    <label><b>Longitude:</b></label><br>
+                    <input type="text" id="refLon" class="input-livre" placeholder="-46.6333">
+                </div>
+            </div>
+            <button class="btn" style="width: 100%; margin-top: 15px; background: var(--success);" onclick="salvarPontoReferencia()">Salvar Ponto de Referência</button>
+        </div>
+    </div>
+
+    <!-- MODAL FINALIZAR ALERTA -->
+    <div id="modalFinalizarAlerta" class="modal">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">Tratativa de Alerta do Veículo <span class="close-modal" onclick="fecharModalFinalizarAlerta()">×</span></div>
+            <p>Veículo / Placa: <b id="alertaPlacaModal"></b></p>
+            <p>Ocorrência: <b id="alertaTipoModal" style="color:var(--danger)"></b></p>
+            <div style="margin-bottom: 15px;">
+                <label><b>Observações / Motivo da Tratativa:</b></label><br>
+                <textarea id="inputMotivoTratativa" class="input-livre" rows="4" placeholder="Descreva a tratativa realizada para finalizar este alerta..." style="width:95%; resize:vertical;"></textarea>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn" style="background: var(--success); flex: 1;" onclick="salvarEFinalizarAlerta()"><i class="fas fa-check"></i> Salvar e Finalizar</button>
+                <button class="btn" style="background: var(--danger); flex: 1;" onclick="fecharModalFinalizarAlerta()">Cancelar</button>
+            </div>
+        </div>
     </div>
 
     <!-- JANELA / MODAL INTERATIVA DE DESENHO DE ÁREA -->
@@ -382,17 +452,19 @@
         </div>
     </div>
 
-    <!-- MODAL CRIAR ROTA -->
+    <!-- MODAL CRIAR ROTA (COM PONTOS DE REFERÊNCIA) -->
     <div id="modalEficiencia" class="modal">
         <div class="modal-content">
-            <div class="modal-header">Criar Rota (Interativa) <span class="close-modal" onclick="fecharModal()">×</span></div>
+            <div class="modal-header">Criar Rota (Com Pontos de Referência) <span class="close-modal" onclick="fecharModal()">×</span></div>
             <div class="flex-row">
                 <div style="width: 50%;">
-                    <label><b>Origem</b></label><br>
+                    <label><b>Origem (Selecione um Ponto ou Digite):</b></label><br>
+                    <select id="selectOrigemRef" class="input-livre" onchange="preencherOrigemRef()" style="margin-bottom: 5px;"></select>
                     <input type="text" id="iamOrigem" class="input-livre" value="Unimetal Sao Vicente SP">
                 </div>
                 <div style="width: 50%;">
-                    <label><b>Destino</b></label><br>
+                    <label><b>Destino (Selecione um Ponto ou Digite):</b></label><br>
+                    <select id="selectDestinoRef" class="input-livre" onchange="preencherDestinoRef()" style="margin-bottom: 5px;"></select>
                     <input type="text" id="iamDestino" class="input-livre" value="Unimetal Cosmopolis SP">
                 </div>
             </div>
@@ -476,6 +548,9 @@
         
         let rotasSalvas = [];
         let areasSalvas = [];
+        let pontosReferenciaSalvos = [];
+        let alertasFinalizados = {}; // Armazena IDs/chaves de alertas finalizados
+
         let contadorPermanenciaAreas = {}; 
         let historicoPermanenciasDashboard = [];
         let historicoDesviosDashboard = [];
@@ -485,6 +560,7 @@
         let marcadorCentroRetangulo = null;
         let desenhoTemporarioLayer = null;
         let dadosGeometriaAtual = null;
+        let alertaSelecionadoParaFinalizar = null;
 
         try {
             const rotasSalvasStr = localStorage.getItem('rotasSalvas');
@@ -505,6 +581,22 @@
             const areasVeiculosStr = localStorage.getItem('areasVeiculos');
             if (areasVeiculosStr) areasVeiculos = JSON.parse(areasVeiculosStr);
         } catch(e) { areasVeiculos = {}; }
+
+        try {
+            const pontosRefStr = localStorage.getItem('pontosReferenciaSalvos');
+            if (pontosRefStr) pontosReferenciaSalvos = JSON.parse(pontosRefStr);
+            else {
+                pontosReferenciaSalvos = [
+                    { id: 1, nome: 'Unimetal São Vicente', lat: -23.9618, lon: -46.3919, origem: 'Padrão' },
+                    { id: 2, nome: 'Unimetal Cosmópolis', lat: -22.6431, lon: -47.1978, origem: 'Padrão' }
+                ];
+            }
+        } catch(e) { pontosReferenciaSalvos = []; }
+
+        try {
+            const alertasFinStr = localStorage.getItem('alertasFinalizados');
+            if (alertasFinStr) alertasFinalizados = JSON.parse(alertasFinStr);
+        } catch(e) { alertasFinalizados = {}; }
         
         let dadosUltimaRotaCalculada = null;
         let eixosAtuaisRota = 6;
@@ -549,6 +641,7 @@
             }
             renderizarTabelaRotas();
             renderizarTabelaAreas();
+            renderizarTabelaPontosRef();
             renderizarAreasNoMapa();
         });
 
@@ -591,6 +684,7 @@
             if(abaId === 'operacional' && map) setTimeout(() => map.invalidateSize(), 150);
             if(abaId === 'rotas') renderizarTabelaRotas();
             if(abaId === 'areas') renderizarTabelaAreas();
+            if(abaId === 'pontosRef') renderizarTabelaPontosRef();
         }
 
         function calcularDistanciaMetros(lat1, lon1, lat2, lon2) {
@@ -675,9 +769,11 @@
                     const distRotaM = calcularMenorDistanciaAteRota(lat, lon, rotaObj.coordenadas);
                     if (distRotaM > 250) {
                         const metrosArredondados = Math.round(distRotaM);
+                        const chaveDesvio = `desvio_${placaFormatada}_${rotaObj.id}`;
                         const jaExiste = historicoDesviosDashboard.some(d => d.placa === placaFormatada && (agora - d.timestamp) < 300000);
-                        if (!jaExiste) {
+                        if (!jaExiste && !alertasFinalizados[chaveDesvio]) {
                             historicoDesviosDashboard.push({
+                                chave: chaveDesvio,
                                 placa: placaFormatada,
                                 ocorrencia: `Desvio de Rota (${rotaObj.nome})`,
                                 duracao: 1,
@@ -788,13 +884,19 @@
                     desvioMetros = Math.round(calcularMenorDistanciaAteRota(lat, lon, rotaVinculadaObj.coordenadas));
                 }
 
+                const chaveVel = `vel_${placaFormatada}`;
+                const chaveDesvio = `desvio_${placaFormatada}_${rotaVinculadaObj ? rotaVinculadaObj.id : 'nenhuma'}`;
+                const chaveComboio = `comboio_${placaFormatada}`;
+
                 let htmlAlertas = '';
-                if (velFinal > 80) htmlAlertas += `<span class="badge-alerta bg-danger">EXCESSO VEL.</span>`;
-                if (rotaVinculadaObj && desvioMetros > 250) {
-                    htmlAlertas += `<span class="badge-alerta bg-danger" title="Veículo fora da rota traçada">DESVIO DE ROTA (${desvioMetros}m)</span>`;
+                if (velFinal > 80 && !alertasFinalizados[chaveVel]) {
+                    htmlAlertas += `<span class="badge-alerta bg-danger" onclick="abrirModalFinalizarAlerta('${placaFormatada}', 'Excesso de Velocidade (${velFinal} km/h)', '${chaveVel}')" title="Clique para tratar e finalizar alerta">EXCESSO VEL.</span>`;
                 }
-                if (mapPlacasProximas[placaFormatada] && mapPlacasProximas[placaFormatada].length > 0) {
-                    htmlAlertas += `<span class="badge-alerta bg-warning" onclick="abrirModalComboio('${placaFormatada}')" title="Clique para ver placas em comboio">POSSÍVEL COMBOIO</span>`;
+                if (rotaVinculadaObj && desvioMetros > 250 && !alertasFinalizados[chaveDesvio]) {
+                    htmlAlertas += `<span class="badge-alerta bg-danger" onclick="abrirModalFinalizarAlerta('${placaFormatada}', 'Desvio de Rota (${desvioMetros}m)', '${chaveDesvio}')" title="Clique para tratar e finalizar alerta">DESVIO ROTA</span>`;
+                }
+                if (mapPlacasProximas[placaFormatada] && mapPlacasProximas[placaFormatada].length > 0 && !alertasFinalizados[chaveComboio]) {
+                    htmlAlertas += `<span class="badge-alerta bg-warning" onclick="abrirModalFinalizarAlerta('${placaFormatada}', 'Possível Comboio', '${chaveComboio}')" title="Clique para tratar e finalizar alerta">COMBOIO</span>`;
                 }
                 if (htmlAlertas === '') htmlAlertas = `<span style="color: var(--success); font-size: 12px;">Normal</span>`;
 
@@ -866,6 +968,149 @@
             countdown = 300;
             atualizarKpisETabelasDash();
             atualizarDashboards();
+        }
+
+        // --- FUNÇÕES DE TRATATIVA DE ALERTAS NO GRID OPERACIONAL ---
+        function abrirModalFinalizarAlerta(placa, tipoAlerta, chaveAlerta) {
+            alertaSelecionadoParaFinalizar = chaveAlerta;
+            document.getElementById('alertaPlacaModal').innerText = placa;
+            document.getElementById('alertaTipoModal').innerText = tipoAlerta;
+            document.getElementById('inputMotivoTratativa').value = '';
+            document.getElementById('modalFinalizarAlerta').style.display = 'flex';
+        }
+
+        function fecharModalFinalizarAlerta() {
+            document.getElementById('modalFinalizarAlerta').style.display = 'none';
+            alertaSelecionadoParaFinalizar = null;
+        }
+
+        function salvarEFinalizarAlerta() {
+            const motivo = document.getElementById('inputMotivoTratativa').value.trim();
+            if (!motivo) {
+                alert("Por favor, preencha o campo de observações/motivo para finalizar o alerta.");
+                return;
+            }
+            if (alertaSelecionadoParaFinalizar) {
+                alertasFinalizados[alertaSelecionadoParaFinalizar] = { motivo: motivo, data: new Date().toLocaleString('pt-BR') };
+                localStorage.setItem('alertasFinalizados', JSON.stringify(alertasFinalizados));
+            }
+            fecharModalFinalizarAlerta();
+            renderizarGridEMapa();
+            alert("Alerta tratado e finalizado com sucesso!");
+        }
+
+        // --- GESTÃO DE PONTOS DE REFERÊNCIA ---
+        function abrirModalPontoRef() {
+            document.getElementById('refNome').value = '';
+            document.getElementById('refBuscaGoogle').value = '';
+            document.getElementById('refLat').value = '';
+            document.getElementById('refLon').value = '';
+            document.getElementById('modalPontoRef').style.display = 'flex';
+        }
+
+        function fecharModalPontoRef() {
+            document.getElementById('modalPontoRef').style.display = 'none';
+        }
+
+        async function buscarCoordenadasRef() {
+            const query = document.getElementById('refBuscaGoogle').value.trim();
+            if (!query) { alert("Digite o nome da cidade ou empresa para buscar."); return; }
+            try {
+                const termoBusca = query.toLowerCase().includes('sp') ? query : `${query}, Sao Paulo, Brazil`;
+                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termoBusca)}`;
+                const res = await fetch(url);
+                const data = await res.json();
+                if (data && data.length > 0) {
+                    document.getElementById('refLat').value = data[0].lat;
+                    document.getElementById('refLon').value = data[0].lon;
+                    if (!document.getElementById('refNome').value) {
+                        document.getElementById('refNome').value = data[0].display_name.split(',')[0];
+                    }
+                    alert("Localização encontrada e preenchida com sucesso!");
+                } else {
+                    alert("Local não encontrado.");
+                }
+            } catch(e) {
+                alert("Erro ao consultar localização.");
+            }
+        }
+
+        function salvarPontoReferencia() {
+            const nome = document.getElementById('refNome').value.trim();
+            const lat = parseFloat(document.getElementById('refLat').value);
+            const lon = parseFloat(document.getElementById('refLon').value);
+            const origemBusca = document.getElementById('refBuscaGoogle').value.trim() ? 'Google/OSM' : 'Manual';
+
+            if (!nome || isNaN(lat) || isNaN(lon)) {
+                alert("Preencha o nome e valide as coordenadas de latitude e longitude.");
+                return;
+            }
+
+            const novoPonto = { id: Date.now(), nome, lat, lon, origem: origemBusca };
+            pontosReferenciaSalvos.push(novoPonto);
+            localStorage.setItem('pontosReferenciaSalvos', JSON.stringify(pontosReferenciaSalvos));
+
+            fecharModalPontoRef();
+            renderizarTabelaPontosRef();
+            alert("Ponto de referência cadastrado com sucesso!");
+        }
+
+        function renderizarTabelaPontosRef() {
+            const tbody = document.getElementById('tbodyPontosRef');
+            tbody.innerHTML = '';
+            if (pontosReferenciaSalvos.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; opacity:0.7;">Nenhum ponto de referência cadastrado.</td></tr>`;
+                return;
+            }
+            pontosReferenciaSalvos.forEach(p => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><b>${p.nome}</b></td>
+                    <td>${p.lat}</td>
+                    <td>${p.lon}</td>
+                    <td>${p.origem}</td>
+                    <td class="table-actions">
+                        <button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--danger);" onclick="excluirPontoRef(${p.id})"><i class="fas fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function excluirPontoRef(id) {
+            if (!confirm("Deseja excluir este ponto de referência?")) return;
+            pontosReferenciaSalvos = pontosReferenciaSalvos.filter(p => p.id !== id);
+            localStorage.setItem('pontosReferenciaSalvos', JSON.stringify(pontosReferenciaSalvos));
+            renderizarTabelaPontosRef();
+        }
+
+        function atualizarSelectsPontosRef() {
+            const selOrigem = document.getElementById('selectOrigemRef');
+            const selDestino = document.getElementById('selectDestinoRef');
+            
+            let optionsHtml = `<option value="">-- Selecionar Ponto de Referência --</option>`;
+            pontosReferenciaSalvos.forEach(p => {
+                optionsHtml += `<option value="${p.lat},${p.lon}">${p.nome} (${p.lat}, ${p.lon})</option>`;
+            });
+            
+            if (selOrigem) selOrigem.innerHTML = optionsHtml;
+            if (selDestino) selDestino.innerHTML = optionsHtml;
+        }
+
+        function preencherOrigemRef() {
+            const val = document.getElementById('selectOrigemRef').value;
+            if (val) {
+                const p = pontosReferenciaSalvos.find(item => `${item.lat},${item.lon}` === val);
+                if (p) document.getElementById('iamOrigem').value = p.nome;
+            }
+        }
+
+        function preencherDestinoRef() {
+            const val = document.getElementById('selectDestinoRef').value;
+            if (val) {
+                const p = pontosReferenciaSalvos.find(item => `${item.lat},${item.lon}` === val);
+                if (p) document.getElementById('iamDestino').value = p.nome;
+            }
         }
 
         function atualizarKpisETabelasDash() {
@@ -1006,6 +1251,7 @@
         }
 
         function abrirModalEficiencia() {
+            atualizarSelectsPontosRef();
             document.getElementById('modalEficiencia').style.display = 'flex';
         }
 
@@ -1432,6 +1678,12 @@
             const val = document.getElementById(inputId).value.trim();
             const valLower = val.toLowerCase();
 
+            // Verifica se bate com algum ponto de referência salvo
+            const pontoSalvo = pontosReferenciaSalvos.find(p => p.nome.toLowerCase() === valLower);
+            if (pontoSalvo) {
+                return { lat: pontoSalvo.lat, lon: pontoSalvo.lon, nome: pontoSalvo.nome };
+            }
+
             for (let chave in referenciasConhecidas) {
                 if (valLower.includes(chave)) {
                     return referenciasConhecidas[chave];
@@ -1629,7 +1881,6 @@
                 options: { plugins: { datalabels: { color: 'white', font: {weight: 'bold'} } } }
             });
 
-            // GRÁFICO EM BARRAS DE TEMPO PARADO LIGADO POR PLACA
             const labelsPar = Object.keys(paradosLigadosPorPlaca);
             const valsPar = Object.values(paradosLigadosPorPlaca);
 
