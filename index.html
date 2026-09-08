@@ -180,7 +180,7 @@
                                 <th>Rua / Rodovia <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" data-col="7"></th>
                                 <th>Velocidade <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" data-col="8" placeholder="km/h"></th>
                                 <th>Rota Vinculada</th>
-                                <th>Áreas Vinculadas</th>
+                                <th>Áreas Atreladas</th>
                                 <th>Alertas e Ações</th>
                             </tr>
                         </thead>
@@ -343,7 +343,7 @@
         <div class="modal-content" style="max-width: 550px;">
             <div class="modal-header">Veículos em Comboio (Próximos) <span class="close-modal" onclick="fecharModalComboio()">×</span></div>
             <p>Veículo Principal: <b id="comboioVeiculoPrincipal"></b></p>
-            <p style="font-size: 13px; opacity: 0.8;">Veículos a menos de 300 metros de distância:</p>
+            <p style="font-size: 13px; opacity: 0.8;">Veículos a menos de 300 metros de distância e velocidade acima de 10 km/h:</p>
             <div id="listaPlacasComboio" style="max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); padding: 10px; border-radius: 4px; margin-top: 10px;"></div>
             <button class="btn" style="width: 100%; margin-top: 15px; background: var(--primary-blue);" onclick="fecharModalComboio()">Fechar</button>
         </div>
@@ -712,8 +712,14 @@
             for (let i = 0; i < dadosFiltrados.length; i++) {
                 for (let j = i + 1; j < dadosFiltrados.length; j++) {
                     const v1 = dadosFiltrados[i], v2 = dadosFiltrados[j];
-                    if (v1.latitude && v1.longitude && v2.latitude && v2.longitude) {
+                    const vel1 = Number(v1.velocidade) || 0;
+                    const vel2 = Number(v2.velocidade) || 0;
+                    
+                    // REGRA: Ambos precisam ter coordenadas válidas e estarem a MAIS de 10 km/h
+                    if (v1.latitude && v1.longitude && v2.latitude && v2.longitude && vel1 > 10 && vel2 > 10) {
                         const distancia = calcularDistanciaMetros(v1.latitude, v1.longitude, v2.latitude, v2.longitude);
+                        
+                        // REGRA: Distância até 300 metros
                         if (distancia <= 300) {
                             let p1 = v1.id_veiculo ? String(v1.id_veiculo) : 'SEM-PLACA';
                             if (p1.length === 7 && !isNaN(p1)) p1 = p1.substring(0,3) + '-' + p1.substring(3);
@@ -840,22 +846,26 @@
                 return p === placaAlvo;
             });
 
-            if (vAlvo && vAlvo.latitude && vAlvo.longitude) {
+            // REGRA: O veículo principal deve estar acima de 10 km/h para considerarmos que ele está em comboio
+            if (vAlvo && vAlvo.latitude && vAlvo.longitude && Number(vAlvo.velocidade) > 10) {
                 veiculosCacheGlobal.forEach(v => {
                     let p = v.id_veiculo ? String(v.id_veiculo) : 'SEM-PLACA';
                     if (p.length === 7 && !isNaN(p)) p = p.substring(0,3) + '-' + p.substring(3);
+                    
                     if (p !== placaAlvo && v.latitude && v.longitude) {
+                        const velVizinho = Number(v.velocidade) || 0;
                         const dist = calcularDistanciaMetros(vAlvo.latitude, vAlvo.longitude, v.latitude, v.longitude);
-                        if (dist <= 300) {
-                            // Pega a cidade e a UF informadas pelo rastreador (ou "Não informada" se vier vazio)
+                        
+                        // REGRA: Distância <= 300m E Velocidade do vizinho > 10 km/h
+                        if (dist <= 300 && velVizinho > 10) {
                             let cidadeStr = v.cidade ? v.cidade : 'Não informada';
-                            if (v.uf) cidadeStr += ` - ${v.uf}`;
+                            if (v.uf && v.cidade) cidadeStr += ` - ${v.uf}`;
                             
                             vizinhos.push({ 
                                 placa: p, 
                                 cidade: cidadeStr,
                                 distancia: Math.round(dist), 
-                                vel: Number(v.velocidade) || 0 
+                                vel: velVizinho 
                             });
                         }
                     }
@@ -863,19 +873,36 @@
             }
 
             if (vizinhos.length === 0) {
-                container.innerHTML = `<p style="font-size:13px; opacity:0.7;">Nenhum veículo próximo no momento.</p>`;
+                container.innerHTML = `<p style="font-size:13px; opacity:0.7; text-align:center; padding: 20px;">Nenhum veículo próximo movimentando-se acima de 10km/h.</p>`;
             } else {
-                // Layout com flex-box formatado para organizar as 4 colunas bonitas sem quebra
+                let htmlTabela = `
+                    <table style="width: 100%; border-collapse: collapse; font-size: 13px; color: var(--text-color);">
+                        <thead>
+                            <tr style="border-bottom: 2px solid var(--border-color); text-align: left;">
+                                <th style="padding: 8px; color: var(--accent-blue);">Placa</th>
+                                <th style="padding: 8px; color: var(--accent-blue);">Cidade</th>
+                                <th style="padding: 8px; color: var(--accent-blue);">Distância</th>
+                                <th style="padding: 8px; color: var(--accent-blue); text-align: right;">Vel.</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
                 vizinhos.forEach(item => {
-                    container.innerHTML += `
-                    <div style="padding: 8px 6px; border-bottom: 1px solid var(--border-color); font-size: 13px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-                        <span style="flex: 1;"><b>Placa:</b> ${item.placa}</span>
-                        <span style="flex: 2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${item.cidade}"><b>Cidade:</b> ${item.cidade}</span>
-                        <span style="flex: 1.2;"><b>Distância:</b> ~${item.distancia}m</span>
-                        <span style="flex: 1; text-align: right;"><b>Vel:</b> ${item.vel} km/h</span>
-                    </div>`;
+                    htmlTabela += `
+                        <tr style="border-bottom: 1px solid var(--border-color);">
+                            <td style="padding: 8px; font-weight: bold;">${item.placa}</td>
+                            <td style="padding: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;" title="${item.cidade}">${item.cidade}</td>
+                            <td style="padding: 8px;">~${item.distancia}m</td>
+                            <td style="padding: 8px; text-align: right;">${item.vel} km/h</td>
+                        </tr>
+                    `;
                 });
+                
+                htmlTabela += `</tbody></table>`;
+                container.innerHTML = htmlTabela;
             }
+            
             document.getElementById('modalComboio').style.display = 'flex';
         }
 
