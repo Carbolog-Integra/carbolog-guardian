@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guardian Carbolog - Gestão de Riscos</title>
+    <title>Guardian Carbolog - Gerenciamento de Riscos</title>
 
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
@@ -100,7 +100,6 @@
         .bg-danger { background-color: var(--danger); }
         .bg-warning { background-color: var(--warning); }
         
-        /* Inputs totalmente limpos, livres e editáveis sem interferências */
         .input-livre { width: 90%; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); color: var(--text-color); box-sizing: border-box; font-size: 14px; background-image: none !important; }
 
         .leaflet-routing-container { display: none !important; }
@@ -127,7 +126,7 @@
     <!-- APLICAÇÃO PRINCIPAL -->
     <div id="app" class="app-container">
         <div class="navbar">
-            <div class="logo"><h3><i class="fas fa-satellite-dish"></i> Guardian Carbolog - V1</h3></div>
+            <div class="logo"><h3><i class="fas fa-satellite-dish"></i> Guardian Carbolog</h3></div>
             <div class="nav-menus">
                 <button class="active" onclick="mudarAba('operacional')">Grid Operacional</button>
                 <button onclick="mudarAba('dashboard')">Dashboard</button>
@@ -163,7 +162,7 @@
 
             <div class="card">
                 <div class="flex-row">
-                    <h3 style="color: var(--accent-blue);"><i class="fas fa-list"></i> Grid de Monitoramento e Alertas Automáticos</h3>
+                    <h3 style="color: var(--accent-blue);"><i class="fas fa-list"></i> Grid de Monitoramento e Alertas</h3>
                     <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(true)">Marcar Todos</button>
                     <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(false)">Desmarcar Todos</button>
                 </div>
@@ -339,13 +338,13 @@
         </div>
     </div>
 
-    <!-- MODAL DE PLACAS PRÓXIMAS (COMBOIO) -->
+    <!-- MODAL DE PLACAS PRÓXIMAS (COMBOIO) - LARGURA AUMENTADA PARA 550px -->
     <div id="modalComboio" class="modal">
-        <div class="modal-content" style="max-width: 450px;">
+        <div class="modal-content" style="max-width: 550px;">
             <div class="modal-header">Veículos em Comboio (Próximos) <span class="close-modal" onclick="fecharModalComboio()">×</span></div>
             <p>Veículo Principal: <b id="comboioVeiculoPrincipal"></b></p>
             <p style="font-size: 13px; opacity: 0.8;">Veículos a menos de 300 metros de distância:</p>
-            <div id="listaPlacasComboio" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color); padding: 10px; border-radius: 4px; margin-top: 10px;"></div>
+            <div id="listaPlacasComboio" style="max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); padding: 10px; border-radius: 4px; margin-top: 10px;"></div>
             <button class="btn" style="width: 100%; margin-top: 15px; background: var(--primary-blue);" onclick="fecharModalComboio()">Fechar</button>
         </div>
     </div>
@@ -848,7 +847,16 @@
                     if (p !== placaAlvo && v.latitude && v.longitude) {
                         const dist = calcularDistanciaMetros(vAlvo.latitude, vAlvo.longitude, v.latitude, v.longitude);
                         if (dist <= 300) {
-                            vizinhos.push({ placa: p, distancia: Math.round(dist), vel: Number(v.velocidade) || 0 });
+                            // Pega a cidade e a UF informadas pelo rastreador (ou "Não informada" se vier vazio)
+                            let cidadeStr = v.cidade ? v.cidade : 'Não informada';
+                            if (v.uf) cidadeStr += ` - ${v.uf}`;
+                            
+                            vizinhos.push({ 
+                                placa: p, 
+                                cidade: cidadeStr,
+                                distancia: Math.round(dist), 
+                                vel: Number(v.velocidade) || 0 
+                            });
                         }
                     }
                 });
@@ -857,11 +865,14 @@
             if (vizinhos.length === 0) {
                 container.innerHTML = `<p style="font-size:13px; opacity:0.7;">Nenhum veículo próximo no momento.</p>`;
             } else {
+                // Layout com flex-box formatado para organizar as 4 colunas bonitas sem quebra
                 vizinhos.forEach(item => {
-                    container.innerHTML += `<div style="padding: 6px; border-bottom: 1px solid var(--border-color); font-size: 13px; display: flex; justify-content: space-between;">
-                        <span><b>Placa:</b> ${item.placa}</span>
-                        <span><b>Distância:</b> ~${item.distancia}m</span>
-                        <span><b>Vel:</b> ${item.vel} km/h</span>
+                    container.innerHTML += `
+                    <div style="padding: 8px 6px; border-bottom: 1px solid var(--border-color); font-size: 13px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                        <span style="flex: 1;"><b>Placa:</b> ${item.placa}</span>
+                        <span style="flex: 2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${item.cidade}"><b>Cidade:</b> ${item.cidade}</span>
+                        <span style="flex: 1.2;"><b>Distância:</b> ~${item.distancia}m</span>
+                        <span style="flex: 1; text-align: right;"><b>Vel:</b> ${item.vel} km/h</span>
                     </div>`;
                 });
             }
