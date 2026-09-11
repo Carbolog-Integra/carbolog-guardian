@@ -860,14 +860,20 @@
 
         async function carregarDadosVeiculos() {
             try {
-                const response = await fetch('https://oyrqywoctnyottwvqrji.supabase.co/rest/v1/posicoes_sascar?select=*&order=data_posicao.desc&limit=10000', {
-                    method: 'GET',
-                    headers: {
-                        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95cnF5d29jdG55b3R0d3ZxcmppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMjMyOTQsImV4cCI6MjEwMzc5OTI5NH0.VdqJLc_u1VXFrnOe59Bw7wLWV-GZLnx6_fjzBV_TU8w',
-                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95cnF5d29jdG55b3R0d3ZxcmppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMjMyOTQsImV4cCI6MjEwMzc5OTI5NH0.VdqJLc_u1VXFrnOe59Bw7wLWV-GZLnx6_fjzBV_TU8w',
-                        'Content-Type': 'application/json'
-                    }
-                });
+                // O código agora puxa as chaves do ambiente (GitHub Actions)
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+
+// Exemplo de como usar no fetch (se o seu robô usar fetch nativo do Node):
+const response = await fetch(`${supabaseUrl}/rest/v1/posicoes_sascar`, {
+    method: 'POST', // ou GET
+    headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Content-Type': 'application/json'
+    },
+    // ... resto do seu código
+});
                 if (!response.ok) return;
                 const dadosBrutos = await response.json();
                 if (!dadosBrutos) return;
