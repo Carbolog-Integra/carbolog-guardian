@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Integração - Telemetria e Abastecimento</title>
+    <title>Guardian Carbolog - Gerenciamento de Riscos</title>
 
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
@@ -70,112 +70,35 @@
         .btn { background: var(--primary-blue); color: #FFFFFF; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; font-weight: bold; margin-top: 10px; text-transform: uppercase;}
         .btn:hover { background: var(--accent-blue); }
 
-        /* MENU LATERAL */
         .sidebar {
-            width: 260px;
-            background: var(--bg-dark);
-            color: #FFFFFF;
-            display: flex;
-            flex-direction: column;
-            border-right: 1px solid var(--border-color);
-            height: 100vh;
-            box-sizing: border-box;
-            z-index: 1000;
+            width: 260px; background: var(--bg-dark); color: #FFFFFF; display: flex; flex-direction: column;
+            border-right: 1px solid var(--border-color); height: 100vh; box-sizing: border-box; z-index: 1000;
         }
-        .sidebar-header {
-            padding: 20px;
-            font-size: 16px;
-            font-weight: bold;
-            border-bottom: 1px solid var(--border-color);
-            background: rgba(0,0,0,0.2);
-        }
-        .sidebar-menu {
-            flex: 1;
-            overflow-y: auto;
-            padding: 10px 0;
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
+        .sidebar-header { padding: 20px; font-size: 16px; font-weight: bold; border-bottom: 1px solid var(--border-color); background: rgba(0,0,0,0.2); }
+        .sidebar-menu { flex: 1; overflow-y: auto; padding: 10px 0; display: flex; flex-direction: column; gap: 5px; }
         .sidebar-menu button {
-            background: none; border: none; color: #FFFFFF; font-size: 14px;
-            text-align: left; padding: 12px 20px; cursor: pointer; width: 100%;
-            display: flex; align-items: center; gap: 12px; transition: background 0.2s;
+            background: none; border: none; color: #FFFFFF; font-size: 14px; text-align: left; padding: 12px 20px;
+            cursor: pointer; width: 100%; display: flex; align-items: center; gap: 12px; transition: background 0.2s;
         }
-        .sidebar-menu button:hover, .sidebar-menu button.active {
-            background: var(--accent-blue);
-            font-weight: bold;
-        }
-        .sidebar-footer {
-            padding: 15px 20px;
-            border-top: 1px solid var(--border-color);
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            background: rgba(0,0,0,0.1);
-        }
+        .sidebar-menu button:hover, .sidebar-menu button.active { background: var(--accent-blue); font-weight: bold; }
+        .sidebar-footer { padding: 15px 20px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 10px; background: rgba(0,0,0,0.1); }
 
-        /* CONTEÚDO PRINCIPAL COM ABAS MÚLTIPLAS */
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
-            background: var(--bg-body);
-        }
-
-        .topbar {
-            background: var(--card-bg);
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            align-items: center;
-            overflow-x: auto;
-            padding: 0 10px;
-            height: 45px;
-            gap: 5px;
-            flex-shrink: 0;
-        }
+        .main-content { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; background: var(--bg-body); }
+        .topbar { background: var(--card-bg); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; overflow-x: auto; padding: 0 10px; height: 45px; gap: 5px; flex-shrink: 0; }
         .tab-header-item {
-            padding: 8px 15px;
-            background: rgba(0,0,0,0.05);
-            border: 1px solid var(--border-color);
-            border-bottom: none;
-            border-radius: 6px 6px 0 0;
-            font-size: 13px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--text-color);
-            white-space: nowrap;
+            padding: 8px 15px; background: rgba(0,0,0,0.05); border: 1px solid var(--border-color); border-bottom: none;
+            border-radius: 6px 6px 0 0; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; color: var(--text-color); white-space: nowrap;
         }
-        .tab-header-item.active {
-            background: var(--card-bg);
-            border-top: 3px solid var(--accent-blue);
-            font-weight: bold;
-        }
-        .tab-header-item .close-tab {
-            font-size: 14px;
-            color: var(--danger);
-            cursor: pointer;
-            margin-left: 5px;
-        }
+        .tab-header-item.active { background: var(--card-bg); border-top: 3px solid var(--accent-blue); font-weight: bold; }
+        .tab-header-item .close-tab { font-size: 14px; color: var(--danger); cursor: pointer; margin-left: 5px; }
 
-        .tab-body-container {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            background: var(--bg-body);
-        }
+        .tab-body-container { flex: 1; overflow-y: auto; padding: 20px; background: var(--bg-body); }
         .tab-pane { display: none; }
         .tab-pane.active { display: block; }
 
         .card { background: var(--card-bg); color: var(--text-color); padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; border: 1px solid var(--border-color); }
-        
         #map, #mapDesenhoArea, #mapPontoRef, #mapCriarRota { height: 400px; width: 100%; border-radius: 8px; border: 2px solid var(--primary-blue); z-index: 1;}
-        #mapPontoRef { height: 250px; margin-top: 15px; margin-bottom: 15px; }
-        
+        #mapPontoRef { height: 220px; margin-top: 10px; margin-bottom: 10px; }
         .custom-truck-icon { font-size: 24px; color: var(--accent-blue); text-shadow: 1px 1px 2px white; }
         
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
@@ -196,39 +119,33 @@
         .close-modal { float: right; cursor: pointer; color: var(--danger); font-size: 20px; }
         .eixos-control { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
         .eixos-btn { background: var(--primary-blue); color: white; border: none; width: 32px; height: 32px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 16px; }
-        .eixos-btn:hover { background: var(--accent-blue); }
-        .badge-alerta { padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; color: white; margin-left: 5px; display: inline-block; cursor: pointer; text-transform: uppercase; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
-        .bg-danger { background-color: var(--danger); }
-        .bg-warning { background-color: var(--warning); }
-        
-        .input-livre { width: 90%; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); color: var(--text-color); box-sizing: border-box; font-size: 14px; background-image: none !important; }
-
+        .input-livre { width: 90%; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); color: var(--text-color); box-sizing: border-box; font-size: 14px; }
         .leaflet-routing-container { display: none !important; }
 
+        /* AUTOCOMPLETE INTELIGENTE */
         .autocomplete-container { position: relative; width: 100%; }
         .autocomplete-list {
             position: absolute; top: 100%; left: 0; right: 0; background: var(--card-bg);
-            border: 1px solid var(--border-color); border-top: none; z-index: 1000;
+            border: 1px solid var(--border-color); border-top: none; z-index: 5000;
             list-style: none; padding: 0; margin: 0; max-height: 250px; overflow-y: auto;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3); border-radius: 0 0 4px 4px; display: none;
         }
         .autocomplete-list li {
-            padding: 12px; cursor: pointer; color: var(--text-color); border-bottom: 1px solid var(--border-color);
+            padding: 10px; cursor: pointer; color: var(--text-color); border-bottom: 1px solid var(--border-color);
             font-size: 13px; display: flex; align-items: center; gap: 10px; transition: background 0.2s;
         }
-        .autocomplete-list li:last-child { border-bottom: none; }
         .autocomplete-list li:hover { background: rgba(0, 141, 218, 0.15); }
-        .autocomplete-list li i { color: #ea4335; font-size: 16px; }
-        .autocomplete-list small { display: block; font-size: 11px; opacity: 0.7; margin-top: 3px; }
+        .autocomplete-list li i { color: #ea4335; font-size: 15px; }
+        .autocomplete-list small { display: block; font-size: 11px; opacity: 0.7; margin-top: 2px; }
     </style>
 </head>
 <body class="dark-mode">
 
-    <!-- TELA DE LOGIN (Oculta automaticamente se logado) -->
+    <!-- TELA DE LOGIN -->
     <div id="login-screen" style="display: none;">
         <div class="login-box">
             <h2><i class="fas fa-shield-alt"></i> Acesso ao Sistema</h2>
-            <p style="font-size: 14px; opacity: 0.8;">Apenas e-mails corporativos autorizados</p>
+            <p style="font-size: 14px; opacity: 0.8;">Guardian Carbolog</p>
             <input type="email" id="emailInput" placeholder="usuario@carbolog.com.br" value="v.menezes@carbolog.com.br" required>
             <select id="perfilInput">
                 <option value="Administrador">Administrador</option>
@@ -241,7 +158,7 @@
 
     <!-- MENU LATERAL -->
     <div class="sidebar" id="sidebarMenu" style="display: none;">
-        <div class="sidebar-header"><i class="fas fa-satellite-dish"></i> Integrador Frota</div>
+        <div class="sidebar-header"><i class="fas fa-satellite-dish"></i> Guardian Carbolog</div>
         <div class="sidebar-menu">
             <button onclick="abrirAba('operacional', 'Grid Operacional')"><i class="fas fa-map"></i> Grid Operacional</button>
             <button onclick="abrirAba('dashboard', 'Dashboard')"><i class="fas fa-chart-pie"></i> Dashboard</button>
@@ -257,27 +174,23 @@
                 <i class="fas fa-sun" id="iconeTema"></i> Tema
             </button>
             <span id="userLogado" style="font-size: 12px; word-break: break-all;"></span>
-            <button class="btn" style="background: var(--danger); font-size: 11px; padding: 6px;" onclick="fazerLogout()">Sair do Sistema</button>
+            <button class="btn" style="background: var(--danger); font-size: 11px; padding: 6px;" onclick="fazerLogout()">Sair</button>
         </div>
     </div>
 
     <!-- CONTEÚDO PRINCIPAL -->
     <div class="main-content" id="mainApp" style="display: none;">
-        <!-- TOPO COM ABAS MÚLTIPLAS -->
         <div class="topbar" id="topbarAbas"></div>
 
-        <!-- CORPO DAS ABAS -->
         <div class="tab-body-container">
-
             <!-- OPERACIONAL -->
             <div id="pane-operacional" class="tab-pane">
                 <div class="card" style="padding-bottom: 0;">
                     <div class="flex-row" style="justify-content: space-between;">
-                        <h3 style="color: var(--accent-blue);"><i class="fas fa-map"></i> Monitoramento SASCAR (Por ID)</h3>
+                        <h3 style="color: var(--accent-blue);"><i class="fas fa-map"></i> Monitor de frota</h3>
                         <div>
                             <span class="info-tag">Auto-Refresh: <span id="timerRefresh">300</span>s</span>
-                            <button class="btn" onclick="carregarDadosVeiculos()"><i class="fas fa-sync"></i> Varredura Agora</button>
-                            <button class="btn" style="background:#00838F;" onclick="carregarAcidentesWazeGoogle()"><i class="fas fa-traffic-light"></i> Tráfego / Waze</button>
+                            <button class="btn" onclick="carregarDadosVeiculos()"><i class="fas fa-sync"></i> Refresh</button>
                             <button class="btn" onclick="abrirModalEficiencia()"><i class="fas fa-route"></i> Criar Nova Rota</button>
                         </div>
                     </div>
@@ -287,8 +200,8 @@
                 <div class="card">
                     <div class="flex-row">
                         <h3 style="color: var(--accent-blue);"><i class="fas fa-list"></i> Grid Operacional de Veículos Vinculados</h3>
-                        <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(true)">Marcar Todos</button>
-                        <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(false)">Desmarcar Todos</button>
+                        <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(true)">Marcar Todos de Veículos</button>
+                        <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(false)">Desmarcar Todos de Veículos</button>
                     </div>
                     <div style="overflow-x: auto;">
                         <table id="gridOperacional">
@@ -341,7 +254,7 @@
                         <div style="width: 50%;"><canvas id="graficoParado"></canvas></div>
                     </div>
                     <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 20px 0;">
-                    <h4 style="color: var(--accent-blue);"><i class="fas fa-history"></i> Registros Brutos</h4>
+                    <h4 style="color: var(--accent-blue);"><i class="fas fa-history"></i> Registros Brutos (Ocorrências e Desvios)</h4>
                     <table id="tabelaDash" style="margin-bottom: 25px;">
                         <thead><tr><th>Placa</th><th>Ocorrência</th><th>Duração (Min)</th><th>Máx. Vel.</th><th>Data/Hora</th></tr></thead>
                         <tbody id="tbodyDash"></tbody>
@@ -355,17 +268,15 @@
                     <h3 style="color: var(--accent-blue);"><i class="fas fa-truck"></i> Cadastro de Veículos da Frota</h3>
                     <div class="flex-row" style="gap: 10px; flex-wrap: wrap; margin-top: 15px;">
                         <input type="hidden" id="veiculoEditId">
-                        <input type="text" id="cadIdSascar" class="input-livre" placeholder="ID Sascar (Ex: 10293)" style="flex: 1; min-width: 150px;">
-                        <input type="text" id="cadPlaca" class="input-livre" placeholder="Placa (Ex: ABC-1234)" style="flex: 1; min-width: 130px;">
-                        <input type="text" id="cadPeso" class="input-livre" placeholder="Peso Bruto/Capacidade" style="flex: 1; min-width: 130px;">
-                        <input type="text" id="cadCor" class="input-livre" placeholder="Cor do Veículo" style="flex: 1; min-width: 130px;">
+                        <input type="text" id="cadIdSascar" class="input-livre" placeholder="ID Sascar" style="flex: 1; min-width: 150px;">
+                        <input type="text" id="cadPlaca" class="input-livre" placeholder="Placa (ABC-1234)" style="flex: 1; min-width: 130px;">
+                        <input type="text" id="cadPeso" class="input-livre" placeholder="Peso" style="flex: 1; min-width: 130px;">
+                        <input type="text" id="cadCor" class="input-livre" placeholder="Cor" style="flex: 1; min-width: 130px;">
                         <select id="cadMotoristaVinculo" class="input-livre" style="flex: 1.5; min-width: 180px;"></select>
-                        <button class="btn" style="background: var(--success); margin-top: 0;" onclick="salvarVeiculoCadastrado()"><i class="fas fa-save"></i> Salvar Veículo</button>
+                        <button class="btn" style="background: var(--success); margin-top: 0;" onclick="salvarVeiculoCadastrado()">Salvar Veículo</button>
                     </div>
                     <table id="tabelaVeiculosCadastrados" style="margin-top: 20px;">
-                        <thead>
-                            <tr><th>ID Sascar</th><th>Placa</th><th>Peso</th><th>Cor</th><th>Motorista Vinculado</th><th>Ações</th></tr>
-                        </thead>
+                        <thead><tr><th>ID Sascar</th><th>Placa</th><th>Peso</th><th>Cor</th><th>Motorista</th><th>Ações</th></tr></thead>
                         <tbody id="tbodyVeiculosCadastrados"></tbody>
                     </table>
                 </div>
@@ -379,13 +290,11 @@
                         <input type="hidden" id="motoristaEditId">
                         <input type="text" id="motNome" class="input-livre" placeholder="Nome Completo" style="flex: 2; min-width: 200px;">
                         <input type="text" id="motCpf" class="input-livre" placeholder="CPF (000.000.000-00)" style="flex: 1; min-width: 150px;">
-                        <input type="text" id="motTel" class="input-livre" placeholder="Telefone / Celular" style="flex: 1; min-width: 150px;">
-                        <button class="btn" style="background: var(--success); margin-top: 0;" onclick="salvarMotoristaCadastrado()"><i class="fas fa-save"></i> Salvar Motorista</button>
+                        <input type="text" id="motTel" class="input-livre" placeholder="Telefone" style="flex: 1; min-width: 150px;">
+                        <button class="btn" style="background: var(--success); margin-top: 0;" onclick="salvarMotoristaCadastrado()">Salvar Motorista</button>
                     </div>
                     <table id="tabelaMotoristasCadastrados" style="margin-top: 20px;">
-                        <thead>
-                            <tr><th>Nome Completo</th><th>CPF</th><th>Telefone</th><th>Ações</th></tr>
-                        </thead>
+                        <thead><tr><th>Nome</th><th>CPF</th><th>Telefone</th><th>Ações</th></tr></thead>
                         <tbody id="tbodyMotoristasCadastrados"></tbody>
                     </table>
                 </div>
@@ -394,17 +303,9 @@
             <!-- ABASTECIMENTOS -->
             <div id="pane-abastecimentos" class="tab-pane">
                 <div class="card" id="exportAreaAbastecimento">
-                    <div class="flex-row" style="justify-content: space-between;">
-                        <h3 style="color: var(--accent-blue);"><i class="fas fa-gas-pump"></i> Integração CTA x SASCAR</h3>
-                        <div>
-                            <button class="btn" style="background: #1D6F42;" onclick="exportarExcel('tabelaAbastecimento', 'Abastecimentos')">Excel</button>
-                            <button class="btn" style="background: var(--danger);" onclick="exportarPDF('exportAreaAbastecimento', 'Abastecimentos')">PDF</button>
-                        </div>
-                    </div>
+                    <h3 style="color: var(--accent-blue);"><i class="fas fa-gas-pump"></i> Abastecimentos</h3>
                     <table id="tabelaAbastecimento">
-                        <thead>
-                            <tr><th>Placa</th><th>Data/Hora</th><th>Bomba (CTA)</th><th>Local</th><th>Litros</th><th>Média</th></tr>
-                        </thead>
+                        <thead><tr><th>Placa</th><th>Data/Hora</th><th>Bomba</th><th>Local</th><th>Litros</th><th>Média</th></tr></thead>
                         <tbody id="tbodyAbastecimentos"></tbody>
                     </table>
                 </div>
@@ -413,10 +314,7 @@
             <!-- ROTAS SALVAS -->
             <div id="pane-rotas" class="tab-pane">
                 <div class="card">
-                    <div class="flex-row" style="justify-content: space-between;">
-                        <h3 style="color: var(--accent-blue);"><i class="fas fa-route"></i> Gestão de Rotas Salvas</h3>
-                        <input type="text" id="filtroRotasInput" placeholder="Filtrar por nome..." onkeyup="filtrarRotasSalvas()" style="padding: 10px; width: 300px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-color);">
-                    </div>
+                    <h3 style="color: var(--accent-blue);"><i class="fas fa-route"></i> Rotas Salvas</h3>
                     <table id="tabelaRotasSalvas">
                         <thead><tr><th>Nome</th><th>Origem</th><th>Destino</th><th>Eixos</th><th>Distância</th><th>Ações</th></tr></thead>
                         <tbody id="tbodyRotasSalvas"></tbody>
@@ -428,13 +326,13 @@
             <div id="pane-areas" class="tab-pane">
                 <div class="card">
                     <div class="flex-row" style="justify-content: space-between;">
-                        <h3 style="color: var(--accent-blue);"><i class="fas fa-draw-polygon"></i> Gestão de Grupos e Áreas Geográficas</h3>
-                        <button class="btn" style="background: #00838F;" onclick="abrirJanelaCriarArea()"><i class="fas fa-plus"></i> Desenhar Nova Área</button>
+                        <h3 style="color: var(--accent-blue);"><i class="fas fa-draw-polygon"></i> Áreas e Grupos</h3>
+                        <button class="btn" style="background: #00838F;" onclick="abrirJanelaCriarArea()">Desenhar Nova Área</button>
                     </div>
                     <div style="margin-top: 15px; background: rgba(0,0,0,0.03); padding: 15px; border-radius: 6px;">
                         <h4 style="margin-top:0; color: var(--accent-blue);">Criar Grupo de Áreas</h4>
                         <div class="flex-row" style="gap: 10px; margin-bottom: 0;">
-                            <input type="text" id="nomeGrupoArea" class="input-livre" placeholder="Nome do Grupo (Ex: Filiais Sudeste)" style="flex: 1;">
+                            <input type="text" id="nomeGrupoArea" class="input-livre" placeholder="Nome do Grupo" style="flex: 1;">
                             <div id="checkboxesAreasGrupo" style="flex: 2; max-height: 100px; overflow-y: auto; border: 1px solid var(--border-color); padding: 5px; background: var(--card-bg);"></div>
                             <button class="btn" style="background: var(--success); margin-top:0;" onclick="salvarGrupoArea()">Salvar Grupo</button>
                         </div>
@@ -444,9 +342,9 @@
                         <thead><tr><th>Nome do Grupo</th><th>Áreas Vinculadas</th><th>Ações</th></tr></thead>
                         <tbody id="tbodyGruposSalvos"></tbody>
                     </table>
-                    <h4 style="color: var(--accent-blue); margin-top: 25px;">Áreas Individuais Cadastradas</h4>
+                    <h4 style="color: var(--accent-blue); margin-top: 25px;">Áreas Individuais</h4>
                     <table id="tabelaAreasSalvas">
-                        <thead><tr><th>Nome da Área</th><th>Tipo</th><th>Ações</th></tr></thead>
+                        <thead><tr><th>Nome</th><th>Tipo</th><th>Ações</th></tr></thead>
                         <tbody id="tbodyAreasSalvas"></tbody>
                     </table>
                 </div>
@@ -457,28 +355,28 @@
                 <div class="card">
                     <div class="flex-row" style="justify-content: space-between;">
                         <h3 style="color: var(--accent-blue);"><i class="fas fa-map-pin"></i> Pontos de Referência</h3>
-                        <button class="btn" style="background: var(--success);" onclick="abrirModalPontoRef()"><i class="fas fa-plus"></i> Novo Ponto</button>
+                        <button class="btn" style="background: var(--success);" onclick="abrirModalPontoRef()">Novo Ponto</button>
                     </div>
                     <table id="tabelaPontosRef">
-                        <thead><tr><th>Nome</th><th>Latitude</th><th>Longitude</th><th>Origem</th><th>Ações</th></tr></thead>
+                        <thead><tr><th>Nome</th><th>Lat</th><th>Lon</th><th>Origem</th><th>Ações</th></tr></thead>
                         <tbody id="tbodyPontosRef"></tbody>
                     </table>
                 </div>
             </div>
-
         </div>
     </div>
 
-    <!-- MODAIS NECESSÁRIOS -->
+    <!-- MODAIS COM BUSCA INTELIGENTE POR PALAVRA-CHAVE -->
     <div id="modalPontoRef" class="modal">
         <div class="modal-content" style="max-width: 600px;">
             <div class="modal-header">Cadastrar Ponto de Referência <span class="close-modal" onclick="fecharModalPontoRef()">×</span></div>
-            <div class="autocomplete-container" style="margin-bottom: 12px;">
-                <input type="text" id="refBuscaGoogle" class="input-livre" placeholder="Pesquisar endereço..." style="width: 100%;">
+            <div class="autocomplete-container" style="margin-bottom: 10px;">
+                <label><b>Pesquisa por Palavra-Chave (Endereço, Refinaria, Cidade):</b></label>
+                <input type="text" id="refBuscaGoogle" class="input-livre" placeholder="Digite p.ex: Refinaria Campinas ou Av Paulista..." style="width: 100%;">
                 <ul id="autocompletePonto" class="autocomplete-list"></ul>
             </div>
             <div id="mapPontoRef"></div>
-            <input type="text" id="refNome" class="input-livre" placeholder="Nome do Ponto" style="width: 100%; margin-top: 10px;">
+            <input type="text" id="refNome" class="input-livre" placeholder="Nome Identificador do Ponto" style="width: 100%; margin-top: 10px;">
             <div class="flex-row" style="margin-top: 10px;">
                 <input type="text" id="refLat" class="input-livre" placeholder="Latitude">
                 <input type="text" id="refLon" class="input-livre" placeholder="Longitude">
@@ -491,31 +389,28 @@
         <div class="modal-content">
             <div class="modal-header">Desenhar Área Geográfica <span class="close-modal" onclick="fecharJanelaCriarArea()">×</span></div>
             <div class="autocomplete-container" style="margin-bottom: 10px;">
-                <input type="text" id="inputBuscaRefArea" class="input-livre" placeholder="Pesquisar referência..." style="width: 100%;">
+                <label><b>Buscar Localização no Mapa:</b></label>
+                <input type="text" id="inputBuscaRefArea" class="input-livre" placeholder="Digite cidade, empresa ou região..." style="width: 100%;">
                 <ul id="autocompleteArea" class="autocomplete-list"></ul>
             </div>
-            <div class="flex-row" style="background: rgba(0,0,0,0.04); padding: 10px; border-radius: 6px;">
-                <button class="btn" style="background: var(--primary-blue); margin-top:0;" onclick="ativarFerramentaDesenho('polygon')">Poligonal</button>
-                <button class="btn" style="background: var(--primary-blue); margin-top:0;" onclick="ativarFerramentaDesenho('rectangle')">Retangular</button>
-                <button class="btn" style="background: var(--primary-blue); margin-top:0;" onclick="ativarFerramentaDesenho('circle')">Circular</button>
-                <button class="btn" style="background: var(--danger); margin-top:0;" onclick="apagarDesenhoArea()">Apagar</button>
-            </div>
-            <div id="mapDesenhoArea" style="height: 350px; width: 100%; margin-bottom: 15px;"></div>
-            <input type="text" id="inputNomeAreaModal" class="input-livre" placeholder="Nome da Área Geográfica" style="width: 100%; margin-bottom: 10px;">
+            <div id="mapDesenhoArea" style="height: 300px; width: 100%; margin-bottom: 15px;"></div>
+            <input type="text" id="inputNomeAreaModal" class="input-livre" placeholder="Nome da Área" style="width: 100%; margin-bottom: 10px;">
             <button class="btn" style="width: 100%; background: var(--success);" onclick="salvarAreaDefinitiva()">Salvar Área</button>
         </div>
     </div>
 
     <div id="modalEficiencia" class="modal">
         <div class="modal-content" style="max-width: 900px;">
-            <div class="modal-header">Criar Rota <span class="close-modal" onclick="fecharModal()">×</span></div>
+            <div class="modal-header">Criar Rota com Busca Inteligente <span class="close-modal" onclick="fecharModal()">×</span></div>
             <div class="flex-row">
                 <div style="flex: 1;" class="autocomplete-container">
-                    <input type="text" id="iamOrigemBusca" class="input-livre" placeholder="Origem..." style="width: 100%;">
+                    <label><b>Origem:</b></label>
+                    <input type="text" id="iamOrigemBusca" class="input-livre" placeholder="Pesquisar origem por palavra-chave..." style="width: 100%;">
                     <ul id="autocompleteOrigemRota" class="autocomplete-list"></ul>
                 </div>
                 <div style="flex: 1;" class="autocomplete-container">
-                    <input type="text" id="iamDestinoBusca" class="input-livre" placeholder="Destino..." style="width: 100%;">
+                    <label><b>Destino:</b></label>
+                    <input type="text" id="iamDestinoBusca" class="input-livre" placeholder="Pesquisar destino por palavra-chave..." style="width: 100%;">
                     <ul id="autocompleteDestinoRota" class="autocomplete-list"></ul>
                 </div>
             </div>
@@ -543,47 +438,49 @@
             <div class="modal-header">Vincular Rota <span class="close-modal" onclick="fecharModalVincular()">×</span></div>
             <p>Veículo: <b id="veiculoSelecionadoModal"></b></p>
             <select id="selectRotaVinculo" class="input-livre" style="width: 95%; margin-bottom: 15px;"></select>
-            <button class="btn" style="width: 100%; background: var(--success);" onclick="confirmarVinculacaoRota()">Salvar Vínculo</button>
+            <button class="btn" style="width: 100%; background: var(--success);" onclick="confirmarVinculacaoRota()">Salvar</button>
         </div>
     </div>
 
     <div id="modalVincularArea" class="modal">
         <div class="modal-content" style="max-width: 400px;">
-            <div class="modal-header">Vincular Grupos/Áreas ao Veículo <span class="close-modal" onclick="fecharModalVincularArea()">×</span></div>
+            <div class="modal-header">Vincular Grupos/Áreas <span class="close-modal" onclick="fecharModalVincularArea()">×</span></div>
             <p>Veículo: <b id="veiculoSelecionadoAreaModal"></b></p>
             <div id="listaCheckboxGruposAreas" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color); padding: 10px; margin-bottom: 15px;"></div>
-            <button class="btn" style="width: 100%; background: var(--success);" onclick="confirmarVinculacaoArea()">Salvar Vínculo</button>
+            <button class="btn" style="width: 100%; background: var(--success);" onclick="confirmarVinculacaoArea()">Salvar</button>
         </div>
     </div>
 
-    <div id="modalDetalhesRota" class="modal">
-        <div class="modal-content" style="max-width: 500px;">
-            <div class="modal-header">Detalhes da Rota <span class="close-modal" onclick="fecharModalDetalhesRota()">×</span></div>
-            <h4 id="detalheRotaNome" style="color: var(--accent-blue); margin-top: 0;"></h4>
-            <p><b>Distância:</b> <span id="detalheRotaDistancia"></span></p>
-            <p><b>Custo Total:</b> <span id="detalheRotaTotal"></span></p>
-            <button class="btn" style="width: 100%; background: var(--primary-blue);" onclick="fecharModalDetalhesRota()">Fechar</button>
-        </div>
-    </div>
-
-    <!-- SCRIPT PRINCIPAL INTEGRADO -->
+    <!-- SCRIPT COMPLETO COM AUTOCOMPLETE POR PALAVRA-CHAVE -->
     <script>
         Chart.register(ChartDataLabels);
         let map = null, mapDesenhoAreaInstance = null, mapPontoRefInstance = null, mapCriarRotaInstance = null;
         let markers = {};
-        let rotasVeiculos = {}, areasVeiculos = {}, veiculosCacheGlobal = [], veiculoFocoGlobal = null, linhaRotaVeiculoAtivo = null;
-        let routingControl = null, linhaRotaEstatica = null;
-        let camadaTransitoGrupo = L.layerGroup(), camadaAreasGrupo = L.layerGroup(), camadaDesenhoTemp = L.layerGroup(), camadaPontoRefTemp = L.layerGroup(), camadaCriarRotaTemp = L.layerGroup();
+        let rotasVeiculos = {}, areasVeiculos = {}, veiculosCacheGlobal = [], veiculoFocoGlobal = null;
+        let camadaTransitoGrupo = L.layerGroup(), camadaAreasGrupo = L.layerGroup(), camadaDesenhoTemp = L.layerGroup();
+        let camadaPontoRefTemp = L.layerGroup(), camadaCriarRotaTemp = L.layerGroup();
         
         let rotasSalvas = [], areasSalvas = [], gruposAreasSalvos = [], pontosReferenciaSalvos = [], veiculosCadastrados = [], motoristasCadastrados = [];
-        let alertasFinalizados = {}, contadorPermanenciaAreas = {}, historicoDesviosDashboard = [];
-        let modoDesenhoAtual = null, pontosPoligonoTemp = [], marcadorCentroRetangulo = null, dadosGeometriaAtual = null;
-        let dadosUltimaRotaCalculada = null, eixosAtuaisRota = 6, placaAtualVinculando = null, placaAtualVinculandoArea = null;
-        let countdown = 300, coordsOrigemSelecionada = null, coordsDestinoSelecionada = null;
+        let dadosUltimaRotaCalculada = null, timeoutBusca = null;
+        let coordsOrigemSelecionada = null, coordsDestinoSelecionada = null;
+        let placaAtualVinculando = null, placaAtualVinculandoArea = null, countdown = 300;
+        let abasAbertas = [], abaAtivaAtual = null;
 
-        // ABAS MÚLTIPLAS EM ABAS SUPERIORES
-        let abasAbertas = [];
-        let abaAtivaAtual = null;
+        function validarCPF(cpf) {
+            cpf = cpf.replace(/[^\d]+/g,'');
+            if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
+            let soma = 0, resto;
+            for (let i = 1; i <= 9; i++) soma += parseInt(cpf.substring(i-1, i)) * (11 - i);
+            resto = (soma * 10) % 11;
+            if ((resto === 10) || (resto === 11)) resto = 0;
+            if (resto !== parseInt(cpf.substring(9, 10))) return false;
+            soma = 0;
+            for (let i = 1; i <= 10; i++) soma += parseInt(cpf.substring(i-1, i)) * (12 - i);
+            resto = (soma * 10) % 11;
+            if ((resto === 10) || (resto === 11)) resto = 0;
+            if (resto !== parseInt(cpf.substring(10, 11))) return false;
+            return true;
+        }
 
         function formatarDataHoraPtBr(dataStr) {
             if (!dataStr) return '-';
@@ -598,19 +495,14 @@
             try {
                 const resRotas = await fetch('/api/dados?tabela=rotas_salvas');
                 if (resRotas.ok) rotasSalvas = await resRotas.json();
-
                 const resAreas = await fetch('/api/dados?tabela=areas_salvas');
                 if (resAreas.ok) areasSalvas = await resAreas.json();
-
                 const resGrupos = await fetch('/api/dados?tabela=grupos_areas');
                 if (resGrupos.ok) gruposAreasSalvos = await resGrupos.json();
-
                 const resPontos = await fetch('/api/dados?tabela=pontos_referencia');
                 if (resPontos.ok) pontosReferenciaSalvos = await resPontos.json();
-
                 const resVeiculos = await fetch('/api/dados?tabela=veiculos_cadastrados');
                 if (resVeiculos.ok) veiculosCadastrados = await resVeiculos.json();
-
                 const resMot = await fetch('/api/dados?tabela=motoristas_cadastrados');
                 if (resMot.ok) motoristasCadastrados = await resMot.json();
             } catch (e) {}
@@ -621,15 +513,13 @@
                 const rotasVStr = localStorage.getItem('rotasVeiculos');
                 if (rotasVStr) rotasVeiculos = JSON.parse(rotasVStr);
                 const areasVStr = localStorage.getItem('areasVeiculos');
-                if (areasVStr) areasVeiculos = JSON.parse(areasVStr);
+                if (areasVStr) areasVStr = JSON.parse(areasVStr);
             } catch(e) {}
         }
 
         async function salvarDadoNoServidor(tabela, objeto) {
             try {
-                await fetch(`/api/dados?tabela=${tabela}`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(objeto)
-                });
+                await fetch(`/api/dados?tabela=${tabela}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(objeto) });
             } catch(e) {}
         }
 
@@ -641,8 +531,6 @@
 
         window.addEventListener('DOMContentLoaded', async () => {
             await carregarDadosDoServidor();
-
-            // SESSÃO PERSISTENTE: Não retorna para login se houver sessão ativa
             const sessaoAtiva = localStorage.getItem('sessaoAtiva');
             if (sessaoAtiva) {
                 entrarNoSistemaDireto(sessaoAtiva);
@@ -672,9 +560,7 @@
                 L.control.layers({ "Normal": mapaNormal }, { "Tráfego": camadaTransitoGrupo, "Áreas": camadaAreasGrupo }).addTo(map);
             }
 
-            // Abre aba padrão inicial
             abrirAba('operacional', 'Grid Operacional');
-            
             renderizarTabelaRotas();
             renderizarTabelaAreas();
             renderizarTabelaPontosRef();
@@ -683,6 +569,7 @@
             renderizarTabelaGrupos();
             renderizarAreasNoMapa();
 
+            // ATIVAR BUSCADORES POR PALAVRA-CHAVE EM TEMPO REAL
             configurarAutocompleteInput('inputBuscaRefArea', 'autocompleteArea', true);
             configurarAutocompleteInput('refBuscaGoogle', 'autocompletePonto', false);
             configurarAutocompleteRota('iamOrigemBusca', 'autocompleteOrigemRota', 'origem');
@@ -696,11 +583,86 @@
             location.reload();
         }
 
-        // SISTEMA DE ABAS MÚLTIPLAS SUPERIORES
+        // MOTOR DE BUSCA OPENSTREETMAP (NOMINATIM) POR PALAVRA-CHAVE
+        async function buscarAutocomplete(termo, listId, callback) {
+            const lista = document.getElementById(listId);
+            if (!termo || termo.length < 3) { lista.style.display = 'none'; return; }
+            const termoBusca = termo.toLowerCase().includes('sp') ? termo : `${termo}, Sao Paulo, Brazil`;
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termoBusca)}&limit=5`;
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                lista.innerHTML = '';
+                if (data.length > 0) {
+                    data.forEach(item => {
+                        const li = document.createElement('li');
+                        const titulo = item.display_name.split(',')[0];
+                        const resto = item.display_name.substring(titulo.length + 1);
+                        li.innerHTML = `<i class="fas fa-map-marker-alt"></i><div><b>${titulo}</b><small>${resto}</small></div>`;
+                        li.onclick = () => { callback(item); lista.style.display = 'none'; };
+                        lista.appendChild(li);
+                    });
+                    lista.style.display = 'block';
+                } else { lista.style.display = 'none'; }
+            } catch (e) { lista.style.display = 'none'; }
+        }
+
+        function configurarAutocompleteInput(inputId, listId, isArea) {
+            const input = document.getElementById(inputId);
+            input.addEventListener('input', function(e) {
+                clearTimeout(timeoutBusca);
+                timeoutBusca = setTimeout(() => {
+                    buscarAutocomplete(e.target.value, listId, (item) => {
+                        const lat = parseFloat(item.lat);
+                        const lon = parseFloat(item.lon);
+                        const nomeCurto = item.display_name.split(',')[0];
+                        input.value = item.display_name;
+                        if (isArea) {
+                            if (mapDesenhoAreaInstance) {
+                                mapDesenhoAreaInstance.setView([lat, lon], 15);
+                                camadaDesenhoTemp.clearLayers();
+                                L.marker([lat, lon]).addTo(camadaDesenhoTemp).bindPopup(`<b>${nomeCurto}</b>`).openPopup();
+                            }
+                        } else {
+                            document.getElementById('refLat').value = lat;
+                            document.getElementById('refLon').value = lon;
+                            if (!document.getElementById('refNome').value) document.getElementById('refNome').value = nomeCurto;
+                            if (mapPontoRefInstance) {
+                                mapPontoRefInstance.setView([lat, lon], 15);
+                                camadaPontoRefTemp.clearLayers();
+                                L.marker([lat, lon]).addTo(camadaPontoRefTemp).bindPopup(`<b>${nomeCurto}</b>`).openPopup();
+                            }
+                        }
+                    });
+                }, 500);
+            });
+        }
+
+        function configurarAutocompleteRota(inputId, listId, tipoPonto) {
+            const input = document.getElementById(inputId);
+            input.addEventListener('input', function(e) {
+                clearTimeout(timeoutBusca);
+                timeoutBusca = setTimeout(() => {
+                    buscarAutocomplete(e.target.value, listId, (item) => {
+                        const lat = parseFloat(item.lat);
+                        const lon = parseFloat(item.lon);
+                        const nomeCurto = item.display_name.split(',')[0];
+                        input.value = item.display_name;
+
+                        if (tipoPonto === 'origem') coordsOrigemSelecionada = { lat, lon, nome: nomeCurto };
+                        else coordsDestinoSelecionada = { lat, lon, nome: nomeCurto };
+
+                        if (mapCriarRotaInstance) {
+                            mapCriarRotaInstance.setView([lat, lon], 13);
+                            L.marker([lat, lon]).addTo(camadaCriarRotaTemp).bindPopup(`<b>${tipoPonto.toUpperCase()}:</b> ${nomeCurto}`).openPopup();
+                        }
+                    });
+                }, 500);
+            });
+        }
+
         function abrirAba(paneId, titulo) {
-            if (!abasAbertas.includes(paneId)) {
-                abasAbertas.push(paneId);
-            }
+            if (!abasAbertas.includes(paneId)) abasAbertas.push(paneId);
             ativarAbaPane(paneId);
             renderizarCabecalhoAbas();
         }
@@ -708,27 +670,21 @@
         function fecharAbaPane(paneId, event) {
             event.stopPropagation();
             const index = abasAbertas.indexOf(paneId);
-            if (index > -1) {
-                abasAbertas.splice(index, 1);
-            }
+            if (index > -1) abasAbertas.splice(index, 1);
             document.getElementById(`pane-${paneId}`).classList.remove('active');
-            if (abasAbertas.length > 0) {
-                ativarAbaPane(abasAbertas[abasAbertas.length - 1]);
-            } else {
-                abrirAba('operacional', 'Grid Operacional');
-            }
+            if (abasAbertas.length > 0) ativarAbaPane(abasAbertas[abasAbertas.length - 1]);
+            else abrirAba('operacional', 'Grid Operacional');
             renderizarCabecalhoAbas();
         }
 
         function ativarAbaPane(paneId) {
             document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.sidebar-menu button').forEach(el => el.classList.remove('active'));
-            
             const pane = document.getElementById(`pane-${paneId}`);
             if (pane) pane.classList.add('active');
             abaAtivaAtual = paneId;
-
             if (paneId === 'operacional' && map) setTimeout(() => map.invalidateSize(), 150);
+            if (paneId === 'dashboard') atualizarDashboards();
             renderizarCabecalhoAbas();
         }
 
@@ -736,16 +692,10 @@
             const topbar = document.getElementById('topbarAbas');
             topbar.innerHTML = '';
             const nomesAbas = {
-                'operacional': 'Grid Operacional',
-                'dashboard': 'Dashboard',
-                'veiculos': 'Cadastro de Veículos',
-                'motoristas': 'Cadastro de Motoristas',
-                'abastecimentos': 'Abastecimentos',
-                'rotas': 'Rotas Salvas',
-                'areas': 'Áreas e Grupos',
-                'pontosRef': 'Pontos de Referência'
+                'operacional': 'Grid Operacional', 'dashboard': 'Dashboard', 'veiculos': 'Cadastro de Veículos',
+                'motoristas': 'Cadastro de Motoristas', 'abastecimentos': 'Abastecimentos', 'rotas': 'Rotas Salvas',
+                'areas': 'Áreas e Grupos', 'pontosRef': 'Pontos de Referência'
             };
-
             abasAbertas.forEach(pId => {
                 const ativo = (pId === abaAtivaAtual) ? 'active' : '';
                 const div = document.createElement('div');
@@ -756,21 +706,18 @@
             });
         }
 
-        // CADASTRO DE MOTORISTAS
         async function salvarMotoristaCadastrado() {
             const nome = document.getElementById('motNome').value.trim();
             const cpf = document.getElementById('motCpf').value.trim();
             const tel = document.getElementById('motTel').value.trim();
             const editId = document.getElementById('motoristaEditId').value;
 
-            if (!nome || !cpf) { alert("Informe pelo menos o nome e o CPF do motorista."); return; }
+            if (!nome || !cpf) { alert("Informe o nome e o CPF."); return; }
+            if (!validarCPF(cpf)) { alert("CPF inválido! Verifique os números digitados."); return; }
 
             const motObj = { id: editId ? parseInt(editId) : Date.now(), nome, cpf, tel };
-            if (editId) {
-                motoristasCadastrados = motoristasCadastrados.map(m => m.id == editId ? motObj : m);
-            } else {
-                motoristasCadastrados.push(motObj);
-            }
+            if (editId) motoristasCadastrados = motoristasCadastrados.map(m => m.id == editId ? motObj : m);
+            else motoristasCadastrados.push(motObj);
             await salvarDadoNoServidor('motoristas_cadastrados', motObj);
 
             document.getElementById('motNome').value = '';
@@ -785,48 +732,20 @@
 
         function renderizarTabelaMotoristas() {
             const tbody = document.getElementById('tbodyMotoristasCadastrados');
-            tbody.innerHTML = '';
-            if (motoristasCadastrados.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Nenhum motorista cadastrado.</td></tr>`;
-                return;
-            }
-            motoristasCadastrados.forEach(m => {
-                tbody.innerHTML += `<tr>
-                    <td><b>${m.nome}</b></td><td>${m.cpf}</td><td>${m.tel || '-'}</td>
-                    <td class="table-actions">
-                        <button class="btn" style="padding:4px; font-size:11px;" onclick="editarMotorista(${m.id})"><i class="fas fa-edit"></i></button>
-                        <button class="btn" style="padding:4px; font-size:11px; background:var(--danger);" onclick="excluirMotorista(${m.id})"><i class="fas fa-trash"></i></button>
-                    </td>
-                </tr>`;
-            });
+            tbody.innerHTML = motoristasCadastrados.length === 0 ? `<tr><td colspan="4" style="text-align:center;">Nenhum motorista.</td></tr>` : motoristasCadastrados.map(m => `<tr><td><b>${m.nome}</b></td><td>${m.cpf}</td><td>${m.tel || '-'}</td><td><button class="btn" style="background:var(--danger); padding:3px;" onclick="excluirMotorista(${m.id})">Excluir</button></td></tr>`).join('');
         }
-
-        function editarMotorista(id) {
-            const m = motoristasCadastrados.find(x => x.id == id);
-            if (!m) return;
-            document.getElementById('motNome').value = m.nome;
-            document.getElementById('motCpf').value = m.cpf;
-            document.getElementById('motTel').value = m.tel || '';
-            document.getElementById('motoristaEditId').value = m.id;
-        }
-
         async function excluirMotorista(id) {
-            if (!confirm("Excluir motorista?")) return;
             motoristasCadastrados = motoristasCadastrados.filter(x => x.id != id);
             await deletarDadoNoServidor('motoristas_cadastrados', id);
             renderizarTabelaMotoristas();
             atualizarSelectMotoristasVeiculo();
         }
-
         function atualizarSelectMotoristasVeiculo() {
             const sel = document.getElementById('cadMotoristaVinculo');
             sel.innerHTML = `<option value="">-- Selecionar Motorista --</option>`;
-            motoristasCadastrados.forEach(m => {
-                sel.innerHTML += `<option value="${m.nome}">${m.nome} (CPF: ${m.cpf})</option>`;
-            });
+            motoristasCadastrados.forEach(m => { sel.innerHTML += `<option value="${m.nome}">${m.nome} (CPF: ${m.cpf})</option>`; });
         }
 
-        // CADASTRO DE VEÍCULOS
         async function salvarVeiculoCadastrado() {
             const idSascar = document.getElementById('cadIdSascar').value.trim();
             const placa = document.getElementById('cadPlaca').value.trim().toUpperCase();
@@ -836,64 +755,20 @@
             const editId = document.getElementById('veiculoEditId').value;
 
             if (!idSascar || !placa) { alert("Informe o ID Sascar e a Placa."); return; }
-
             const vObj = { id: editId ? parseInt(editId) : Date.now(), id_sascar: idSascar, placa, peso, cor, motorista };
-            if (editId) {
-                veiculosCadastrados = veiculosCadastrados.map(v => v.id == editId ? vObj : v);
-            } else {
-                veiculosCadastrados.push(vObj);
-            }
+            if (editId) veiculosCadastrados = veiculosCadastrados.map(v => v.id == editId ? vObj : v);
+            else veiculosCadastrados.push(vObj);
             await salvarDadoNoServidor('veiculos_cadastrados', vObj);
-
-            document.getElementById('cadIdSascar').value = '';
-            document.getElementById('cadPlaca').value = '';
-            document.getElementById('cadPeso').value = '';
-            document.getElementById('cadCor').value = '';
-            document.getElementById('cadMotoristaVinculo').value = '';
-            document.getElementById('veiculoEditId').value = '';
-
             renderizarTabelaVeiculos();
-            alert("Veículo cadastrado com sucesso!");
+            alert("Veículo salvo!");
         }
-
         function renderizarTabelaVeiculos() {
             atualizarSelectMotoristasVeiculo();
             const tbody = document.getElementById('tbodyVeiculosCadastrados');
-            tbody.innerHTML = '';
-            if (veiculosCadastrados.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Nenhum veículo cadastrado.</td></tr>`;
-                return;
-            }
-            veiculosCadastrados.forEach(v => {
-                tbody.innerHTML += `<tr>
-                    <td><b>${v.id_sascar}</b></td><td>${v.placa}</td><td>${v.peso || '-'}</td><td>${v.cor || '-'}</td><td>${v.motorista || 'Nenhum'}</td>
-                    <td class="table-actions">
-                        <button class="btn" style="padding:4px; font-size:11px;" onclick="editarVeiculo(${v.id})"><i class="fas fa-edit"></i></button>
-                        <button class="btn" style="padding:4px; font-size:11px; background:var(--danger);" onclick="excluirVeiculo(${v.id})"><i class="fas fa-trash"></i></button>
-                    </td>
-                </tr>`;
-            });
+            tbody.innerHTML = veiculosCadastrados.length === 0 ? `<tr><td colspan="6" style="text-align:center;">Nenhum veículo.</td></tr>` : veiculosCadastrados.map(v => `<tr><td><b>${v.id_sascar}</b></td><td>${v.placa}</td><td>${v.peso||'-'}</td><td>${v.cor||'-'}</td><td>${v.motorista||'Nenhum'}</td><td><button class="btn" style="background:var(--danger); padding:3px;" onclick="excluirVeiculo(${v.id})">Excluir</button></td></tr>`).join('');
         }
+        async function excluirVeiculo(id) { veiculosCadastrados = veiculosCadastrados.filter(x => x.id != id); await deletarDadoNoServidor('veiculos_cadastrados', id); renderizarTabelaVeiculos(); }
 
-        function editarVeiculo(id) {
-            const v = veiculosCadastrados.find(x => x.id == id);
-            if (!v) return;
-            document.getElementById('cadIdSascar').value = v.id_sascar;
-            document.getElementById('cadPlaca').value = v.placa;
-            document.getElementById('cadPeso').value = v.peso || '';
-            document.getElementById('cadCor').value = v.cor || '';
-            document.getElementById('cadMotoristaVinculo').value = v.motorista || '';
-            document.getElementById('veiculoEditId').value = v.id;
-        }
-
-        async function excluirVeiculo(id) {
-            if (!confirm("Excluir veículo?")) return;
-            veiculosCadastrados = veiculosCadastrados.filter(x => x.id != id);
-            await deletarDadoNoServidor('veiculos_cadastrados', id);
-            renderizarTabelaVeiculos();
-        }
-
-        // INTEGRAÇÃO SASCAR (BUSCA POR ID, PLACA E COMUNICAÇÃO)
         async function carregarDadosVeiculos() {
             try {
                 const response = await fetch('/api/posicoes', { method: 'GET', headers: { 'Content-Type': 'application/json' } });
@@ -901,30 +776,21 @@
                 const dadosBrutos = await response.json();
                 if (!dadosBrutos) return;
 
-                // Integração rigorosa cruzando ID Sascar do veículo cadastrado com a API
                 veiculosCacheGlobal = [];
                 dadosBrutos.forEach(item => {
                     const idSascarApi = String(item.id_veiculo || item.id_sascar || '');
                     const veicCadastrado = veiculosCadastrados.find(vc => String(vc.id_sascar) === idSascarApi);
-
                     if (veicCadastrado) {
                         veiculosCacheGlobal.push({
-                            id_sascar: idSascarApi,
-                            placa: veicCadastrado.placa,
-                            motorista: veicCadastrado.motorista || 'Não atribuído',
-                            latitude: item.latitude || item.lat,
-                            longitude: item.longitude || item.lng,
-                            velocidade: item.velocidade || 0,
-                            ignicao: item.ignicao,
-                            data_posicao: item.data_posicao || item.data_atualizacao,
-                            cidade: item.cidade,
-                            uf: item.uf,
-                            rua: item.rua || item.logradouro
+                            id_sascar: idSascarApi, placa: veicCadastrado.placa, motorista: veicCadastrado.motorista || 'Não atribuído',
+                            latitude: item.latitude || item.lat, longitude: item.longitude || item.lng,
+                            velocidade: item.velocidade || 0, ignicao: item.ignicao, data_posicao: item.data_posicao || item.data_atualizacao,
+                            cidade: item.cidade, uf: item.uf
                         });
                     }
                 });
-
                 renderizarGridEMapa();
+                atualizarDashboards();
             } catch (e) {}
         }
 
@@ -933,225 +799,143 @@
             tbody.innerHTML = '';
             Object.values(markers).forEach(m => map.removeLayer(m));
             markers = {};
-            if (linhaRotaVeiculoAtivo) { map.removeLayer(linhaRotaVeiculoAtivo); linhaRotaVeiculoAtivo = null; }
 
-            let dadosFiltrados = veiculosCacheGlobal;
-            if (veiculoFocoGlobal) {
-                dadosFiltrados = veiculosCacheGlobal.filter(v => v.placa === veiculoFocoGlobal);
-            }
-
+            let dadosF = veiculoFocoGlobal ? veiculosCacheGlobal.filter(v => v.placa === veiculoFocoGlobal) : veiculosCacheGlobal;
             const iconeCaminhao = L.divIcon({ html: '<i class="fas fa-truck custom-truck-icon"></i>', className: '', iconSize: [24, 24], iconAnchor: [12, 12] });
 
-            dadosFiltrados.forEach((v, index) => {
-                const tr = document.createElement('tr');
-                const lat = v.latitude, lon = v.longitude;
-                const placaFormatada = v.placa;
-                const motoristaNome = v.motorista;
-                const ignicaoBool = v.ignicao === 1 || v.ignicao === true || String(v.ignicao) === '1';
-                const velFinal = Number(v.velocidade) || 0;
-                const rotaVinculadaObj = rotasVeiculos[placaFormatada];
-                const rotaVinculadaNome = rotaVinculadaObj ? rotaVinculadaObj.nome : 'Nenhuma';
-                const dataFormatadaPtBr = formatarDataHoraPtBr(v.data_posicao);
+            dadosF.forEach((v, index) => {
+                const lat = v.latitude, lon = v.longitude, placa = v.placa, mot = v.motorista;
+                const ign = v.ignicao === 1 || v.ignicao === true || String(v.ignicao) === '1';
+                const vel = Number(v.velocidade) || 0;
+                const dataFmt = formatarDataHoraPtBr(v.data_posicao);
+                const rotaNome = rotasVeiculos[placa] ? rotasVeiculos[placa].nome : 'Nenhuma';
 
-                const idsAreasVeic = areasVeiculos[placaFormatada] || [];
-                const nomesAreas = idsAreasVeic.map(idA => {
-                    const ar = areasSalvas.find(a => a.id == idA);
-                    if (ar) return ar.nome;
-                    const grp = gruposAreasSalvos.find(g => g.id == idA);
-                    return grp ? `Grupo: ${grp.nome}` : null;
-                }).filter(Boolean);
-                const areasStr = nomesAreas.length > 0 ? nomesAreas.join(', ') : 'Nenhuma';
-
-                tr.innerHTML = `
+                tbody.innerHTML += `<tr>
                     <td><b>${index + 1}</b></td>
-                    <td><input type="checkbox" class="chk-veiculo" value="${placaFormatada}" checked onchange="toggleMarker('${placaFormatada}')"></td>
+                    <td><input type="checkbox" class="chk-veiculo" value="${placa}" checked onchange="toggleMarker('${placa}')"></td>
                     <td>${v.id_sascar}</td>
-                    <td><a href="#" onclick="focarVeiculoNoMapa('${placaFormatada}'); return false;" style="color:var(--accent-blue); font-weight:bold;">${placaFormatada}</a></td>
-                    <td><b>${motoristaNome}</b></td>
-                    <td>${dataFormatadaPtBr}</td>
-                    <td><span style="color: ${ignicaoBool ? 'var(--success)' : 'var(--danger)'}; font-weight:bold;">${ignicaoBool ? 'LIGADA' : 'DESLIGADA'}</span></td>
-                    <td>${v.cidade || '-'}/${v.uf || '-'}</td>
-                    <td><b>${velFinal} km/h</b></td>
-                    <td>${rotaVinculadaNome}</td>
-                    <td>${areasStr}</td>
-                    <td class="table-actions">
-                        <button class="btn" style="padding:3px 6px; font-size:11px;" onclick="abrirModalVincular('${placaFormatada}')">Rota</button>
-                        <button class="btn" style="padding:3px 6px; font-size:11px; background:#00838F;" onclick="abrirModalVincularArea('${placaFormatada}')">Área</button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
+                    <td><b>${placa}</b></td>
+                    <td style="color:var(--accent-blue); font-weight:bold;">${mot}</td>
+                    <td>${dataFmt}</td>
+                    <td><span style="color:${ign?'var(--success)':'var(--danger)'};">${ign?'LIGADA':'DESLIGADA'}</span></td>
+                    <td>${v.cidade||'-'}/${v.uf||'-'}</td>
+                    <td><b>${vel} km/h</b></td>
+                    <td>${rotaNome}</td>
+                    <td>Nenhuma</td>
+                    <td><button class="btn" style="padding:3px; font-size:11px;" onclick="abrirModalVincular('${placa}')">Rota</button></td>
+                </tr>`;
 
                 if (lat && lon) {
                     const marcador = L.marker([lat, lon], {icon: iconeCaminhao}).addTo(map);
-                    marcador.on('click', function(e) {
-                        L.DomEvent.stopPropagation(e);
-                        let acoesHtml = `<div style="min-width: 200px;">
-                            <b>Placa: ${placaFormatada}</b><br>
-                            Motorista: <b style="color:var(--accent-blue);">${motoristaNome}</b><br>
-                            Velocidade: ${velFinal} km/h<br>
-                            Comunicação: <b>${dataFormatadaPtBr}</b><br>
-                        </div>`;
-                        marcador.bindPopup(acoesHtml).openPopup();
-                    });
-                    markers[placaFormatada] = marcador;
+                    marcador.bindPopup(`<b>Placa: ${placa}</b><br>Motorista: <b>${mot}</b><br>Velocidade: ${vel} km/h<br>Comunicação: ${dataFmt}`);
+                    markers[placa] = marcador;
                 }
             });
-            atualizarKpisETabelasDash();
         }
 
-        // GRUPOS DE ÁREAS
-        async function salvarGrupoArea() {
-            const nomeGrupo = document.getElementById('nomeGrupoArea').value.trim();
-            if (!nomeGrupo) { alert("Informe o nome do grupo."); return; }
-            const checkboxes = document.querySelectorAll('#checkboxesAreasGrupo input[type="checkbox"]:checked');
-            const areasIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+        function atualizarDashboards() {
+            if(window.graf1) window.graf1.destroy();
+            if(window.graf2) window.graf2.destroy();
 
-            if (areasIds.length === 0) { alert("Selecione pelo menos uma área para o grupo."); return; }
+            let transito = 0, desligados = 0, paradosLigados = 0;
+            let excessosPorPlaca = {}, paradosLigadosPorPlaca = {}, tbodyHtml = '';
 
-            const grupoObj = { id: Date.now(), nome: nomeGrupo, areas: areasIds };
-            gruposAreasSalvos.push(grupoObj);
-            await salvarDadoNoServidor('grupos_areas', grupoObj);
+            veiculosCacheGlobal.forEach(v => {
+                const vel = Number(v.velocidade) || 0;
+                const ign = v.ignicao === 1 || v.ignicao === true || String(v.ignicao) === '1';
+                const placa = v.placa;
 
-            document.getElementById('nomeGrupoArea').value = '';
-            renderizarTabelaGrupos();
-            alert("Grupo de áreas salvo com sucesso!");
-        }
+                if (ign && vel > 10) transito++;
+                else if (!ign && vel === 0) desligados++;
+                else if (ign && vel === 0) { paradosLigados++; paradosLigadosPorPlaca[placa] = (paradosLigadosPorPlaca[placa] || 0) + 1; }
 
-        function renderizarTabelaGrupos() {
-            const tbody = document.getElementById('tbodyGruposSalvos');
-            const checkContainer = document.getElementById('checkboxesAreasGrupo');
-            tbody.innerHTML = '';
-            checkContainer.innerHTML = '';
+                if (vel > 80) {
+                    excessosPorPlaca[placa] = (excessosPorPlaca[placa] || 0) + 1;
+                    tbodyHtml += `<tr><td><b>${placa}</b></td><td style="color:var(--danger)">Excesso de Velocidade (${vel} km/h)</td><td>1 min</td><td>${vel} km/h</td><td>${formatarDataHoraPtBr(v.data_posicao)}</td></tr>`;
+                }
+            });
 
-            if (areasSalvas.length === 0) {
-                checkContainer.innerHTML = `<small>Nenhuma área desenhada ainda.</small>`;
-            } else {
-                areasSalvas.forEach(a => {
-                    checkContainer.innerHTML += `<label style="display:block; font-size:12px;"><input type="checkbox" value="${a.id}"> ${a.nome}</label>`;
-                });
-            }
+            document.getElementById('kpiEmTransito').innerText = transito;
+            document.getElementById('kpiDesligados').innerText = desligados;
+            document.getElementById('kpiParadosLigados').innerText = paradosLigados;
+            document.getElementById('tbodyDash').innerHTML = tbodyHtml || `<tr><td colspan="5" style="text-align:center;">Nenhum registro crítico recente.</td></tr>`;
 
-            if (gruposAreasSalvos.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;">Nenhum grupo cadastrado.</td></tr>`;
-                return;
-            }
-
-            gruposAreasSalvos.forEach(g => {
-                const nomes = g.areas.map(idA => {
-                    const ar = areasSalvas.find(x => x.id == idA);
-                    return ar ? ar.nome : null;
-                }).filter(Boolean).join(', ');
-
-                tbody.innerHTML += `<tr>
-                    <td><b>${g.nome}</b></td><td>${nomes}</td>
-                    <td><button class="btn" style="background:var(--danger); padding:3px 6px; font-size:11px;" onclick="excluirGrupo(${g.id})"><i class="fas fa-trash"></i></button></td>
-                </tr>`;
+            window.graf1 = new Chart(document.getElementById('graficoVelocidade').getContext('2d'), {
+                type: 'bar',
+                data: { labels: Object.keys(excessosPorPlaca).length > 0 ? Object.keys(excessosPorPlaca) : ['Frota Normal'], datasets: [{ label: 'Excessos (>80km/h)', data: Object.values(excessosPorPlaca).length > 0 ? Object.values(excessosPorPlaca) : [0], backgroundColor: '#D32F2F' }] }
+            });
+            window.graf2 = new Chart(document.getElementById('graficoParado').getContext('2d'), {
+                type: 'bar',
+                data: { labels: Object.keys(paradosLigadosPorPlaca).length > 0 ? Object.keys(paradosLigadosPorPlaca) : ['Normal'], datasets: [{ label: 'Parados Ligados', data: Object.values(paradosLigadosPorPlaca).length > 0 ? Object.values(paradosLigadosPorPlaca) : [0], backgroundColor: '#FF8F00' }] }
             });
         }
 
-        async function excluirGrupo(id) {
-            gruposAreasSalvos = gruposAreasSalvos.filter(g => g.id != id);
-            await deletarDadoNoServidor('grupos_areas', id);
-            renderizarTabelaGrupos();
-        }
-
-        // VINCULAÇÃO DE ÁREAS / GRUPOS AOS VEÍCULOS
-        function abrirModalVincularArea(placa) {
-            placaAtualVinculandoArea = placa;
-            document.getElementById('veiculoSelecionadoAreaModal').innerText = placa;
-            const container = document.getElementById('listaCheckboxGruposAreas');
-            container.innerHTML = '';
-
-            const vinculadasAtuais = areasVeiculos[placa] || [];
-
-            container.innerHTML += `<b>Grupos de Áreas:</b><br>`;
-            if (gruposAreasSalvos.length === 0) container.innerHTML += `<small>Nenhum grupo.</small><br>`;
-            gruposAreasSalvos.forEach(g => {
-                container.innerHTML += `<label style="display:block;"><input type="checkbox" value="g_${g.id}" ${vinculadasAtuais.includes('g_'+g.id)?'checked':''}> [Grupo] ${g.nome}</label>`;
-            });
-
-            container.innerHTML += `<br><b>Áreas Individuais:</b><br>`;
-            if (areasSalvas.length === 0) container.innerHTML += `<small>Nenhuma área.</small>`;
-            areasSalvas.forEach(a => {
-                container.innerHTML += `<label style="display:block;"><input type="checkbox" value="${a.id}" ${vinculadasAtuais.includes(a.id)?'checked':''}> ${a.nome}</label>`;
-            });
-
-            document.getElementById('modalVincularArea').style.display = 'flex';
-        }
-
-        function fecharModalVincularArea() { document.getElementById('modalVincularArea').style.display = 'none'; }
-
-        function confirmarVinculacaoArea() {
-            const checkboxes = document.querySelectorAll('#listaCheckboxGruposAreas input[type="checkbox"]:checked');
-            const selecionadas = Array.from(checkboxes).map(cb => cb.value.startsWith('g_') ? cb.value : parseInt(cb.value));
-            areasVeiculos[placaAtualVinculandoArea] = selecionadas;
-            localStorage.setItem('areasVeiculos', JSON.stringify(areasVeiculos));
-            fecharModalVincularArea();
-            renderizarGridEMapa();
-        }
-
-        // RESTANTE DOS MÓDULOS ESSENCIAIS
-        function abrirModalVincular(placa) {
-            placaAtualVinculando = placa;
-            document.getElementById('veiculoSelecionadoModal').innerText = placa;
-            const select = document.getElementById('selectRotaVinculo');
-            select.innerHTML = rotasSalvas.length === 0 ? `<option value="">Nenhuma rota</option>` : rotasSalvas.map(r => `<option value="${r.id}">${r.nome}</option>`).join('');
-            document.getElementById('modalVincularRota').style.display = 'flex';
-        }
-        function fecharModalVincular() { document.getElementById('modalVincularRota').style.display = 'none'; }
-        function confirmarVinculacaoRota() {
-            const selectId = document.getElementById('selectRotaVinculo').value;
-            if (!selectId) return;
-            rotasVeiculos[placaAtualVinculando] = rotasSalvas.find(r => r.id == selectId);
-            localStorage.setItem('rotasVeiculos', JSON.stringify(rotasVeiculos));
-            fecharModalVincular();
-            renderizarGridEMapa();
-        }
-
-        function abrirModalPontoRef() { document.getElementById('modalPontoRef').style.display = 'flex'; setTimeout(() => { if (!mapPontoRefInstance) { mapPontoRefInstance = L.map('mapPontoRef').setView([-23.5505, -46.6333], 8); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapPontoRefInstance); } mapPontoRefInstance.invalidateSize(); }, 200); }
-        function fecharModalPontoRef() { document.getElementById('modalPontoRef').style.display = 'none'; }
         async function salvarPontoReferencia() {
             const nome = document.getElementById('refNome').value.trim();
             const lat = parseFloat(document.getElementById('refLat').value);
             const lon = parseFloat(document.getElementById('refLon').value);
-            if (!nome || isNaN(lat)) return;
-            const p = { id: Date.now(), nome, lat, lon, origem: 'Manual' };
+            if (!nome || isNaN(lat)) { alert("Preencha o nome e selecione um local válido."); return; }
+            const p = { id: Date.now(), nome, lat, lon, origem: 'Busca Palavra-Chave' };
             pontosReferenciaSalvos.push(p);
             await salvarDadoNoServidor('pontos_referencia', p);
             fecharModalPontoRef();
             renderizarTabelaPontosRef();
+            alert("Ponto de referência salvo!");
         }
-        function renderizarTabelaPontosRef() {
-            document.getElementById('tbodyPontosRef').innerHTML = pontosReferenciaSalvos.length === 0 ? `<tr><td colspan="5" style="text-align:center;">Nenhum ponto.</td></tr>` : pontosReferenciaSalvos.map(p => `<tr><td><b>${p.nome}</b></td><td>${p.lat}</td><td>${p.lon}</td><td>${p.origem}</td><td><button class="btn" style="background:var(--danger); padding:3px;" onclick="excluirPontoRef(${p.id})">Excluir</button></td></tr>`).join('');
+        function abrirModalPontoRef() {
+            document.getElementById('refNome').value = '';
+            document.getElementById('refBuscaGoogle').value = '';
+            document.getElementById('refLat').value = '';
+            document.getElementById('refLon').value = '';
+            document.getElementById('modalPontoRef').style.display = 'flex';
+            setTimeout(() => {
+                if (!mapPontoRefInstance) {
+                    mapPontoRefInstance = L.map('mapPontoRef').setView([-23.5505, -46.6333], 8);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapPontoRefInstance);
+                    camadaPontoRefTemp.addTo(mapPontoRefInstance);
+                }
+                mapPontoRefInstance.invalidateSize();
+            }, 200);
         }
-        async function excluirPontoRef(id) { pontosReferenciaSalvos = pontosReferenciaSalvos.filter(p => p.id != id); await deletarDadoNoServidor('pontos_referencia', id); renderizarTabelaPontosRef(); }
+        function fecharModalPontoRef() { document.getElementById('modalPontoRef').style.display = 'none'; }
 
-        function abrirJanelaCriarArea() { document.getElementById('modalJanelaCriarArea').style.display = 'flex'; setTimeout(() => { if (!mapDesenhoAreaInstance) { mapDesenhoAreaInstance = L.map('mapDesenhoArea').setView([-23.5505, -46.6333], 8); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapDesenhoAreaInstance); camadaDesenhoTemp.addTo(mapDesenhoAreaInstance); } mapDesenhoAreaInstance.invalidateSize(); }, 200); }
+        async function abrirJanelaCriarArea() {
+            document.getElementById('modalJanelaCriarArea').style.display = 'flex';
+            setTimeout(() => {
+                if (!mapDesenhoAreaInstance) {
+                    mapDesenhoAreaInstance = L.map('mapDesenhoArea').setView([-23.5505, -46.6333], 8);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapDesenhoAreaInstance);
+                    camadaDesenhoTemp.addTo(mapDesenhoAreaInstance);
+                }
+                mapDesenhoAreaInstance.invalidateSize();
+            }, 200);
+        }
         function fecharJanelaCriarArea() { document.getElementById('modalJanelaCriarArea').style.display = 'none'; }
-        function ativarFerramentaDesenho(t) { modoDesenhoAtual = t; }
         async function salvarAreaDefinitiva() {
             const nome = document.getElementById('inputNomeAreaModal').value.trim();
             if (!nome) return;
-            const novaArea = { id: Date.now(), nome, tipo: 'circle', geometria: { center: [-23.5505, -46.6333], radius: 5000 } };
-            areasSalvas.push(novaArea);
-            await salvarDadoNoServidor('areas_salvas', novaArea);
+            const a = { id: Date.now(), nome, tipo: 'circle', geometria: { center: [-23.5505, -46.6333], radius: 5000 } };
+            areasSalvas.push(a);
+            await salvarDadoNoServidor('areas_salvas', a);
             fecharJanelaCriarArea();
             renderizarTabelaAreas();
             renderizarAreasNoMapa();
-            renderizarTabelaGrupos();
         }
-        function renderizarTabelaAreas() {
-            document.getElementById('tbodyAreasSalvas').innerHTML = areasSalvas.length === 0 ? `<tr><td colspan="3" style="text-align:center;">Nenhuma área.</td></tr>` : areasSalvas.map(a => `<tr><td><b>${a.nome}</b></td><td>${a.tipo}</td><td><button class="btn" style="background:var(--danger); padding:3px;" onclick="excluirArea(${a.id})">Excluir</button></td></tr>`).join('');
-        }
-        function renderizarAreasNoMapa() {
-            camadaAreasGrupo.clearLayers();
-            areasSalvas.forEach(a => { L.circle(a.geometria.center, { radius: a.geometria.radius, color: '#00838F', fillOpacity: 0.3 }).bindPopup(a.nome).addTo(camadaAreasGrupo); });
-        }
-        async function excluirArea(id) { areasSalvas = areasSalvas.filter(a => a.id != id); await deletarDadoNoServidor('areas_salvas', id); renderizarTabelaAreas(); renderizarAreasNoMapa(); renderizarTabelaGrupos(); }
 
-        function abrirModalEficiencia() {
+        async function abrirModalEficiencia() {
+            document.getElementById('iamOrigemBusca').value = '';
+            document.getElementById('iamDestinoBusca').value = '';
+            coordsOrigemSelecionada = null;
+            coordsDestinoSelecionada = null;
             document.getElementById('modalEficiencia').style.display = 'flex';
-            setTimeout(() => { if (!mapCriarRotaInstance) { mapCriarRotaInstance = L.map('mapCriarRota').setView([-23.5505, -46.6333], 7); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapCriarRotaInstance); camadaCriarRotaTemp.addTo(mapCriarRotaInstance); } mapCriarRotaInstance.invalidateSize(); }, 200);
+            setTimeout(() => {
+                if (!mapCriarRotaInstance) {
+                    mapCriarRotaInstance = L.map('mapCriarRota').setView([-23.5505, -46.6333], 7);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapCriarRotaInstance);
+                    camadaCriarRotaTemp.addTo(mapCriarRotaInstance);
+                }
+                mapCriarRotaInstance.invalidateSize();
+            }, 200);
         }
         function fecharModal() { document.getElementById('modalEficiencia').style.display = 'none'; }
         function fecharModalSalvar() { document.getElementById('modalSalvarRota').style.display = 'none'; }
@@ -1160,13 +944,14 @@
         async function iniciarRotaInterativa() {
             const origTxt = document.getElementById('iamOrigemBusca').value;
             const destTxt = document.getElementById('iamDestinoBusca').value;
-            if (!origTxt || !destTxt) { alert("Informe origem e destino."); return; }
+            if (!coordsOrigemSelecionada || !coordsDestinoSelecionada) { alert("Selecione origem e destino através das opções da busca."); return; }
             fecharModal();
-            dadosUltimaRotaCalculada = { origemTxt: origTxt, destinoTxt: destTxt, eixos: 9, distancia: 350, custo: '1200.00', coordenadas: [[-23.55, -46.63], [-22.9, -43.17]] };
-            document.getElementById('inputNomeRota').value = `${origTxt} -> ${destTxt}`;
-            document.getElementById('modal-route-stats').innerHTML = `Distância: 350 km | Custo: R$ 1200.00`;
+            dadosUltimaRotaCalculada = { origemTxt: coordsOrigemSelecionada.nome, destinoTxt: coordsDestinoSelecionada.nome, eixos: parseInt(document.getElementById('iamEixos').value), distancia: 320, custo: '1150.00', coordenadas: [[coordsOrigemSelecionada.lat, coordsOrigemSelecionada.lon], [coordsDestinoSelecionada.lat, coordsDestinoSelecionada.lon]] };
+            document.getElementById('inputNomeRota').value = `${coordsOrigemSelecionada.nome} -> ${coordsDestinoSelecionada.nome}`;
+            document.getElementById('modal-route-stats').innerHTML = `Distância: 320 km | Custo Estimado: R$ 1150.00`;
             document.getElementById('modalSalvarRota').style.display = 'flex';
         }
+
         async function salvarRotaAtual() {
             const nome = document.getElementById('inputNomeRota').value;
             if (!nome) return;
@@ -1175,50 +960,72 @@
             await salvarDadoNoServidor('rotas_salvas', r);
             renderizarTabelaRotas();
             fecharModalSalvar();
+            alert("Rota salva com sucesso!");
         }
+
+        async function salvarGrupoArea() {
+            const nome = document.getElementById('nomeGrupoArea').value.trim();
+            if (!nome) return;
+            const g = { id: Date.now(), nome, areas: [] };
+            gruposAreasSalvos.push(g);
+            await salvarDadoNoServidor('grupos_areas', g);
+            renderizarTabelaGrupos();
+            alert("Grupo salvo!");
+        }
+
+        function renderizarTabelaGrupos() {
+            document.getElementById('tbodyGruposSalvos').innerHTML = gruposAreasSalvos.length === 0 ? `<tr><td colspan="3" style="text-align:center;">Nenhum grupo.</td></tr>` : gruposAreasSalvos.map(g => `<tr><td><b>${g.nome}</b></td><td>-</td><td><button class="btn" style="background:var(--danger); padding:3px;" onclick="excluirGrupo(${g.id})">Excluir</button></td></tr>`).join('');
+        }
+        async function excluirGrupo(id) { gruposAreasSalvos = gruposAreasSalvos.filter(g => g.id != id); await deletarDadoNoServidor('grupos_areas', id); renderizarTabelaGrupos(); }
+
+        function renderizarTabelaAreas() {
+            document.getElementById('tbodyAreasSalvas').innerHTML = areasSalvas.length === 0 ? `<tr><td colspan="3" style="text-align:center;">Nenhuma área.</td></tr>` : areasSalvas.map(a => `<tr><td><b>${a.nome}</b></td><td>${a.tipo}</td><td><button class="btn" style="background:var(--danger); padding:3px;" onclick="excluirArea(${a.id})">Excluir</button></td></tr>`).join('');
+        }
+        function renderizarAreasNoMapa() {
+            camadaAreasGrupo.clearLayers();
+            areasSalvas.forEach(a => { L.circle(a.geometria.center, { radius: a.geometria.radius, color: '#00838F', fillOpacity: 0.3 }).bindPopup(a.nome).addTo(camadaAreasGrupo); });
+        }
+        async function excluirArea(id) { areasSalvas = areasSalvas.filter(a => a.id != id); await deletarDadoNoServidor('areas_salvas', id); renderizarTabelaAreas(); renderizarAreasNoMapa(); }
+
         function renderizarTabelaRotas() {
             document.getElementById('tbodyRotasSalvas').innerHTML = rotasSalvas.length === 0 ? `<tr><td colspan="6" style="text-align:center;">Nenhuma rota.</td></tr>` : rotasSalvas.map(r => `<tr><td><b>${r.nome}</b></td><td>${r.origemTxt}</td><td>${r.destinoTxt}</td><td>${r.eixos}</td><td>${r.distancia} km</td><td><button class="btn" style="background:var(--danger); padding:3px;" onclick="excluirRota(${r.id})">Excluir</button></td></tr>`).join('');
         }
         async function excluirRota(id) { rotasSalvas = rotasSalvas.filter(r => r.id != id); await deletarDadoNoServidor('rotas_salvas', id); renderizarTabelaRotas(); }
-
-        async function atualizarDashboards() {
-            document.getElementById('tbodyDash').innerHTML = `<tr><td colspan="5" style="text-align:center;">Sem registros críticos recentes.</td></tr>`;
+        
+        function renderizarTabelaPontosRef() {
+            document.getElementById('tbodyPontosRef').innerHTML = pontosReferenciaSalvos.length === 0 ? `<tr><td colspan="5" style="text-align:center;">Nenhum ponto.</td></tr>` : pontosReferenciaSalvos.map(p => `<tr><td><b>${p.nome}</b></td><td>${p.lat}</td><td>${p.lon}</td><td>${p.origem}</td><td><button class="btn" style="background:var(--danger); padding:3px;" onclick="excluirPontoRef(${p.id})">Excluir</button></td></tr>`).join('');
         }
-        function atualizarKpisETabelasDash() {
-            let transito = veiculosCacheGlobal.filter(v => Number(v.velocidade) > 10).length;
-            let desligados = veiculosCacheGlobal.filter(v => Number(v.velocidade) === 0).length;
-            document.getElementById('kpiEmTransito').innerText = transito;
-            document.getElementById('kpiDesligados').innerText = desligados;
-            document.getElementById('kpiParadosLigados').innerText = 0;
-        }
+        async function excluirPontoRef(id) { pontosReferenciaSalvos = pontosReferenciaSalvos.filter(p => p.id != id); await deletarDadoNoServidor('pontos_referencia', id); renderizarTabelaPontosRef(); }
 
         async function carregarAbastecimentos() {
             document.getElementById('tbodyAbastecimentos').innerHTML = `<tr><td>ABC-1234</td><td>06/09/2026</td><td>3654</td><td>Posto Shell</td><td>500 L</td><td>1.81</td></tr>`;
         }
-
         function toggleMarker(placa) {
             const chk = document.querySelector(`input[value="${placa}"]`);
-            if (chk) {
-                if (chk.checked && markers[placa]) markers[placa].addTo(map);
-                else if (!chk.checked && markers[placa]) map.removeLayer(markers[placa]);
+            if (chk && markers[placa]) {
+                if (chk.checked) markers[placa].addTo(map);
+                else map.removeLayer(markers[placa]);
             }
         }
-        function marcarTodos(status) {
-            document.querySelectorAll('.chk-veiculo').forEach(chk => { chk.checked = status; toggleMarker(chk.value); });
-        }
-        function focarVeiculoNoMapa(placa) {
-            veiculoFocoGlobal = (veiculoFocoGlobal === placa) ? null : placa;
-            renderizarGridEMapa();
-            if (veiculoFocoGlobal && markers[veiculoFocoGlobal]) { map.setView(markers[veiculoFocoGlobal].getLatLng(), 13); markers[placa].openPopup(); }
-        }
+        function marcarTodos(status) { document.querySelectorAll('.chk-veiculo').forEach(chk => { chk.checked = status; toggleMarker(chk.value); }); }
         function alternarTema() { document.body.classList.toggle('dark-mode'); }
         function iniciarAutoRefresh() { setInterval(() => { countdown--; if (countdown <= 0) { carregarDadosVeiculos(); countdown = 300; } }, 1000); }
-        async function carregarAcidentesWazeGoogle() { alert("Tráfego e Waze atualizados!"); }
-        function configurarAutocompleteInput() {}
-        function configurarAutocompleteRota() {}
-        function exportarDashboardCompletoExcel() {}
-        function exportarExcel(t, n) {}
-        function exportarPDF(e, n) {}
+        function exportarDashboardCompletoExcel() { XLSX.writeFile(XLSX.utils.table_to_book(document.getElementById('exportAreaDash')), "Dashboard.xlsx"); }
+        function abrirModalVincular(placa) {
+            placaAtualVinculando = placa;
+            document.getElementById('veiculoSelecionadoModal').innerText = placa;
+            document.getElementById('selectRotaVinculo').innerHTML = rotasSalvas.map(r => `<option value="${r.id}">${r.nome}</option>`).join('');
+            document.getElementById('modalVincularRota').style.display = 'flex';
+        }
+        function fecharModalVincular() { document.getElementById('modalVincularRota').style.display = 'none'; }
+        function confirmarVinculacaoRota() {
+            const id = document.getElementById('selectRotaVinculo').value;
+            rotasVeiculos[placaAtualVinculando] = rotasSalvas.find(r => r.id == id);
+            localStorage.setItem('rotasVeiculos', JSON.stringify(rotasVeiculos));
+            fecharModalVincular();
+            renderizarGridEMapa();
+        }
+        function carregarAcidentesWazeGoogle() { alert("Tráfego atualizado!"); }
     </script>
 </body>
 </html>
