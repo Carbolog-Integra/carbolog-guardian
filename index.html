@@ -122,7 +122,6 @@
         .input-livre { width: 90%; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); color: var(--text-color); box-sizing: border-box; font-size: 14px; }
         .leaflet-routing-container { display: none !important; }
 
-        /* AUTOCOMPLETE INTELIGENTE */
         .autocomplete-container { position: relative; width: 100%; }
         .autocomplete-list {
             position: absolute; top: 100%; left: 0; right: 0; background: var(--card-bg);
@@ -145,7 +144,7 @@
     <div id="login-screen" style="display: none;">
         <div class="login-box">
             <h2><i class="fas fa-shield-alt"></i> Acesso ao Sistema</h2>
-            <p style="font-size: 14px; opacity: 0.8;">Guardian Carbolog</p>
+            <p style="font-size: 14px; opacity: 0.8;">Apenas e-mails corporativos autorizados</p>
             <input type="email" id="emailInput" placeholder="usuario@carbolog.com.br" value="v.menezes@carbolog.com.br" required>
             <select id="perfilInput">
                 <option value="Administrador">Administrador</option>
@@ -366,7 +365,7 @@
         </div>
     </div>
 
-    <!-- MODAIS COM BUSCA INTELIGENTE POR PALAVRA-CHAVE -->
+    <!-- MODAIS COM SUPORTE A MAPA NORMAL E SATÉLITE -->
     <div id="modalPontoRef" class="modal">
         <div class="modal-content" style="max-width: 600px;">
             <div class="modal-header">Cadastrar Ponto de Referência <span class="close-modal" onclick="fecharModalPontoRef()">×</span></div>
@@ -451,7 +450,7 @@
         </div>
     </div>
 
-    <!-- SCRIPT COMPLETO COM AUTOCOMPLETE POR PALAVRA-CHAVE -->
+    <!-- SCRIPT COMPLETO COM MAPA SATÉLITE EM TODAS AS TELAS -->
     <script>
         Chart.register(ChartDataLabels);
         let map = null, mapDesenhoAreaInstance = null, mapPontoRefInstance = null, mapCriarRotaInstance = null;
@@ -465,6 +464,14 @@
         let coordsOrigemSelecionada = null, coordsDestinoSelecionada = null;
         let placaAtualVinculando = null, placaAtualVinculandoArea = null, countdown = 300;
         let abasAbertas = [], abaAtivaAtual = null;
+
+        // FUNÇÃO AUXILIAR PARA CRIAR CAMADAS DE MAPA (NORMAL + SATÉLITE)
+        function criarCamadasBaseMapa() {
+            const mapaNormal = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
+            const mapaSatelite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
+            const rotulosSatelite = L.layerGroup([mapaSatelite, L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 })]);
+            return { "Normal": mapaNormal, "Satélite": rotulosSatelite };
+        }
 
         function validarCPF(cpf) {
             cpf = cpf.replace(/[^\d]+/g,'');
@@ -513,7 +520,7 @@
                 const rotasVStr = localStorage.getItem('rotasVeiculos');
                 if (rotasVStr) rotasVeiculos = JSON.parse(rotasVStr);
                 const areasVStr = localStorage.getItem('areasVeiculos');
-                if (areasVStr) areasVStr = JSON.parse(areasVStr);
+                if (areasVStr) areasVeiculos = JSON.parse(areasVStr);
             } catch(e) {}
         }
 
@@ -553,11 +560,11 @@
 
             if (!map) {
                 map = L.map('map').setView([-23.5505, -46.6333], 7);
-                const mapaNormal = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
-                mapaNormal.addTo(map);
+                const bases = criarCamadasBaseMapa();
+                bases["Normal"].addTo(map);
                 camadaTransitoGrupo.addTo(map);
                 camadaAreasGrupo.addTo(map);
-                L.control.layers({ "Normal": mapaNormal }, { "Tráfego": camadaTransitoGrupo, "Áreas": camadaAreasGrupo }).addTo(map);
+                L.control.layers(bases, { "Tráfego": camadaTransitoGrupo, "Áreas": camadaAreasGrupo }).addTo(map);
             }
 
             abrirAba('operacional', 'Grid Operacional');
@@ -569,7 +576,6 @@
             renderizarTabelaGrupos();
             renderizarAreasNoMapa();
 
-            // ATIVAR BUSCADORES POR PALAVRA-CHAVE EM TEMPO REAL
             configurarAutocompleteInput('inputBuscaRefArea', 'autocompleteArea', true);
             configurarAutocompleteInput('refBuscaGoogle', 'autocompletePonto', false);
             configurarAutocompleteRota('iamOrigemBusca', 'autocompleteOrigemRota', 'origem');
@@ -583,7 +589,6 @@
             location.reload();
         }
 
-        // MOTOR DE BUSCA OPENSTREETMAP (NOMINATIM) POR PALAVRA-CHAVE
         async function buscarAutocomplete(termo, listId, callback) {
             const lista = document.getElementById(listId);
             if (!termo || termo.length < 3) { lista.style.display = 'none'; return; }
@@ -882,6 +887,7 @@
             renderizarTabelaPontosRef();
             alert("Ponto de referência salvo!");
         }
+
         function abrirModalPontoRef() {
             document.getElementById('refNome').value = '';
             document.getElementById('refBuscaGoogle').value = '';
@@ -891,7 +897,9 @@
             setTimeout(() => {
                 if (!mapPontoRefInstance) {
                     mapPontoRefInstance = L.map('mapPontoRef').setView([-23.5505, -46.6333], 8);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapPontoRefInstance);
+                    const basesRef = criarCamadasBaseMapa();
+                    basesRef["Normal"].addTo(mapPontoRefInstance);
+                    L.control.layers(basesRef).addTo(mapPontoRefInstance);
                     camadaPontoRefTemp.addTo(mapPontoRefInstance);
                 }
                 mapPontoRefInstance.invalidateSize();
@@ -904,7 +912,9 @@
             setTimeout(() => {
                 if (!mapDesenhoAreaInstance) {
                     mapDesenhoAreaInstance = L.map('mapDesenhoArea').setView([-23.5505, -46.6333], 8);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapDesenhoAreaInstance);
+                    const basesArea = criarCamadasBaseMapa();
+                    basesArea["Normal"].addTo(mapDesenhoAreaInstance);
+                    L.control.layers(basesArea).addTo(mapDesenhoAreaInstance);
                     camadaDesenhoTemp.addTo(mapDesenhoAreaInstance);
                 }
                 mapDesenhoAreaInstance.invalidateSize();
@@ -931,7 +941,9 @@
             setTimeout(() => {
                 if (!mapCriarRotaInstance) {
                     mapCriarRotaInstance = L.map('mapCriarRota').setView([-23.5505, -46.6333], 7);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapCriarRotaInstance);
+                    const basesRota = criarCamadasBaseMapa();
+                    basesRota["Normal"].addTo(mapCriarRotaInstance);
+                    L.control.layers(basesRota).addTo(mapCriarRotaInstance);
                     camadaCriarRotaTemp.addTo(mapCriarRotaInstance);
                 }
                 mapCriarRotaInstance.invalidateSize();
