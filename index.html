@@ -1061,26 +1061,37 @@
                 if (lat && lon) {
                     const marcador = L.marker([lat, lon], {icon: iconeCaminhao}).addTo(map);
                     
+                    // Salvamos a placa explicitamente para garantir o escopo correto
+                    const placaAtual = placaFormatada;
+                    const velAtual = velFinal;
+                    const dataFmt = dataFormatadaPtBr;
+                    const rotaNome = rotaVinculadaObj ? rotaVinculadaObj.nome : 'Nenhuma';
+                    const areasStrFinal = areasStr;
+                    const desvioM = desvioMetros;
+
                     marcador.on('click', function() {
-                        let acoesHtml = `<div style="min-width: 200px; font-family: Roboto;">
-                            <b>Placa: ${placaFormatada}</b><br>
-                            Velocidade: ${velFinal} km/h<br>
-                            Cidade: ${v.cidade || '-'}<br>
-                            Ult. Comunicação: <b>${dataFormatadaPtBr}</b><br>
-                            Rota Vinculada: <b>${rotaVinculadaNome}</b><br>`;
-                        if (rotaVinculadaObj) {
-                            acoesHtml += `Desvio da Rota: <b style="color:${desvioMetros > 250 ? 'red':'green'}">${desvioMetros}m</b><br>`;
-                        }
-                        acoesHtml += `Áreas Atreladas: <b>${areasStr}</b><br><hr style="margin:5px 0;">`;
+                        let acoesHtml = `<div style="min-width: 220px; font-family: Roboto; line-height: 1.4;">
+                            <b>Placa: ${placaAtual}</b><br>
+                            Velocidade: ${velAtual} km/h<br>
+                            Ult. Comunicação: <b>${dataFmt}</b><br>
+                            Rota Vinculada: <b>${rotaNome}</b><br>`;
                         
                         if (rotaVinculadaObj) {
-                            acoesHtml += `<button class="btn" style="background:var(--primary-blue); padding:4px 8px; font-size:11px; width:100%; margin-top:3px;" onclick="visualizarRotaEmbarcada('${placaFormatada}')"><i class="fas fa-route"></i> Visualizar Rota</button>`;
-                            acoesHtml += `<button class="btn" style="background:var(--danger); padding:4px 8px; font-size:11px; width:100%; margin-top:3px;" onclick="desvincularRotaVeiculo('${placaFormatada}')"><i class="fas fa-unlink"></i> Desvincular Rota</button>`;
-                        } else {
-                            acoesHtml += `<button class="btn" style="background:var(--success); padding:4px 8px; font-size:11px; width:100%; margin-top:3px;" onclick="abrirModalVincular('${placaFormatada}')"><i class="fas fa-link"></i> Vincular Rota</button>`;
+                            acoesHtml += `Desvio da Rota: <b style="color:${desvioM > 250 ? 'red':'green'}">${desvioM}m</b><br>`;
                         }
-                        acoesHtml += `<button class="btn" style="background:#00838F; padding:4px 8px; font-size:11px; width:100%; margin-top:3px;" onclick="abrirModalVincularArea('${placaFormatada}')"><i class="fas fa-draw-polygon"></i> Vincular Áreas</button>`;
+                        
+                        acoesHtml += `Áreas Atreladas: <b>${areasStrFinal}</b><br><hr style="margin:8px 0;">`;
+                        
+                        if (rotaVinculadaObj) {
+                            acoesHtml += `<button class="btn" style="background:var(--primary-blue); padding:5px 8px; font-size:11px; width:100%; margin-top:4px; cursor:pointer;" onclick="visualizarRotaEmbarcada('${placaActual}')"><i class="fas fa-route"></i> Visualizar Rota</button>`;
+                            acoesHtml += `<button class="btn" style="background:var(--danger); padding:5px 8px; font-size:11px; width:100%; margin-top:4px; cursor:pointer;" onclick="desvincularRotaVeiculo('${placaActual}')"><i class="fas fa-unlink"></i> Desvincular Rota</button>`;
+                        } else {
+                            acoesHtml += `<button class="btn" style="background:var(--success); padding:5px 8px; font-size:11px; width:100%; margin-top:4px; cursor:pointer;" onclick="abrirModalVincular('${placaActual}')"><i class="fas fa-link"></i> Vincular Rota</button>`;
+                        }
+                        
+                        acoesHtml += `<button class="btn" style="background:#00838F; padding:5px 8px; font-size:11px; width:100%; margin-top:4px; cursor:pointer;" onclick="abrirModalVincularArea('${placaActual}')"><i class="fas fa-draw-polygon"></i> Vincular Áreas</button>`;
                         acoesHtml += `</div>`;
+                        
                         marcador.bindPopup(acoesHtml).openPopup();
                     });
 
