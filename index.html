@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guardian Carbolog - Gerenciamento de Riscos</title>
+    <title>Sistema de Integração - Telemetria e Abastecimento</title>
 
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
@@ -74,7 +74,9 @@
         .tab-content.active { display: block; }
         .card { background: var(--card-bg); color: var(--text-color); padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; border: 1px solid var(--border-color); }
         
-        #map, #mapDesenhoArea { height: 500px; width: 100%; border-radius: 8px; border: 2px solid var(--primary-blue); z-index: 1;}
+        #map, #mapDesenhoArea, #mapPontoRef { height: 500px; width: 100%; border-radius: 8px; border: 2px solid var(--primary-blue); z-index: 1;}
+        #mapPontoRef { height: 250px; margin-top: 15px; margin-bottom: 15px; }
+        
         .custom-truck-icon { font-size: 24px; color: var(--accent-blue); text-shadow: 1px 1px 2px white; }
         
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
@@ -90,7 +92,7 @@
         .info-tag { font-size: 12px; background: rgba(0,0,0,0.1); padding: 5px 10px; border-radius: 15px; }
         
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center;}
-        .modal-content { background: var(--card-bg); color: var(--text-color); padding: 25px; border-radius: 8px; width: 90%; max-width: 850px; max-height: 90vh; overflow-y: auto; }
+        .modal-content { background: var(--card-bg); color: var(--text-color); padding: 25px; border-radius: 8px; width: 90%; max-width: 850px; max-height: 90vh; overflow-y: auto; position: relative;}
         .modal-header { font-size: 18px; font-weight: bold; margin-bottom: 15px; color: var(--accent-blue); border-bottom: 1px solid var(--border-color); padding-bottom: 10px;}
         .close-modal { float: right; cursor: pointer; color: var(--danger); font-size: 20px; }
         .eixos-control { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
@@ -103,6 +105,23 @@
         .input-livre { width: 90%; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); color: var(--text-color); box-sizing: border-box; font-size: 14px; background-image: none !important; }
 
         .leaflet-routing-container { display: none !important; }
+
+        /* Estilos do Autocomplete */
+        .autocomplete-container { position: relative; width: 100%; }
+        .autocomplete-list {
+            position: absolute; top: 100%; left: 0; right: 0; background: var(--card-bg);
+            border: 1px solid var(--border-color); border-top: none; z-index: 1000;
+            list-style: none; padding: 0; margin: 0; max-height: 250px; overflow-y: auto;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3); border-radius: 0 0 4px 4px; display: none;
+        }
+        .autocomplete-list li {
+            padding: 12px; cursor: pointer; color: var(--text-color); border-bottom: 1px solid var(--border-color);
+            font-size: 13px; display: flex; align-items: center; gap: 10px; transition: background 0.2s;
+        }
+        .autocomplete-list li:last-child { border-bottom: none; }
+        .autocomplete-list li:hover { background: rgba(0, 141, 218, 0.15); }
+        .autocomplete-list li i { color: #ea4335; font-size: 16px; }
+        .autocomplete-list small { display: block; font-size: 11px; opacity: 0.7; margin-top: 3px; }
     </style>
 </head>
 <body class="dark-mode">
@@ -163,9 +182,9 @@
 
             <div class="card">
                 <div class="flex-row">
-                    <h3 style="color: var(--accent-blue);"><i class="fas fa-list"></i> Grid de Monitoramento e Alertas Automáticos</h3>
-                    <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(true)">Marcar Todos os Veículos</button>
-                    <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(false)">Desmarcar Todos os Veículos</button>
+                    <h3 style="color: var(--accent-blue);"><i class="fas fa-list"></i> Grid de Monitoramento e Alertas</h3>
+                    <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(true)">Marcar Todos de Veículos</button>
+                    <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(false)">Desmarcar Todos de Veículos</button>
                 </div>
                 <div style="overflow-x: auto;">
                     <table id="gridOperacional">
@@ -222,7 +241,7 @@
                 <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 20px 0;">
                 
                 <!-- TABELA: REGISTROS BRUTOS -->
-                <h4 style="color: var(--accent-blue);"><i class="fas fa-history"></i> Registros Brutos (Histórico de Alertas)</h4>
+                <h4 style="color: var(--accent-blue);"><i class="fas fa-history"></i> Registros Brutos (Histórico de Desvios e Permanência)</h4>
                 <table id="tabelaDash" style="margin-bottom: 25px;">
                     <thead><tr><th>Placa</th><th>Ocorrência</th><th>Duração (Min)</th><th>Máx. Vel. (km/h)</th><th>Data/Hora</th></tr></thead>
                     <tbody id="tbodyDash"></tbody>
@@ -346,21 +365,28 @@
         </div>
     </div>
 
-    <!-- MODAL DE CADASTRO DE PONTOS DE REFERÊNCIA -->
+    <!-- MODAL DE CADASTRO DE PONTOS DE REFERÊNCIA COM AUTOCOMPLETE E MAPA -->
     <div id="modalPontoRef" class="modal">
-        <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-content" style="max-width: 600px;">
             <div class="modal-header">Cadastrar Ponto de Referência <span class="close-modal" onclick="fecharModalPontoRef()">×</span></div>
+            
             <div style="margin-bottom: 12px;">
-                <label><b>Nome do Ponto:</b></label><br>
-                <input type="text" id="refNome" class="input-livre" placeholder="Ex: Filial Campinas SP">
-            </div>
-            <div style="margin-bottom: 12px;">
-                <label><b>Pesquisar Cidade ou Empresa (Google/OSM):</b></label><br>
-                <div style="display: flex; gap: 8px;">
-                    <input type="text" id="refBuscaGoogle" class="input-livre" placeholder="Ex: Unimetal Campinas ou Paulínia SP">
-                    <button class="btn" style="margin-top:0;" onclick="buscarCoordenadasRef()">Buscar</button>
+                <label><b>Pesquisar Referência (Google/OSM):</b></label><br>
+                <div class="autocomplete-container">
+                    <input type="text" id="refBuscaGoogle" class="input-livre" placeholder="Digite uma cidade, empresa ou endereço..." style="width: 100%;">
+                    <ul id="autocompletePonto" class="autocomplete-list"></ul>
                 </div>
+                <small style="color: var(--accent-blue);">* Ao selecionar, o marcador será plotado no mapa abaixo.</small>
             </div>
+
+            <!-- Mapa exclusivo para visualização e confirmação do ponto -->
+            <div id="mapPontoRef"></div>
+
+            <div style="margin-bottom: 12px;">
+                <label><b>Nome do Ponto de Referência:</b></label><br>
+                <input type="text" id="refNome" class="input-livre" placeholder="Ex: Filial Campinas SP" style="width: 100%;">
+            </div>
+            
             <div class="flex-row">
                 <div style="width: 50%;">
                     <label><b>Latitude:</b></label><br>
@@ -371,7 +397,7 @@
                     <input type="text" id="refLon" class="input-livre" placeholder="-46.6333">
                 </div>
             </div>
-            <button class="btn" style="width: 100%; margin-top: 15px; background: var(--success);" onclick="salvarPontoReferencia()">Salvar Ponto de Referência</button>
+            <button class="btn" style="width: 100%; margin-top: 15px; background: var(--success);" onclick="salvarPontoReferencia()"><i class="fas fa-save"></i> Salvar Ponto de Referência</button>
         </div>
     </div>
 
@@ -392,7 +418,7 @@
         </div>
     </div>
 
-    <!-- JANELA / MODAL INTERATIVA DE DESENHO DE ÁREA -->
+    <!-- JANELA / MODAL INTERATIVA DE DESENHO DE ÁREA COM AUTOCOMPLETE -->
     <div id="modalJanelaCriarArea" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -401,11 +427,11 @@
             </div>
             
             <div class="flex-row" style="gap: 10px; margin-bottom: 15px;">
-                <div style="flex: 1; display: flex; align-items: center; position: relative;">
-                    <input type="text" id="inputBuscaRefArea" class="input-livre" placeholder="Pesquisar por referência, cidade, UF ou localidade (Ex: Unimetal, Sorocaba SP)..." onkeydown="if(event.key === 'Enter') pesquisarLocalArea();" style="width: 100%; padding-right: 40px;">
-                    <i class="fas fa-search" onclick="pesquisarLocalArea()" style="position: absolute; right: 12px; cursor: pointer; color: var(--accent-blue); font-size: 16px;" title="Pesquisar localização"></i>
+                <div style="flex: 1; position: relative;" class="autocomplete-container">
+                    <input type="text" id="inputBuscaRefArea" class="input-livre" placeholder="Pesquisar referência (Ex: Unimetal, Sorocaba SP)..." style="width: 100%; padding-right: 40px;">
+                    <i class="fas fa-search" style="position: absolute; right: 12px; top: 12px; cursor: pointer; color: var(--accent-blue); font-size: 16px;"></i>
+                    <ul id="autocompleteArea" class="autocomplete-list"></ul>
                 </div>
-                <button class="btn" style="background: var(--accent-blue); margin-top: 0; padding: 10px 15px;" onclick="pesquisarLocalArea()"><i class="fas fa-search"></i> Buscar</button>
             </div>
 
             <div class="flex-row" style="background: rgba(0,0,0,0.04); padding: 10px; border-radius: 6px; justify-content: space-between; margin-bottom: 15px;">
@@ -543,6 +569,7 @@
         Chart.register(ChartDataLabels);
         let map = null;
         let mapDesenhoAreaInstance = null;
+        let mapPontoRefInstance = null;
         let markers = {};
         let rotasVeiculos = {}; 
         let areasVeiculos = {}; 
@@ -554,7 +581,9 @@
         let linhaRotaEstatica = null; 
         let camadaTransitoGrupo = L.layerGroup();
         let camadaAreasGrupo = L.layerGroup();
+        
         let camadaDesenhoTemp = L.layerGroup();
+        let camadaPontoRefTemp = L.layerGroup();
         
         let rotasSalvas = [];
         let areasSalvas = [];
@@ -572,41 +601,46 @@
         let dadosGeometriaAtual = null;
         let alertaSelecionadoParaFinalizar = null;
 
-        try {
-            const rotasSalvasStr = localStorage.getItem('rotasSalvas');
-            if (rotasSalvasStr) rotasSalvas = JSON.parse(rotasSalvasStr);
-        } catch (e) { rotasSalvas = []; }
+        // GARANTINDO O CARREGAMENTO E PERSISTÊNCIA VIA LOCALSTORAGE
+        function carregarDadosLocais() {
+            try {
+                const rotasStr = localStorage.getItem('rotasSalvas');
+                if (rotasStr && rotasStr !== "[]") rotasSalvas = JSON.parse(rotasStr);
+            } catch (e) { rotasSalvas = []; }
 
-        try {
-            const rotasVeiculosStr = localStorage.getItem('rotasVeiculos');
-            if (rotasVeiculosStr) rotasVeiculos = JSON.parse(rotasVeiculosStr);
-        } catch(e) { rotasVeiculos = {}; }
+            try {
+                const rotasVeicStr = localStorage.getItem('rotasVeiculos');
+                if (rotasVeicStr) rotasVeiculos = JSON.parse(rotasVeicStr);
+            } catch(e) { rotasVeiculos = {}; }
 
-        try {
-            const areasSalvasStr = localStorage.getItem('areasSalvas');
-            if (areasSalvasStr) areasSalvas = JSON.parse(areasSalvasStr);
-        } catch(e) { areasSalvas = []; }
+            try {
+                const areasStr = localStorage.getItem('areasSalvas');
+                if (areasStr && areasStr !== "[]") areasSalvas = JSON.parse(areasStr);
+            } catch(e) { areasSalvas = []; }
 
-        try {
-            const areasVeiculosStr = localStorage.getItem('areasVeiculos');
-            if (areasVeiculosStr) areasVeiculos = JSON.parse(areasVeiculosStr);
-        } catch(e) { areasVeiculos = {}; }
+            try {
+                const areasVeicStr = localStorage.getItem('areasVeiculos');
+                if (areasVeicStr) areasVeiculos = JSON.parse(areasVeicStr);
+            } catch(e) { areasVeiculos = {}; }
 
-        try {
-            const pontosRefStr = localStorage.getItem('pontosReferenciaSalvos');
-            if (pontosRefStr) pontosReferenciaSalvos = JSON.parse(pontosRefStr);
-            else {
-                pontosReferenciaSalvos = [
-                    { id: 1, nome: 'Unimetal São Vicente', lat: -23.9618, lon: -46.3919, origem: 'Padrão' },
-                    { id: 2, nome: 'Unimetal Cosmópolis', lat: -22.6431, lon: -47.1978, origem: 'Padrão' }
-                ];
-            }
-        } catch(e) { pontosReferenciaSalvos = []; }
+            try {
+                const pontosStr = localStorage.getItem('pontosReferenciaSalvos');
+                if (pontosStr && pontosStr !== "[]") pontosReferenciaSalvos = JSON.parse(pontosStr);
+                else {
+                    pontosReferenciaSalvos = [
+                        { id: 1, nome: 'Unimetal São Vicente', lat: -23.9618, lon: -46.3919, origem: 'Padrão' },
+                        { id: 2, nome: 'Unimetal Cosmópolis', lat: -22.6431, lon: -47.1978, origem: 'Padrão' }
+                    ];
+                }
+            } catch(e) { pontosReferenciaSalvos = []; }
 
-        try {
-            const alertasFinStr = localStorage.getItem('alertasFinalizados');
-            if (alertasFinStr) alertasFinalizados = JSON.parse(alertasFinStr);
-        } catch(e) { alertasFinalizados = {}; }
+            try {
+                const alertasStr = localStorage.getItem('alertasFinalizados');
+                if (alertasStr) alertasFinalizados = JSON.parse(alertasStr);
+            } catch(e) { alertasFinalizados = {}; }
+        }
+
+        carregarDadosLocais();
         
         let dadosUltimaRotaCalculada = null;
         let eixosAtuaisRota = 6;
@@ -623,6 +657,86 @@
                     hour: '2-digit', minute: '2-digit', second: '2-digit'
                 });
             } catch (e) { return dataStr; }
+        }
+
+        // --- SISTEMA DE AUTOCOMPLETE DINÂMICO ---
+        let timeoutBusca = null;
+        async function buscarAutocomplete(termo, listId, callback) {
+            const lista = document.getElementById(listId);
+            if (!termo || termo.length < 3) { lista.style.display = 'none'; return; }
+            
+            const termoBusca = termo.toLowerCase().includes('sp') ? termo : `${termo}, Sao Paulo, Brazil`;
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termoBusca)}&limit=5`;
+            
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                lista.innerHTML = '';
+                
+                if (data.length > 0) {
+                    data.forEach(item => {
+                        const li = document.createElement('li');
+                        const titulo = item.display_name.split(',')[0];
+                        const resto = item.display_name.substring(titulo.length + 1);
+                        
+                        li.innerHTML = `
+                            <i class="fas fa-map-marker-alt"></i>
+                            <div>
+                                <b>${titulo}</b>
+                                <small>${resto}</small>
+                            </div>
+                        `;
+                        li.onclick = () => {
+                            callback(item);
+                            lista.style.display = 'none';
+                        };
+                        lista.appendChild(li);
+                    });
+                    lista.style.display = 'block';
+                } else {
+                    lista.style.display = 'none';
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        function configurarAutocompleteInput(inputId, listId, isArea) {
+            const input = document.getElementById(inputId);
+            input.addEventListener('input', function(e) {
+                clearTimeout(timeoutBusca);
+                timeoutBusca = setTimeout(() => {
+                    buscarAutocomplete(e.target.value, listId, (item) => {
+                        const lat = parseFloat(item.lat);
+                        const lon = parseFloat(item.lon);
+                        const nomeCurto = item.display_name.split(',')[0];
+                        input.value = item.display_name;
+                        
+                        if (isArea) {
+                            if (mapDesenhoAreaInstance) {
+                                mapDesenhoAreaInstance.setView([lat, lon], 15);
+                                camadaDesenhoTemp.clearLayers();
+                                L.marker([lat, lon]).addTo(camadaDesenhoTemp).bindPopup(`<b>${nomeCurto}</b>`).openPopup();
+                            }
+                        } else {
+                            document.getElementById('refLat').value = lat;
+                            document.getElementById('refLon').value = lon;
+                            if (!document.getElementById('refNome').value) {
+                                document.getElementById('refNome').value = nomeCurto;
+                            }
+                            if (mapPontoRefInstance) {
+                                mapPontoRefInstance.setView([lat, lon], 15);
+                                camadaPontoRefTemp.clearLayers();
+                                L.marker([lat, lon]).addTo(camadaPontoRefTemp).bindPopup(`<b>${nomeCurto}</b>`).openPopup();
+                            }
+                        }
+                    });
+                }, 500);
+            });
+            
+            document.addEventListener('click', function(e) {
+                if (!input.contains(e.target) && !document.getElementById(listId).contains(e.target)) {
+                    document.getElementById(listId).style.display = 'none';
+                }
+            });
         }
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -649,10 +763,15 @@
                 const icone = document.getElementById('iconeTema');
                 if (icone) icone.className = "fas fa-moon";
             }
+            
             renderizarTabelaRotas();
             renderizarTabelaAreas();
             renderizarTabelaPontosRef();
             renderizarAreasNoMapa();
+
+            // Configurar Autocompletes
+            configurarAutocompleteInput('inputBuscaRefArea', 'autocompleteArea', true);
+            configurarAutocompleteInput('refBuscaGoogle', 'autocompletePonto', false);
         });
 
         function alternarTema() {
@@ -1008,39 +1127,31 @@
             alert("Alerta tratado e finalizado com sucesso!");
         }
 
+        // --- GESTÃO DE PONTOS DE REFERÊNCIA COM MAPA ---
         function abrirModalPontoRef() {
             document.getElementById('refNome').value = '';
             document.getElementById('refBuscaGoogle').value = '';
             document.getElementById('refLat').value = '';
             document.getElementById('refLon').value = '';
+            
             document.getElementById('modalPontoRef').style.display = 'flex';
+            
+            setTimeout(() => {
+                if (!mapPontoRefInstance) {
+                    const mapaNormal = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
+                    mapPontoRefInstance = L.map('mapPontoRef', {
+                        center: [-23.5505, -46.6333],
+                        zoom: 8,
+                        layers: [mapaNormal]
+                    });
+                    camadaPontoRefTemp.addTo(mapPontoRefInstance);
+                }
+                mapPontoRefInstance.invalidateSize();
+            }, 200);
         }
 
         function fecharModalPontoRef() {
             document.getElementById('modalPontoRef').style.display = 'none';
-        }
-
-        async function buscarCoordenadasRef() {
-            const query = document.getElementById('refBuscaGoogle').value.trim();
-            if (!query) { alert("Digite o nome da cidade ou empresa para buscar."); return; }
-            try {
-                const termoBusca = query.toLowerCase().includes('sp') ? query : `${query}, Sao Paulo, Brazil`;
-                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termoBusca)}`;
-                const res = await fetch(url);
-                const data = await res.json();
-                if (data && data.length > 0) {
-                    document.getElementById('refLat').value = data[0].lat;
-                    document.getElementById('refLon').value = data[0].lon;
-                    if (!document.getElementById('refNome').value) {
-                        document.getElementById('refNome').value = data[0].display_name.split(',')[0];
-                    }
-                    alert("Localização encontrada e preenchida com sucesso!");
-                } else {
-                    alert("Local não encontrado.");
-                }
-            } catch(e) {
-                alert("Erro ao consultar localização.");
-            }
         }
 
         function salvarPontoReferencia() {
@@ -1060,7 +1171,7 @@
 
             fecharModalPontoRef();
             renderizarTabelaPontosRef();
-            alert("Ponto de referência cadastrado com sucesso!");
+            alert("Ponto de referência salvo com sucesso no sistema!");
         }
 
         function renderizarTabelaPontosRef() {
@@ -1290,6 +1401,8 @@
                         "Satélite (com Nomes/Vias)": rotulosSateliteArea
                     }).addTo(mapDesenhoAreaInstance);
                     
+                    camadaDesenhoTemp.addTo(mapDesenhoAreaInstance);
+
                     mapDesenhoAreaInstance.on('click', function(e) {
                         if (modoDesenhoAtual === 'polygon') {
                             pontosPoligonoTemp.push([e.latlng.lat, e.latlng.lng]);
@@ -1341,13 +1454,10 @@
             if (modoDesenhoAtual === 'polygon' && pontosPoligonoTemp.length > 0) {
                 desenhoTemporarioLayer = L.polygon(pontosPoligonoTemp, {color: '#FF8F00', weight: 3, fillOpacity: 0.4}).addTo(camadaDesenhoTemp);
                 dadosGeometriaAtual = { tipo: 'polygon', geometria: pontosPoligonoTemp };
-                mapDesenhoAreaInstance.addLayer(camadaDesenhoTemp);
             } else if (modoDesenhoAtual === 'rectangle' && dadosGeometriaAtual) {
                 desenhoTemporarioLayer = L.polygon(dadosGeometriaAtual.geometria, {color: '#FF8F00', weight: 3, fillOpacity: 0.4}).addTo(camadaDesenhoTemp);
-                mapDesenhoAreaInstance.addLayer(camadaDesenhoTemp);
             } else if (modoDesenhoAtual === 'circle' && dadosGeometriaAtual) {
                 desenhoTemporarioLayer = L.circle(dadosGeometriaAtual.geometria.center, {radius: dadosGeometriaAtual.geometria.radius, color: '#FF8F00', weight: 3, fillOpacity: 0.4}).addTo(camadaDesenhoTemp);
-                mapDesenhoAreaInstance.addLayer(camadaDesenhoTemp);
             }
         }
 
@@ -1374,30 +1484,6 @@
             modoDesenhoAtual = null;
         }
 
-        async function pesquisarLocalArea() {
-            const inputEl = document.getElementById('inputBuscaRefArea');
-            if (!inputEl) return;
-            const termo = inputEl.value.trim();
-            if (!termo) { alert("Digite uma referência, cidade ou UF."); return; }
-            
-            try {
-                const termoBusca = termo.toLowerCase().includes('sp') ? termo : `${termo}, Sao Paulo, Brazil`;
-                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termoBusca)}`;
-                const res = await fetch(url);
-                const data = await res.json();
-                if (data && data.length > 0) {
-                    const lat = parseFloat(data[0].lat);
-                    const lon = parseFloat(data[0].lon);
-                    mapDesenhoAreaInstance.setView([lat, lon], 12);
-                    L.marker([lat, lon]).addTo(camadaDesenhoTemp).bindPopup(data[0].display_name).openPopup();
-                } else {
-                    alert("Local não encontrado.");
-                }
-            } catch(e) {
-                alert("Erro ao pesquisar local.");
-            }
-        }
-
         function salvarAreaDefinitiva() {
             const nomeArea = document.getElementById('inputNomeAreaModal').value.trim();
             if (!nomeArea) { alert("Digite um nome para a área."); return; }
@@ -1410,7 +1496,7 @@
             fecharJanelaCriarArea();
             renderizarTabelaAreas();
             renderizarAreasNoMapa();
-            alert("Área geográfica salva com sucesso!");
+            alert("Área geográfica salva com sucesso no sistema!");
             mudarAba('areas');
         }
 
@@ -1681,12 +1767,6 @@
             eixosAtuaisRota = atual;
         }
 
-        const referenciasConhecidas = {
-            "unimetal sao vicente": { lat: -23.9618, lon: -46.3919, nome: "Unimetal - São Vicente, SP" },
-            "unimetal cosmopolis": { lat: -22.6431, lon: -47.1978, nome: "Unimetal - Cosmópolis, SP" },
-            "sorocaba": { lat: -23.5015, lon: -47.4588, nome: "Sorocaba, SP" }
-        };
-
         async function resolverCoordenadasReferencia(inputId) {
             const val = document.getElementById(inputId).value.trim();
             const valLower = val.toLowerCase();
@@ -1694,12 +1774,6 @@
             const pontoSalvo = pontosReferenciaSalvos.find(p => p.nome.toLowerCase() === valLower);
             if (pontoSalvo) {
                 return { lat: pontoSalvo.lat, lon: pontoSalvo.lon, nome: pontoSalvo.nome };
-            }
-
-            for (let chave in referenciasConhecidas) {
-                if (valLower.includes(chave)) {
-                    return referenciasConhecidas[chave];
-                }
             }
 
             try {
@@ -1785,7 +1859,7 @@
                 
                 renderizarTabelaRotas();
                 fecharModalSalvar();
-                alert("Rota salva com sucesso!");
+                alert("Rota salva com sucesso no sistema!");
                 limparRota();
                 mudarAba('rotas');
             } catch (error) { alert("Erro ao salvar: " + error.message); }
