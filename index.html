@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carbolog - Gerenciamento de Riscos - YHWH</title>
+    <title>Integrador Carbolog - Gerenciamento de Riscos - YHWH</title>
 
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
@@ -633,6 +633,12 @@
                     hour: '2-digit', minute: '2-digit', second: '2-digit'
                 });
             } catch (e) { return dataStr; }
+        }
+
+        function formatarMinutosParaHhMm(totalMinutos) {
+            const horas = Math.floor(totalMinutos / 60);
+            const minutos = Math.round(totalMinutos % 60);
+            return `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`;
         }
 
         async function salvarOrdemColunasNoBanco() {
@@ -1651,7 +1657,7 @@
 
             let excessosPorPlaca = {};
             let paradosLigadosContagem = {};
-            let paradosLigadosTempo = {};
+            let paradosLigadosTempoMinutos = {};
 
             dadosD.forEach(v => {
                 let p = v.id_veiculo ? String(v.id_veiculo) : 'SEM-PLACA';
@@ -1664,8 +1670,8 @@
                 }
                 if (ign && vel === 0) { 
                     paradosLigadosContagem[p] = (paradosLigadosContagem[p] || 0) + 1;
-                    // Cálculo do tempo total proporcional à quantidade de alertas (ex: 15 minutos por ocorrência)
-                    paradosLigadosTempo[p] = paradosLigadosContagem[p] * 15;
+                    // Cálculo do tempo total proporcional à quantidade de alertas (ex: 15 minutos por alerta gerado)
+                    paradosLigadosTempoMinutos[p] = paradosLigadosContagem[p] * 15;
                 }
             });
 
@@ -1680,10 +1686,10 @@
             });
 
             const labelsPar = Object.keys(paradosLigadosContagem);
-            const valsTempos = labelsPar.map(p => paradosLigadosTempo[p]);
+            const valsTemposMinutos = labelsPar.map(p => paradosLigadosTempoMinutos[p]);
             const valsAlertas = labelsPar.map(p => paradosLigadosContagem[p]);
 
-            // Gráfico de Combinação (Barras para Tempo e Linha para Quantidade de Alertas)
+            // Gráfico de Combinação (Barras para Tempo convertido em HH:MM e Linha para Quantidade de Alertas)
             window.graf2 = new Chart(document.getElementById('graficoParado').getContext('2d'), {
                 type: 'bar',
                 data: {
@@ -1691,8 +1697,8 @@
                     datasets: [
                         {
                             type: 'bar',
-                            label: 'Tempo Parado e Ligado (min)',
-                            data: valsTempos.length > 0 ? valsTempos : [0],
+                            label: 'Tempo Parado e Ligado (HH:MM)',
+                            data: valsTemposMinutos.length > 0 ? valsTemposMinutos : [0],
                             backgroundColor: '#FF8F00',
                             yAxisID: 'y'
                         },
@@ -1710,16 +1716,47 @@
                 },
                 options: {
                     plugins: {
-                        datalabels: { color: 'white', font: {weight: 'bold'} },
-                        title: { display: true, text: 'Tempo Total vs Qtd. de Alertas (Parado e Ligado)' }
+                        datalabels: {
+                            formatter: function(value, context) {
+                                // Se for o dataset de barras (índice 0), converte os minutos para HH:MM nas etiquetas visuais
+                                if (context.datasetIndex === 0) {
+                                    return formatarMinutosParaHhMm(value);
+                                }
+                                return value; // Mostra o número normal para a linha de alertas
+                            },
+                            color: 'white',
+                            font: { weight: 'bold' }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.datasetIndex === 0) {
+                                        label += formatarMinutosParaHhMm(context.parsed.y);
+                                    } else {
+                                        label += context.parsed.y;
+                                    }
+                                    return label;
+                                }
+                            }
+                        },
+                        title: { display: true, text: 'Tempo Total (HH:MM) vs Qtd. de Alertas (Parado e Ligado)' }
                     },
                     scales: {
                         y: {
                             type: 'linear',
                             display: true,
                             position: 'left',
-                            title: { display: true, text: 'Tempo (min)' },
-                            beginAtZero: true
+                            title: { display: true, text: 'Tempo (Minutos)' },
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatarMinutosParaHhMm(value);
+                                }
+                            }
                         },
                         y1: {
                             type: 'linear',
