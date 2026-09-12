@@ -149,7 +149,7 @@
     <!-- APLICAÇÃO PRINCIPAL -->
     <div id="app" class="app-container">
         <div class="navbar">
-            <div class="logo"><h3><i class="fas fa-satellite-dish"></i> Integrador de Frota</h3></div>
+            <div class="logo"><h3><i class="fas fa-satellite-dish"></i> Integrador Carbolog</h3></div>
             <div class="nav-menus">
                 <button class="active" onclick="mudarAba('operacional')">Grid Operacional</button>
                 <button onclick="mudarAba('dashboard')">Dashboard</button>
@@ -388,13 +388,30 @@
     </div>
 
     <div id="modalFinalizarAlerta" class="modal">
-        <div class="modal-content" style="max-width: 450px;">
+        <div class="modal-content" style="max-width: 550px;">
             <div class="modal-header">Tratativa de Alerta do Veículo <span class="close-modal" onclick="fecharModalFinalizarAlerta()">×</span></div>
             <p>Veículo / Placa: <b id="alertaPlacaModal"></b></p>
             <p>Ocorrência: <b id="alertaTipoModal" style="color:var(--danger)"></b></p>
+            
+            <div id="containerTabelaComboio" style="display: none; margin-bottom: 15px;">
+                <label><b>Veículos Próximos (Possível Comboio):</b></label>
+                <div style="overflow-x: auto; margin-top: 5px;">
+                    <table style="width: 100%; border: 1px solid var(--border-color);">
+                        <thead>
+                            <tr>
+                                <th>Placa</th>
+                                <th>Localização (Cidade/UF)</th>
+                                <th>Velocidade</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyComboioModal"></tbody>
+                    </table>
+                </div>
+            </div>
+
             <div style="margin-bottom: 15px;">
                 <label><b>Observações / Motivo da Tratativa:</b></label><br>
-                <textarea id="inputMotivoTratativa" class="input-livre" rows="4" placeholder="Descreva a tratativa realizada..." style="width:95%; resize:vertical;"></textarea>
+                <textarea id="inputMotivoTratativa" class="input-livre" rows="4" placeholder="Descreva a tratativa realizada..." style="width:100%; resize:vertical;"></textarea>
             </div>
             <div style="display: flex; gap: 10px;">
                 <button class="btn" style="background: var(--success); flex: 1;" onclick="salvarEFinalizarAlerta()"><i class="fas fa-check"></i> Salvar e Finalizar</button>
@@ -452,6 +469,7 @@
         </div>
     </div>
 
+    <!-- Modal Comboio antigo mantido por compatibilidade de código legado -->
     <div id="modalComboio" class="modal">
         <div class="modal-content" style="max-width: 550px;">
             <div class="modal-header">Veículos em Comboio (Próximos) <span class="close-modal" onclick="fecharModalComboio()">×</span></div>
@@ -561,6 +579,8 @@
         let dadosGeometriaAtual = null;
         let alertaSelecionadoParaFinalizar = null;
         let countdown = 300;
+
+        let mapPlacasProximasGlobal = {};
 
         let columnOrder = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
         const SUPABASE_URL = 'https://oyrqywoctnyottwvqrji.supabase.co';
@@ -1075,6 +1095,7 @@
                     }
                 }
             }
+            mapPlacasProximasGlobal = mapPlacasProximas;
 
             const iconeCaminhao = L.divIcon({
                 html: '<i class="fas fa-truck custom-truck-icon"></i>', className: '', iconSize: [24, 24], iconAnchor: [12, 12]
@@ -1196,6 +1217,33 @@
             document.getElementById('alertaPlacaModal').innerText = placa;
             document.getElementById('alertaTipoModal').innerText = tipoAlerta;
             document.getElementById('inputMotivoTratativa').value = '';
+            
+            const containerComboio = document.getElementById('containerTabelaComboio');
+            const tbodyComboio = document.getElementById('tbodyComboioModal');
+            
+            if (tipoAlerta.includes('Comboio') && mapPlacasProximasGlobal[placa]) {
+                containerComboio.style.display = 'block';
+                let htmlTabela = '';
+                
+                mapPlacasProximasGlobal[placa].forEach(placaProxima => {
+                    const veic = veiculosCacheGlobal.find(v => {
+                        let p = v.id_veiculo ? String(v.id_veiculo) : '';
+                        if (p.length === 7 && !isNaN(p)) p = p.substring(0,3) + '-' + p.substring(3);
+                        return p === placaProxima;
+                    });
+                    
+                    if (veic) {
+                        const loc = (veic.cidade || '-') + (veic.uf ? ' - ' + veic.uf : '');
+                        const vel = Number(veic.velocidade) || 0;
+                        htmlTabela += `<tr><td><b>${placaProxima}</b></td><td>${loc}</td><td>${vel} km/h</td></tr>`;
+                    }
+                });
+                tbodyComboio.innerHTML = htmlTabela;
+            } else {
+                containerComboio.style.display = 'none';
+                tbodyComboio.innerHTML = '';
+            }
+
             document.getElementById('modalFinalizarAlerta').style.display = 'flex';
         }
 
@@ -1297,7 +1345,6 @@
             let htmlRotas = '', htmlAreas = '';
             let htmlBrutos = '';
 
-            // Renderizar histórico de desvios e permanências na tabela brutos
             let totalBrutos = [...historicoDesviosDashboard, ...historicoPermanenciasDashboard];
             if (totalBrutos.length > 0) {
                 htmlBrutos = totalBrutos.map(item => `<tr><td><b>${item.placa}</b></td><td>${item.ocorrencia}</td><td>${item.duracao} min</td><td>${item.maxVel || 0} km/h</td><td>${item.dataHora}</td></tr>`).join('');
