@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Integração Carbolog - Gerenciamento de Riscos - YHWH</title>
+    <title>Integrador Inteligente - Gerenciamento de Riscos - YHWH</title>
 
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
@@ -134,7 +134,7 @@
     <div id="login-screen">
         <div class="login-box">
             <h2><i class="fas fa-shield-alt"></i> Acesso ao Sistema</h2>
-            <p style="font-size: 14px; opacity: 0.8;">Gerenciamento de Riscos</p>
+            <p style="font-size: 14px; opacity: 0.8;">Integrador Inteligente</p>
             <input type="email" id="emailInput" placeholder="usuario@carbolog.com.br" value="v.menezes@carbolog.com.br" required>
             <select id="perfilInput">
                 <option value="Administrador">Administrador</option>
@@ -149,7 +149,7 @@
     <!-- APLICAÇÃO PRINCIPAL -->
     <div id="app" class="app-container">
         <div class="navbar">
-            <div class="logo"><h3><i class="fas fa-satellite-dish"></i> Integrador de Frota</h3></div>
+            <div class="logo"><h3><i class="fas fa-satellite-dish"></i> Gerenciamento de Riscos</h3></div>
             <div class="nav-menus">
                 <button class="active" onclick="mudarAba('operacional')">Grid Operacional</button>
                 <button onclick="mudarAba('dashboard')">Dashboard</button>
@@ -171,7 +171,10 @@
         <div id="operacional" class="tab-content active">
             <div class="card" style="padding-bottom: 0;">
                 <div class="flex-row" style="justify-content: space-between;">
-                    <h3 style="color: var(--accent-blue);"><i class="fas fa-map"></i> Robô Monitor de Frota (SASCAR)</h3>
+                    <h3 style="color: var(--accent-blue);">
+                        <i class="fas fa-map"></i> Robô Monitor de Frota (SASCAR) - 
+                        <span id="contadorAlertasGeral" style="color: red; font-weight: bold;">0 Alertas</span>
+                    </h3>
                     <div>
                         <span class="info-tag">Auto-Refresh Robô: <span id="timerRefresh">300</span>s</span>
                         <button class="btn" onclick="carregarDadosVeiculos()"><i class="fas fa-sync"></i> Refresh</button>
@@ -271,6 +274,12 @@
                     <tbody id="tbodyDash"></tbody>
                 </table>
 
+                <h4 style="color: var(--accent-blue);"><i class="fas fa-clipboard-check"></i> Histórico de Tratativas de Alertas</h4>
+                <table id="tabelaTratativas" style="margin-bottom: 25px;">
+                    <thead><tr><th>Placa</th><th>Alerta Tratado</th><th>Data/Hora Tratativa</th><th>Motivo / Observação</th></tr></thead>
+                    <tbody id="tbodyTratativas"></tbody>
+                </table>
+
                 <h4 style="color: var(--accent-blue);"><i class="fas fa-route"></i> Veículos com Rota Embarcada</h4>
                 <table id="tabelaDashRotas" style="margin-bottom: 25px;">
                     <thead>
@@ -287,9 +296,17 @@
                     <tbody id="tbodyDashRotas"></tbody>
                 </table>
 
-                <h4 style="color: var(--accent-blue);"><i class="fas fa-map-marked-alt"></i> Veículos em Áreas Geográficas (Cercas em Tempo Real)</h4>
+                <h4 style="color: var(--accent-blue);"><i class="fas fa-map-marked-alt"></i> Veículos em Áreas Geográficas (Cercas em Tempo Real e Histórico)</h4>
                 <table id="tabelaDashAreas">
-                    <thead><tr><th>Placa</th><th>Data/Hora Última Pos.</th><th>Localização</th><th>Área Acessada</th><th>Tempo de Permanência</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th>Placa</th>
+                            <th>Área Acessada</th>
+                            <th>Data/Hora Entrada</th>
+                            <th>Data/Hora Saída</th>
+                            <th>Tempo de Permanência</th>
+                        </tr>
+                    </thead>
                     <tbody id="tbodyDashAreas"></tbody>
                 </table>
             </div>
@@ -584,10 +601,10 @@
         let alertasFinalizados = {}; 
 
         let contadorPermanenciaAreas = {}; 
-        // Históricos persistidos no LocalStorage
-        let historicoPermanenciasDashboard = JSON.parse(localStorage.getItem('histPermanencias')) || [];
-        let historicoDesviosDashboard = JSON.parse(localStorage.getItem('histDesvios')) || [];
-        let historicoComboiosDashboard = JSON.parse(localStorage.getItem('histComboios')) || [];
+        let historicoPermanenciasDashboard = [];
+        let historicoDesviosDashboard = [];
+        let historicoComboiosDashboard = [];
+        let historicoTratativas = [];
 
         let modoDesenhoAtual = null; 
         let pontosPoligonoTemp = [];
@@ -595,6 +612,9 @@
         let desenhoTemporarioLayer = null;
         let dadosGeometriaAtual = null;
         let alertaSelecionadoParaFinalizar = null;
+        let placaAtualAlertaModal = null;
+        let tipoAlertaAtualModal = null;
+        let chaveAlertaAtualModal = null;
         let countdown = 300;
 
         let mapPlacasProximasGlobal = {};
@@ -602,15 +622,81 @@
         let columnOrder = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
         const SUPABASE_URL = 'https://oyrqywoctnyottwvqrji.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95cnF5d29jdG55b3R0d3ZxcmppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMjMyOTQsImV4cCI6MjEwMzc5OTI5NH0.VdqJLc_u1VXFrnOe59Bw7wLWV-GZLnx6_fjzBV_TU8w';
+        const USUARIO_GLOBAL = 'global_sistema_frota';
 
-        // --- SISTEMA DE SESSÃO E ABAS PERSISTENTES ---
-        function verificarSessaoSalva() {
+        // --- PERSISTÊNCIA COMPLETA E COMPARTILHADA NA NUVEM (GLOBAL) ---
+        async function carregarDadosDoBanco() {
+            try {
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/preferencias_usuario?select=*&usuario=eq.${USUARIO_GLOBAL}`, {
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.length > 0) {
+                        const reg = data[0];
+                        if (reg.ordem_colunas) columnOrder = reg.ordem_colunas;
+                        if (reg.rotas_salvas) rotasSalvas = reg.rotas_salvas;
+                        if (reg.rotas_veiculos) rotasVeiculos = reg.rotas_veiculos;
+                        if (reg.areas_salvas) areasSalvas = reg.areas_salvas;
+                        if (reg.areas_veiculos) areasVeiculos = reg.areas_veiculos;
+                        if (reg.pontos_referencia) pontosReferenciaSalvos = reg.pontos_referencia;
+                        if (reg.alertas_finalizados) alertasFinalizados = reg.alertas_finalizados;
+                        if (reg.contador_permanencia) contadorPermanenciaAreas = reg.contador_permanencia;
+                        if (reg.hist_permanencias) historicoPermanenciasDashboard = reg.hist_permanencias;
+                        if (reg.hist_desvios) historicoDesviosDashboard = reg.hist_desvios;
+                        if (reg.hist_comboios) historicoComboiosDashboard = reg.hist_comboios;
+                        if (reg.hist_tratativas) historicoTratativas = reg.hist_tratativas;
+                    }
+                }
+            } catch(e) { console.error("Erro ao carregar dados globais do Supabase:", e); }
+
+            if (!pontosReferenciaSalvos || pontosReferenciaSalvos.length === 0) {
+                pontosReferenciaSalvos = [
+                    { id: 1, nome: 'Unimetal São Vicente', lat: -23.9618, lon: -46.3919, origem: 'Padrão' },
+                    { id: 2, nome: 'Unimetal Cosmópolis', lat: -22.6431, lon: -47.1978, origem: 'Padrão' }
+                ];
+            }
+            reordenarCabecalhoVisualmente();
+        }
+
+        async function salvarDadosNoBanco() {
+            try {
+                await fetch(`${SUPABASE_URL}/rest/v1/preferencias_usuario`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'resolution=merge-duplicates'
+                    },
+                    body: JSON.stringify({
+                        usuario: USUARIO_GLOBAL,
+                        ordem_colunas: columnOrder,
+                        rotas_salvas: rotasSalvas,
+                        rotas_veiculos: rotasVeiculos,
+                        areas_salvas: areasSalvas,
+                        areas_veiculos: areasVeiculos,
+                        pontos_referencia: pontosReferenciaSalvos,
+                        alertas_finalizados: alertasFinalizados,
+                        contador_permanencia: contadorPermanenciaAreas,
+                        hist_permanencias: historicoPermanenciasDashboard,
+                        hist_desvios: historicoDesviosDashboard,
+                        hist_comboios: historicoComboiosDashboard,
+                        hist_tratativas: historicoTratativas
+                    })
+                });
+            } catch(e) { console.error("Erro ao salvar dados globais no Supabase:", e); }
+        }
+
+        async function verificarSessaoSalva() {
             const usuarioSalvo = localStorage.getItem('usuarioLogado');
             if (usuarioSalvo) {
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('app').style.display = 'block';
                 document.getElementById('userLogado').innerHTML = `<b>Usuário:</b> ${usuarioSalvo}`;
                 
+                await carregarDadosDoBanco();
+
                 const abaAtivaSalva = localStorage.getItem('abaAtiva') || 'operacional';
                 mudarAba(abaAtivaSalva);
 
@@ -635,59 +721,6 @@
             location.reload();
         }
 
-        async function carregarDadosLocais() {
-            try {
-                const rotasStr = localStorage.getItem('rotasSalvas');
-                if (rotasStr && rotasStr !== "[]") rotasSalvas = JSON.parse(rotasStr);
-            } catch (e) { rotasSalvas = []; }
-
-            try {
-                const rotasVeicStr = localStorage.getItem('rotasVeiculos');
-                if (rotasVeicStr) rotasVeiculos = JSON.parse(rotasVeicStr);
-            } catch(e) { rotasVeiculos = {}; }
-
-            try {
-                const areasStr = localStorage.getItem('areasSalvas');
-                if (areasStr && areasStr !== "[]") areasSalvas = JSON.parse(areasStr);
-            } catch(e) { areasSalvas = []; }
-
-            try {
-                const areasVeicStr = localStorage.getItem('areasVeiculos');
-                if (areasVeicStr) areasVeiculos = JSON.parse(areasVeicStr);
-            } catch(e) { areasVeiculos = {}; }
-
-            try {
-                const pontosStr = localStorage.getItem('pontosReferenciaSalvos');
-                if (pontosStr && pontosStr !== "[]") pontosReferenciaSalvos = JSON.parse(pontosStr);
-                else {
-                    pontosReferenciaSalvos = [
-                        { id: 1, nome: 'Unimetal São Vicente', lat: -23.9618, lon: -46.3919, origem: 'Padrão' },
-                        { id: 2, nome: 'Unimetal Cosmópolis', lat: -22.6431, lon: -47.1978, origem: 'Padrão' }
-                    ];
-                }
-            } catch(e) { pontosReferenciaSalvos = []; }
-
-            try {
-                const alertasStr = localStorage.getItem('alertasFinalizados');
-                if (alertasStr) alertasFinalizados = JSON.parse(alertasStr);
-            } catch(e) { alertasFinalizados = {}; }
-
-            try {
-                const res = await fetch(`${SUPABASE_URL}/rest/v1/preferencias_usuario?select=ordem_colunas&usuario=eq.v.menezes@carbolog.com.br`, {
-                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data && data.length > 0 && data[0].ordem_colunas) {
-                        columnOrder = data[0].ordem_colunas;
-                        reordenarCabecalhoVisualmente();
-                    }
-                }
-            } catch(e) {}
-        }
-
-        carregarDadosLocais();
-        
         let dadosUltimaRotaCalculada = null;
         let eixosAtuaisRota = 6;
         let placaAtualVinculando = null;
@@ -713,24 +746,6 @@
 
         function obterCorTextoGrafico() {
             return document.body.classList.contains('dark-mode') ? '#FFFFFF' : '#333333';
-        }
-
-        async function salvarOrdemColunasNoBanco() {
-            try {
-                await fetch(`${SUPABASE_URL}/rest/v1/preferencias_usuario`, {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_KEY,
-                        'Authorization': `Bearer ${SUPABASE_KEY}`,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'resolution=merge-duplicates'
-                    },
-                    body: JSON.stringify({
-                        usuario: 'v.menezes@carbolog.com.br',
-                        ordem_colunas: columnOrder
-                    })
-                });
-            } catch(e) { console.error("Erro ao salvar histórico de colunas:", e); }
         }
 
         function reordenarCabecalhoVisualmente() {
@@ -870,7 +885,7 @@
                         const allInitialThs = Array.from(document.querySelectorAll('#gridOperacional th'));
                         columnOrder = novosThs.map(t => allInitialThs.indexOf(t));
                         
-                        salvarOrdemColunasNoBanco();
+                        salvarDadosNoBanco();
                         renderizarGridEMapa();
                     }
                 });
@@ -882,7 +897,7 @@
             });
         }
 
-        window.addEventListener('DOMContentLoaded', () => {
+        window.addEventListener('DOMContentLoaded', async () => {
             map = L.map('map').setView([-23.5505, -46.6333], 7);
             
             const mapaNormal = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
@@ -907,6 +922,7 @@
                 if (icone) icone.className = "fas fa-moon";
             }
             
+            await carregarDadosDoBanco();
             renderizarTabelaRotas();
             renderizarTabelaAreas();
             renderizarTabelaPontosRef();
@@ -1029,8 +1045,8 @@
 
         function processarRegrasEAlertas(veiculos) {
             const agora = Date.now();
+            let houveMudanca = false;
             
-            // 1. Processar Comboios Globais para gravação na Dashboard
             for (let i = 0; i < veiculos.length; i++) {
                 for (let j = i + 1; j < veiculos.length; j++) {
                     const v1 = veiculos[i], v2 = veiculos[j];
@@ -1059,7 +1075,7 @@
                                     timestamp: agora,
                                     rawDate: new Date()
                                 });
-                                localStorage.setItem('histComboios', JSON.stringify(historicoComboiosDashboard));
+                                houveMudanca = true;
                             }
                         }
                     }
@@ -1092,7 +1108,7 @@
                                 timestamp: agora,
                                 rawDate: new Date()
                             });
-                            localStorage.setItem('histDesvios', JSON.stringify(historicoDesviosDashboard));
+                            houveMudanca = true;
                         }
                     }
                 }
@@ -1107,32 +1123,61 @@
 
                     if (dentro) {
                         if (!contadorPermanenciaAreas[chaveKey]) {
-                            contadorPermanenciaAreas[chaveKey] = { inicio: agora, maxVel: Number(v.velocidade) || 0, nomeArea: areaObj.nome };
+                            const dataEntradaObj = new Date();
+                            contadorPermanenciaAreas[chaveKey] = { 
+                                inicio: agora, 
+                                maxVel: Number(v.velocidade) || 0, 
+                                nomeArea: areaObj.nome,
+                                dataEntradaStr: dataEntradaObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                                dataEntradaCompleta: dataEntradaObj.toLocaleString('pt-BR')
+                            };
+                            houveMudanca = true;
                         } else {
                             const velAtual = Number(v.velocidade) || 0;
                             if (velAtual > contadorPermanenciaAreas[chaveKey].maxVel) {
                                 contadorPermanenciaAreas[chaveKey].maxVel = velAtual;
+                                houveMudanca = true;
                             }
                         }
                     } else {
                         if (contadorPermanenciaAreas[chaveKey]) {
                             const perm = contadorPermanenciaAreas[chaveKey];
+                            const agoraObj = new Date();
                             const duracaoMin = Math.max(1, Math.round((agora - perm.inicio) / 60000));
+                            const dataSaidaStr = agoraObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                             
                             historicoPermanenciasDashboard.push({
                                 placa: placaFormatada,
                                 ocorrencia: `Permanência na Área (${perm.nomeArea})`,
                                 duracao: duracaoMin,
                                 maxVel: perm.maxVel,
-                                dataHora: new Date().toLocaleString('pt-BR'),
-                                rawDate: new Date()
+                                dataHora: agoraObj.toLocaleString('pt-BR'),
+                                timestamp: agora,
+                                rawDate: agoraObj
                             });
-                            localStorage.setItem('histPermanencias', JSON.stringify(historicoPermanenciasDashboard));
+
+                            if (!window.historicoCercasConcluidas) {
+                                window.historicoCercasConcluidas = [];
+                            }
+                            window.historicoCercasConcluidas.push({
+                                placa: placaFormatada,
+                                area: perm.nomeArea,
+                                entrada: perm.dataEntradaStr,
+                                saida: dataSaidaStr,
+                                duracaoMin: duracaoMin,
+                                timestamp: agora
+                            });
+
                             delete contadorPermanenciaAreas[chaveKey];
+                            houveMudanca = true;
                         }
                     }
                 });
             });
+
+            if (houveMudanca) {
+                salvarDadosNoBanco();
+            }
         }
 
         function renderizarGridEMapa() {
@@ -1178,6 +1223,7 @@
             }
             mapPlacasProximasGlobal = mapPlacasProximas;
 
+            let totalAlertasAtivos = 0;
             const iconeCaminhao = L.divIcon({
                 html: '<i class="fas fa-truck custom-truck-icon"></i>', className: '', iconSize: [24, 24], iconAnchor: [12, 12]
             });
@@ -1205,12 +1251,15 @@
 
                 let htmlAlertas = '';
                 if (velFinal > 80 && !alertasFinalizados[chaveVel]) {
+                    totalAlertasAtivos++;
                     htmlAlertas += `<span class="badge-alerta bg-danger" onclick="abrirModalFinalizarAlerta('${placaFormatada}', 'Excesso de Velocidade (${velFinal} km/h)', '${chaveVel}')">EXCESSO VEL.</span>`;
                 }
                 if (rotaVinculadaObj && desvioMetros > 250 && !alertasFinalizados[chaveDesvio]) {
+                    totalAlertasAtivos++;
                     htmlAlertas += `<span class="badge-alerta bg-danger" onclick="abrirModalFinalizarAlerta('${placaFormatada}', 'Desvio de Rota (${desvioMetros}m)', '${chaveDesvio}')">DESVIO ROTA</span>`;
                 }
                 if (mapPlacasProximas[placaFormatada] && mapPlacasProximas[placaFormatada].length > 0 && !alertasFinalizados[chaveComboio]) {
+                    totalAlertasAtivos++;
                     htmlAlertas += `<span class="badge-alerta bg-warning" onclick="abrirModalFinalizarAlerta('${placaFormatada}', 'Possível Comboio', '${chaveComboio}')">COMBOIO</span>`;
                 }
                 if (htmlAlertas === '') htmlAlertas = `<span style="color: var(--success); font-size: 12px;">Normal</span>`;
@@ -1258,7 +1307,8 @@
                     const exibirNoMapa = !chk || chk.checked;
                     if (exibirNoMapa) {
                         const marcador = L.marker([lat, lon], {icon: iconeCaminhao}).addTo(map);
-                        marcador.on('click', function() {
+                        
+                        const atualizarPopupMarcador = () => {
                             let acoesHtml = `<div style="min-width: 200px; font-family: Roboto;">
                                 <b>Placa: ${placaFormatada}</b><br>
                                 Velocidade: ${velFinal} km/h<br>
@@ -1278,18 +1328,27 @@
                             }
                             acoesHtml += `<button class="btn" style="background:#00838F; padding:4px 8px; font-size:11px; width:100%; margin-top:3px;" onclick="abrirModalVincularArea('${placaFormatada}')"><i class="fas fa-draw-polygon"></i> Vincular Áreas</button>`;
                             acoesHtml += `</div>`;
-                            marcador.bindPopup(acoesHtml).openPopup();
-                        });
+                            return acoesHtml;
+                        };
+
+                        marcador.bindPopup(atualizarPopupMarcador());
                         markers[placaFormatada] = marcador;
                     }
                 }
             });
+
+            const elContador = document.getElementById('contadorAlertasGeral');
+            if (elContador) elContador.innerText = `${totalAlertasAtivos} Alertas`;
 
             countdown = 300;
         }
 
         function abrirModalFinalizarAlerta(placa, tipoAlerta, chaveAlerta) {
             alertaSelecionadoParaFinalizar = chaveAlerta;
+            placaAtualAlertaModal = placa;
+            tipoAlertaAtualModal = tipoAlerta;
+            chaveAlertaAtualModal = chaveAlerta;
+
             document.getElementById('alertaPlacaModal').innerText = placa;
             document.getElementById('alertaTipoModal').innerText = tipoAlerta;
             document.getElementById('inputMotivoTratativa').value = '';
@@ -1341,16 +1400,28 @@
             alertaSelecionadoParaFinalizar = null;
         }
 
-        function salvarEFinalizarAlerta() {
+        async function salvarEFinalizarAlerta() {
             const motivo = document.getElementById('inputMotivoTratativa').value.trim();
             if (!motivo) { alert("Por favor, preencha o campo de observações/motivo."); return; }
+            
             if (alertaSelecionadoParaFinalizar) {
-                alertasFinalizados[alertaSelecionadoParaFinalizar] = { motivo: motivo, data: new Date().toLocaleString('pt-BR') };
-                localStorage.setItem('alertasFinalizados', JSON.stringify(alertasFinalizados));
+                const dataTratativa = new Date().toLocaleString('pt-BR');
+                alertasFinalizados[alertaSelecionadoParaFinalizar] = { motivo: motivo, data: dataTratativa };
+
+                historicoTratativas.push({
+                    placa: placaAtualAlertaModal,
+                    alerta: tipoAlertaAtualModal,
+                    dataHora: dataTratativa,
+                    motivo: motivo,
+                    timestamp: Date.now()
+                });
+                
+                await salvarDadosNoBanco();
             }
             fecharModalFinalizarAlerta();
             renderizarGridEMapa();
-            alert("Alerta tratado e finalizado com sucesso!");
+            atualizarKpisETabelasDash();
+            alert("Alerta tratado, finalizado e salvo globalmente!");
         }
 
         function abrirModalPontoRef() {
@@ -1371,7 +1442,7 @@
 
         function fecharModalPontoRef() { document.getElementById('modalPontoRef').style.display = 'none'; }
 
-        function salvarPontoReferencia() {
+        async function salvarPontoReferencia() {
             const nome = document.getElementById('refNome').value.trim();
             const lat = parseFloat(document.getElementById('refLat').value);
             const lon = parseFloat(document.getElementById('refLon').value);
@@ -1379,10 +1450,10 @@
             if (!nome || isNaN(lat) || isNaN(lon)) { alert("Preencha o nome e valide as coordenadas."); return; }
             const novoPonto = { id: Date.now(), nome, lat, lon, origem: origemBusca };
             pontosReferenciaSalvos.push(novoPonto);
-            localStorage.setItem('pontosReferenciaSalvos', JSON.stringify(pontosReferenciaSalvos));
+            await salvarDadosNoBanco();
             fecharModalPontoRef();
             renderizarTabelaPontosRef();
-            alert("Ponto de referência salvo com sucesso!");
+            alert("Ponto de referência salvo globalmente com sucesso!");
         }
 
         function renderizarTabelaPontosRef() {
@@ -1397,10 +1468,10 @@
             });
         }
 
-        function excluirPontoRef(id) {
+        async function excluirPontoRef(id) {
             if (!confirm("Deseja excluir este ponto de referência?")) return;
             pontosReferenciaSalvos = pontosReferenciaSalvos.filter(p => p.id !== id);
-            localStorage.setItem('pontosReferenciaSalvos', JSON.stringify(pontosReferenciaSalvos));
+            await salvarDadosNoBanco();
             renderizarTabelaPontosRef();
         }
 
@@ -1429,7 +1500,6 @@
             }
         }
 
-        // --- FUNÇÕES DE FILTRAGEM POR DATA/HORA ---
         function filtrarItensPorData(lista) {
             const dtInicioVal = document.getElementById('filtroDataInicio').value;
             const dtFimVal = document.getElementById('filtroDataFim').value;
@@ -1463,8 +1533,8 @@
             let emTransito = 0, desligados = 0, paradosLigados = 0;
             let htmlRotas = '', htmlAreas = '';
             let htmlBrutos = '';
+            let htmlTratativas = '';
 
-            // Unir todos os registros de desvios, permanências e comboios aplicando o filtro de data
             let todosBrutosUnidos = [
                 ...historicoDesviosDashboard, 
                 ...historicoPermanenciasDashboard, 
@@ -1479,6 +1549,15 @@
             }
             const tbodyDash = document.getElementById('tbodyDash');
             if (tbodyDash) tbodyDash.innerHTML = htmlBrutos;
+
+            let tratativasFiltradas = filtrarItensPorData(historicoTratativas);
+            if (tratativasFiltradas.length > 0) {
+                htmlTratativas = tratativasFiltradas.map(t => `<tr><td><b>${t.placa}</b></td><td>${t.alerta}</td><td>${t.dataHora}</td><td>${t.motivo}</td></tr>`).join('');
+            } else {
+                htmlTratativas = `<tr><td colspan="4" style="text-align:center; opacity:0.7;">Nenhuma tratativa registrada no período.</td></tr>`;
+            }
+            const tbodyTratativas = document.getElementById('tbodyTratativas');
+            if (tbodyTratativas) tbodyTratativas.innerHTML = htmlTratativas;
 
             veiculosCacheGlobal.forEach(v => {
                 let p = v.id_veiculo ? String(v.id_veiculo) : 'SEM-PLACA';
@@ -1500,14 +1579,32 @@
                     const custoPedag = (parseFloat(r.custo) - custoComb);
                     htmlRotas += `<tr><td><b>${p}</b></td><td>${dataFmt}</td><td>${loc}</td><td>${r.nome}</td><td style="color:var(--danger); font-weight:bold;">R$ ${custoPedag.toFixed(2)}</td><td style="color:var(--success); font-weight:bold;">R$ ${custoComb.toFixed(2)}</td><td style="color:var(--accent-blue); font-weight:bold;">R$ ${r.custo}</td></tr>`;
                 }
+            });
 
-                Object.keys(contadorPermanenciaAreas).forEach(key => {
-                    if (key.startsWith(p + '_')) {
-                        const perm = contadorPermanenciaAreas[key];
-                        const duracaoMin = Math.max(0, Math.round((Date.now() - perm.inicio) / 60000));
-                        htmlAreas += `<tr><td><b>${p}</b></td><td>${dataFmt}</td><td>${loc}</td><td>${perm.nomeArea}</td><td style="color:var(--warning); font-weight:bold;">${duracaoMin} min (Em curso)</td></tr>`;
-                    }
-                });
+            Object.keys(contadorPermanenciaAreas).forEach(key => {
+                const placa = key.split('_')[0];
+                const perm = contadorPermanenciaAreas[key];
+                if (perm) {
+                    const duracaoMin = Math.max(0, Math.round((Date.now() - perm.inicio) / 60000));
+                    htmlAreas += `<tr>
+                        <td><b>${placa}</b></td>
+                        <td>${perm.nomeArea}</td>
+                        <td>${perm.dataEntradaStr}</td>
+                        <td><span style="color: var(--warning); font-weight: bold;">Em curso</span></td>
+                        <td><span style="color: var(--warning); font-weight:bold;">${duracaoMin} min</span></td>
+                    </tr>`;
+                }
+            });
+
+            const historicoCercas = window.historicoCercasConcluidas || [];
+            historicoCercas.forEach(h => {
+                htmlAreas += `<tr>
+                    <td><b>${h.placa}</b></td>
+                    <td>${h.area}</td>
+                    <td>${h.entrada}</td>
+                    <td>${h.saida}</td>
+                    <td>${h.duracaoMin} min</td>
+                </tr>`;
             });
 
             const elEmTransito = document.getElementById('kpiEmTransito');
@@ -1520,7 +1617,7 @@
             if (elDesligados) elDesligados.innerText = desligados;
             if (elParadosLigados) elParadosLigados.innerText = paradosLigados;
             if (elRotas) elRotas.innerHTML = htmlRotas || '<tr><td colspan="7" style="text-align:center; opacity:0.7;">Nenhum veículo com rota embarcada.</td></tr>';
-            if (elAreas) elAreas.innerHTML = htmlAreas || '<tr><td colspan="5" style="text-align:center; opacity:0.7;">Nenhum veículo em área/cerca.</td></tr>';
+            if (elAreas) elAreas.innerHTML = htmlAreas || '<tr><td colspan="5" style="text-align:center; opacity:0.7;">Nenhum registro de permanência em área.</td></tr>';
         }
 
         function abrirModalEficiencia() { atualizarSelectsPontosRef(); document.getElementById('modalEficiencia').style.display = 'flex'; }
@@ -1580,11 +1677,11 @@
 
         function apagarDesenhoArea() { camadaDesenhoTemp.clearLayers(); pontosPoligonoTemp = []; marcadorCentroRetangulo = null; dadosGeometriaAtual = null; modoDesenhoAtual = null; }
 
-        function salvarAreaDefinitiva() {
+        async function salvarAreaDefinitiva() {
             const nomeArea = document.getElementById('inputNomeAreaModal').value.trim();
             if (!nomeArea || !dadosGeometriaAtual) { alert("Preencha o nome e desenhe a área."); return; }
             areasSalvas.push({ id: Date.now(), nome: nomeArea, ...dadosGeometriaAtual });
-            localStorage.setItem('areasSalvas', JSON.stringify(areasSalvas));
+            await salvarDadosNoBanco();
             fecharJanelaCriarArea();
             renderizarTabelaAreas();
             renderizarAreasNoMapa();
@@ -1621,10 +1718,10 @@
             if (a.tipo === 'circle') map.setView(a.geometria.center, 13); else map.fitBounds(a.geometria);
         }
 
-        function excluirArea(id) {
+        async function excluirArea(id) {
             if (!confirm("Deseja excluir esta área?")) return;
             areasSalvas = areasSalvas.filter(a => a.id != id);
-            localStorage.setItem('areasSalvas', JSON.stringify(areasSalvas));
+            await salvarDadosNoBanco();
             renderizarTabelaAreas();
             renderizarAreasNoMapa();
         }
@@ -1639,20 +1736,20 @@
 
         function fecharModalVincular() { document.getElementById('modalVincularRota').style.display = 'none'; }
 
-        function confirmarVinculacaoRota() {
+        async function confirmarVinculacaoRota() {
             const selectId = document.getElementById('selectRotaVinculo').value;
             const rotaEscolhida = rotasSalvas.find(r => r.id == selectId);
             if (!rotaEscolhida) return;
             rotasVeiculos[placaAtualVinculando] = rotaEscolhida;
-            localStorage.setItem('rotasVeiculos', JSON.stringify(rotasVeiculos));
+            await salvarDadosNoBanco();
             fecharModalVincular();
             renderizarGridEMapa();
         }
 
-        function desvincularRotaVeiculo(placa) {
+        async function desvincularRotaVeiculo(placa) {
             if (!confirm("Deseja desvincular a rota?")) return;
             delete rotasVeiculos[placa];
-            localStorage.setItem('rotasVeiculos', JSON.stringify(rotasVeiculos));
+            await salvarDadosNoBanco();
             if (linhaRotaVeiculoAtivo) { map.removeLayer(linhaRotaVeiculoAtivo); linhaRotaVeiculoAtivo = null; }
             renderizarGridEMapa();
             map.closePopup();
@@ -1686,10 +1783,10 @@
 
         function fecharModalVincularArea() { document.getElementById('modalVincularArea').style.display = 'none'; }
 
-        function confirmarVinculacaoArea() {
+        async function confirmarVinculacaoArea() {
             const selecionadas = Array.from(document.querySelectorAll('#listaCheckboxAreas input[type="checkbox"]:checked')).map(chk => parseInt(chk.value));
             areasVeiculos[placaAtualVinculandoArea] = selecionadas;
-            localStorage.setItem('areasVeiculos', JSON.stringify(areasVeiculos));
+            await salvarDadosNoBanco();
             fecharModalVincularArea();
             renderizarGridEMapa();
         }
@@ -1813,12 +1910,12 @@
             dadosUltimaRotaCalculada = null;
         }
 
-        function salvarRotaAtual() {
+        async function salvarRotaAtual() {
             if (!dadosUltimaRotaCalculada) return;
             const nomeRota = document.getElementById('inputNomeRota').value.trim();
             if (!nomeRota) { alert("Digite um nome."); return; }
             rotasSalvas.push({ id: Date.now(), nome: nomeRota, ...dadosUltimaRotaCalculada });
-            localStorage.setItem('rotasSalvas', JSON.stringify(rotasSalvas));
+            await salvarDadosNoBanco();
             renderizarTabelaRotas();
             fecharModalSalvar();
             limparRota();
@@ -1852,10 +1949,10 @@
             map.fitBounds(linhaRotaEstatica.getBounds());
         }
 
-        function excluirRota(id) {
+        async function excluirRota(id) {
             if (!confirm("Excluir rota?")) return;
             rotasSalvas = rotasSalvas.filter(r => r.id !== id);
-            localStorage.setItem('rotasSalvas', JSON.stringify(rotasSalvas));
+            await salvarDadosNoBanco();
             renderizarTabelaRotas();
         }
 
@@ -2000,9 +2097,9 @@
 
         function exportarDashboardCompletoExcel() {
             const wb = XLSX.utils.book_new();
-            ['tabelaDash', 'tabelaDashRotas', 'tabelaDashAreas'].forEach((id, idx) => {
+            ['tabelaDash', 'tabelaTratativas', 'tabelaDashRotas', 'tabelaDashAreas'].forEach((id, idx) => {
                 const tab = document.getElementById(id);
-                if (tab) XLSX.utils.book_append_sheet(wb, XLSX.utils.table_to_sheet(tab), ["Brutos", "Rotas", "Areas"][idx]);
+                if (tab) XLSX.utils.book_append_sheet(wb, XLSX.utils.table_to_sheet(tab), ["Brutos", "Tratativas", "Rotas", "Areas"][idx]);
             });
             XLSX.writeFile(wb, "Dashboard_Completa_Frota.xlsx");
         }
