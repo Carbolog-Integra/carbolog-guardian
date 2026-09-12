@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guardian Carbolog - Gerenciamento de Riscos</title>
+    <title>Sistema de Integração - Telemetria e Abastecimento</title>
 
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
@@ -122,6 +122,12 @@
         .autocomplete-list li:hover { background: rgba(0, 141, 218, 0.15); }
         .autocomplete-list li i { color: #ea4335; font-size: 16px; }
         .autocomplete-list small { display: block; font-size: 11px; opacity: 0.7; margin-top: 3px; }
+
+        /* Estilos de Drag and Drop para as Colunas */
+        th[draggable="true"] { cursor: grab; position: relative; }
+        th[draggable="true"]:active { cursor: grabbing; }
+        .dragging { opacity: 0.5; background-color: rgba(0, 141, 218, 0.5) !important; }
+        .drag-over { border-left: 3px solid #FF8F00 !important; }
     </style>
 </head>
 <body class="dark-mode">
@@ -130,7 +136,7 @@
     <div id="login-screen">
         <div class="login-box">
             <h2><i class="fas fa-shield-alt"></i> Acesso ao Sistema</h2>
-            <p style="font-size: 14px; opacity: 0.8;">Guardian Carbolog - YHWH</p>
+            <p style="font-size: 14px; opacity: 0.8;">Apenas e-mails corporativos autorizados</p>
             <input type="email" id="emailInput" placeholder="usuario@carbolog.com.br" value="v.menezes@carbolog.com.br" required>
             <select id="perfilInput">
                 <option value="Administrador">Administrador</option>
@@ -145,7 +151,7 @@
     <!-- APLICAÇÃO PRINCIPAL -->
     <div id="app" class="app-container">
         <div class="navbar">
-            <div class="logo"><h3><i class="fas fa-satellite-dish"></i> Guardian Carbolog</h3></div>
+            <div class="logo"><h3><i class="fas fa-satellite-dish"></i> Integrador de Frota</h3></div>
             <div class="nav-menus">
                 <button class="active" onclick="mudarAba('operacional')">Grid Operacional</button>
                 <button onclick="mudarAba('dashboard')">Dashboard</button>
@@ -167,10 +173,11 @@
         <div id="operacional" class="tab-content active">
             <div class="card" style="padding-bottom: 0;">
                 <div class="flex-row" style="justify-content: space-between;">
-                    <h3 style="color: var(--accent-blue);"><i class="fas fa-map"></i> Monitor de Frota</h3>
+                    <h3 style="color: var(--accent-blue);"><i class="fas fa-map"></i> Robô Monitor de Frota (SASCAR)</h3>
                     <div>
                         <span class="info-tag">Auto-Refresh Robô: <span id="timerRefresh">300</span>s</span>
-                        <button class="btn" onclick="carregarDadosVeiculos()"><i class="fas fa-sync"></i> Refresh</button>
+                        <button class="btn" onclick="carregarDadosVeiculos()"><i class="fas fa-sync"></i> Varredura Agora</button>
+                        <button class="btn" style="background:#00838F;" onclick="carregarAcidentesWazeGoogle()"><i class="fas fa-traffic-light"></i> Tráfego / Waze Reais</button>
                         <button class="btn" onclick="abrirModalEficiencia()"><i class="fas fa-route"></i> Criar Nova Rota</button>
                     </div>
                 </div>
@@ -182,25 +189,26 @@
             <div class="card">
                 <div class="flex-row">
                     <h3 style="color: var(--accent-blue);"><i class="fas fa-list"></i> Grid de Monitoramento e Alertas Automáticos</h3>
-                    <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(true)">Marcar Todos os Veículos</button>
-                    <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(false)">Desmarcar Todos os Veículos</button>
+                    <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(true)">Marcar Todos</button>
+                    <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(false)">Desmarcar Todos</button>
                 </div>
                 <div style="overflow-x: auto;">
                     <table id="gridOperacional">
                         <thead>
+                            <!-- Cabeçalhos atualizados com ícones e propriedades de drag and drop -->
                             <tr>
-                                <th>Nº</th>
-                                <th>Ver <br><input type="checkbox" id="checkAll" checked onclick="toggleCheckAll()"></th>
-                                <th>Placa <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" data-col="2"></th>
-                                <th>Data/Hora Com. <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" data-col="3"></th>
-                                <th>Ignição <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" data-col="4" placeholder="ON/OFF"></th>
-                                <th>Cidade <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" data-col="5"></th>
-                                <th>UF <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" data-col="6"></th>
-                                <th>Rua / Rodovia <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" data-col="7"></th>
-                                <th>Velocidade <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" data-col="8" placeholder="km/h"></th>
-                                <th>Rota Vinculada</th>
-                                <th>Áreas Atreladas</th>
-                                <th>Alertas e Ações</th>
+                                <th draggable="true"><i class="fas fa-list-ol"></i> Nº</th>
+                                <th draggable="true"><i class="fas fa-eye"></i> Ver <br><input type="checkbox" id="checkAll" checked onclick="toggleCheckAll()"></th>
+                                <th draggable="true"><i class="fas fa-truck"></i> Placa <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna"></th>
+                                <th draggable="true"><i class="fas fa-clock"></i> Data/Hora Com. <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna"></th>
+                                <th draggable="true"><i class="fas fa-power-off"></i> Ignição <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="ON/OFF"></th>
+                                <th draggable="true"><i class="fas fa-city"></i> Cidade <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna"></th>
+                                <th draggable="true"><i class="fas fa-map"></i> UF <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna"></th>
+                                <th draggable="true"><i class="fas fa-road"></i> Rua / Rodovia <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna"></th>
+                                <th draggable="true"><i class="fas fa-tachometer-alt"></i> Velocidade <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="km/h"></th>
+                                <th draggable="true"><i class="fas fa-route"></i> Rota Vinculada</th>
+                                <th draggable="true"><i class="fas fa-draw-polygon"></i> Áreas Atreladas</th>
+                                <th draggable="true"><i class="fas fa-exclamation-triangle"></i> Alertas e Ações</th>
                             </tr>
                         </thead>
                         <tbody id="tbodyOperacional"></tbody>
@@ -600,6 +608,9 @@
         let dadosGeometriaAtual = null;
         let alertaSelecionadoParaFinalizar = null;
 
+        // Controle de ordenação das colunas arrastáveis do Grid Operacional
+        let columnOrder = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+
         // GARANTINDO O CARREGAMENTO E PERSISTÊNCIA VIA LOCALSTORAGE
         function carregarDadosLocais() {
             try {
@@ -738,6 +749,59 @@
             });
         }
 
+        // LÓGICA DE DRAG AND DROP DAS COLUNAS
+        function inicializarDragDropColunas() {
+            const ths = document.querySelectorAll('#gridOperacional th');
+            let draggedColIndex = null;
+
+            ths.forEach(th => {
+                th.addEventListener('dragstart', (e) => {
+                    draggedColIndex = Array.from(th.parentNode.children).indexOf(th);
+                    e.dataTransfer.effectAllowed = 'move';
+                    th.classList.add('dragging');
+                });
+
+                th.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    th.classList.add('drag-over');
+                });
+
+                th.addEventListener('dragleave', () => {
+                    th.classList.remove('drag-over');
+                });
+
+                th.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    th.classList.remove('drag-over');
+                    const targetColIndex = Array.from(th.parentNode.children).indexOf(th);
+                    
+                    if (draggedColIndex !== null && draggedColIndex !== targetColIndex) {
+                        // Reordena o array de controle lógico
+                        const itemMovido = columnOrder.splice(draggedColIndex, 1)[0];
+                        columnOrder.splice(targetColIndex, 0, itemMovido);
+
+                        // Reordena o THEAD visualmente
+                        const trHead = th.parentNode;
+                        const colsHead = Array.from(trHead.children);
+                        if (draggedColIndex < targetColIndex) {
+                            trHead.insertBefore(colsHead[draggedColIndex], colsHead[targetColIndex].nextSibling);
+                        } else {
+                            trHead.insertBefore(colsHead[draggedColIndex], colsHead[targetColIndex]);
+                        }
+                        
+                        // Re-renderiza o corpo da tabela para aplicar a nova ordem aos dados
+                        renderizarGridEMapa();
+                    }
+                });
+
+                th.addEventListener('dragend', () => {
+                    th.classList.remove('dragging');
+                    ths.forEach(t => t.classList.remove('drag-over'));
+                });
+            });
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
             map = L.map('map').setView([-23.5505, -46.6333], 7);
             
@@ -768,9 +832,10 @@
             renderizarTabelaPontosRef();
             renderizarAreasNoMapa();
 
-            // Configurar Autocompletes
+            // Configurar Autocompletes e Arrastar Colunas
             configurarAutocompleteInput('inputBuscaRefArea', 'autocompleteArea', true);
             configurarAutocompleteInput('refBuscaGoogle', 'autocompletePonto', false);
+            inicializarDragDropColunas();
         });
 
         function alternarTema() {
@@ -874,6 +939,11 @@
                 const veiculosMap = new Map();
                 dadosBrutos.forEach(v => {
                     const id = v.id_veiculo ? String(v.id_veiculo) : 'SEM-PLACA';
+                    
+                    // MELHORIA: Filtrar integração para ignorar veículos desconhecidos/lixo (exigir placa válida de 7 caracteres)
+                    const placaLimpa = id.replace(/[^a-zA-Z0-9]/g, '');
+                    if (placaLimpa === 'SEMPLACA' || placaLimpa.length !== 7) return; 
+
                     if (!veiculosMap.has(id)) veiculosMap.set(id, v);
                 });
                 veiculosCacheGlobal = Array.from(veiculosMap.values());
@@ -1038,24 +1108,31 @@
                 }).filter(Boolean);
                 const areasStr = nomesAreas.length > 0 ? nomesAreas.join(', ') : 'Nenhuma';
                 
-                tr.innerHTML = `
-                    <td><b>${index + 1}</b></td>
-                    <td><input type="checkbox" class="chk-veiculo" value="${placaFormatada}" checked onchange="toggleMarker('${placaFormatada}')"></td>
-                    <td><a href="#" onclick="focarVeiculoNoMapa('${placaFormatada}'); return false;" style="color:var(--accent-blue); font-weight:bold;" title="Clique para plotar apenas este veículo">${placaFormatada}</a></td>
-                    <td>${dataFormatadaPtBr}</td>
-                    <td><span style="color: ${ignicaoBool ? 'var(--success)' : 'var(--danger)'}; font-weight:bold;">${ignicaoBool ? 'LIGADA' : 'DESLIGADA'}</span></td>
-                    <td>${v.cidade || '-'}</td>
-                    <td>${v.uf || '-'}</td>
-                    <td>${v.rua || '-'}</td>
-                    <td><b>${velFinal} km/h</b></td>
-                    <td><span style="font-size:12px; background:rgba(0,131,143,0.1); padding:4px 8px; border-radius:4px; font-weight:bold; color:#00838F;">${rotaVinculadaNome}</span></td>
-                    <td><span style="font-size:12px; background:rgba(255,143,0,0.1); padding:4px 8px; border-radius:4px; font-weight:bold; color:#FF8F00;">${areasStr}</span></td>
-                    <td class="table-actions">
+                // Mapeamento em Array para respeitar a nova ordem das colunas drag&drop
+                const tds = [
+                    `<td><b>${index + 1}</b></td>`,
+                    `<td><input type="checkbox" class="chk-veiculo" value="${placaFormatada}" checked onchange="toggleMarker('${placaFormatada}')"></td>`,
+                    `<td><a href="#" onclick="focarVeiculoNoMapa('${placaFormatada}'); return false;" style="color:var(--accent-blue); font-weight:bold;" title="Clique para plotar apenas este veículo">${placaFormatada}</a></td>`,
+                    `<td>${dataFormatadaPtBr}</td>`,
+                    `<td><span style="color: ${ignicaoBool ? 'var(--success)' : 'var(--danger)'}; font-weight:bold;">${ignicaoBool ? 'LIGADA' : 'DESLIGADA'}</span></td>`,
+                    `<td>${v.cidade || '-'}</td>`,
+                    `<td>${v.uf || '-'}</td>`,
+                    `<td>${v.rua || '-'}</td>`,
+                    `<td><b>${velFinal} km/h</b></td>`,
+                    `<td><span style="font-size:12px; background:rgba(0,131,143,0.1); padding:4px 8px; border-radius:4px; font-weight:bold; color:#00838F;">${rotaVinculadaNome}</span></td>`,
+                    `<td><span style="font-size:12px; background:rgba(255,143,0,0.1); padding:4px 8px; border-radius:4px; font-weight:bold; color:#FF8F00;">${areasStr}</span></td>`,
+                    `<td class="table-actions">
                         ${htmlAlertas}
                         <a href="${linkGoogle}" target="_blank" title="Google Maps" style="margin-left: 10px;"><i class="fas fa-map-marker-alt"></i></a>
                         <a href="${linkWaze}" target="_blank" title="Waze"><i class="fab fa-waze"></i></a>
-                    </td>
-                `;
+                    </td>`
+                ];
+
+                let htmlOrdenado = '';
+                for (let i = 0; i < columnOrder.length; i++) {
+                    htmlOrdenado += tds[columnOrder[i]];
+                }
+                tr.innerHTML = htmlOrdenado;
                 tbody.appendChild(tr);
 
                 if (lat && lon) {
@@ -1739,11 +1816,17 @@
         function toggleCheckAll() { marcarTodos(document.getElementById('checkAll').checked); }
 
         function filtrarGrid() {
-            const filtros = Array.from(document.querySelectorAll('.filtro-coluna')).map(input => input.value.toUpperCase());
             document.querySelectorAll('#tbodyOperacional tr').forEach(linha => {
                 let visivel = true;
                 const colunas = linha.querySelectorAll('td');
-                filtros.forEach((termo, index) => { if (termo && colunas[index+2].innerText.toUpperCase().indexOf(termo) === -1) visivel = false; });
+                document.querySelectorAll('.filtro-coluna').forEach(input => {
+                    const termo = input.value.toUpperCase();
+                    if (termo) {
+                        const th = input.closest('th');
+                        const idx = Array.from(th.parentNode.children).indexOf(th);
+                        if (colunas[idx] && colunas[idx].innerText.toUpperCase().indexOf(termo) === -1) visivel = false;
+                    }
+                });
                 linha.style.display = visivel ? '' : 'none';
             });
         }
@@ -1990,7 +2073,6 @@
             });
         }
 
-        // --- EXPORTAÇÃO COMPLETA DA DASHBOARD EM MÚLTIPLAS ABAS NO EXCEL ---
         function exportarDashboardCompletoExcel() {
             const wb = XLSX.utils.book_new();
 
