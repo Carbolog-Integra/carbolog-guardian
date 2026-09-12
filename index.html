@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Integrador Inteligente - Gerenciamento de Riscos - YHWH</title>
+    <title>Integrador Inteligente - Torre de Controle - YHWH</title>
 
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
@@ -109,7 +109,7 @@
         .autocomplete-container { position: relative; width: 100%; }
         .autocomplete-list {
             position: absolute; top: 100%; left: 0; right: 0; background: var(--card-bg);
-            border: 1px solid var(--border-color); border-top: none; z-index: 1000;
+            border: 1px solid var(--border-color); border-top: none; z-index: 3000;
             list-style: none; padding: 0; margin: 0; max-height: 250px; overflow-y: auto;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3); border-radius: 0 0 4px 4px; display: none;
         }
@@ -134,7 +134,7 @@
     <div id="login-screen">
         <div class="login-box">
             <h2><i class="fas fa-shield-alt"></i> Acesso ao Sistema</h2>
-            <p style="font-size: 14px; opacity: 0.8;">Gerenciamento de Riscos</p>
+            <p style="font-size: 14px; opacity: 0.8;">Torre de Controle</p>
             <input type="email" id="emailInput" placeholder="usuario@carbolog.com.br" value="v.menezes@carbolog.com.br" required>
             <select id="perfilInput">
                 <option value="Administrador">Administrador</option>
@@ -149,7 +149,7 @@
     <!-- APLICAÇÃO PRINCIPAL -->
     <div id="app" class="app-container">
         <div class="navbar">
-            <div class="logo"><h3><i class="fas fa-satellite-dish"></i> Integrador Inteligente</h3></div>
+            <div class="logo"><h3><i class="fas fa-satellite-dish"></i> Torre de Controle</h3></div>
             <div class="nav-menus">
                 <button class="active" onclick="mudarAba('operacional')">Grid Operacional</button>
                 <button onclick="mudarAba('dashboard')">Dashboard</button>
@@ -512,17 +512,23 @@
 
     <div id="modalEficiencia" class="modal">
         <div class="modal-content">
-            <div class="modal-header">Criar Rota (Com Pontos de Referência) <span class="close-modal" onclick="fecharModal()">×</span></div>
+            <div class="modal-header">Criar Rota (Com Busca e Pontos de Referência) <span class="close-modal" onclick="fecharModal()">×</span></div>
             <div class="flex-row">
-                <div style="width: 50%;">
-                    <label><b>Origem:</b></label><br>
+                <div style="width: 50%; position: relative;">
+                    <label><b>Origem (Busca Google/OSM ou Select):</b></label><br>
                     <select id="selectOrigemRef" class="input-livre" onchange="preencherOrigemRef()" style="margin-bottom: 5px;"></select>
-                    <input type="text" id="iamOrigem" class="input-livre" value="Unimetal Sao Vicente SP">
+                    <div class="autocomplete-container">
+                        <input type="text" id="iamOrigem" class="input-livre" placeholder="Digite ou selecione a origem..." value="Unimetal Sao Vicente SP" style="width: 100%;">
+                        <ul id="autocompleteOrigemRota" class="autocomplete-list"></ul>
+                    </div>
                 </div>
-                <div style="width: 50%;">
-                    <label><b>Destino:</b></label><br>
+                <div style="width: 50%; position: relative;">
+                    <label><b>Destino (Busca Google/OSM ou Select):</b></label><br>
                     <select id="selectDestinoRef" class="input-livre" onchange="preencherDestinoRef()" style="margin-bottom: 5px;"></select>
-                    <input type="text" id="iamDestino" class="input-livre" value="Unimetal Cosmopolis SP">
+                    <div class="autocomplete-container">
+                        <input type="text" id="iamDestino" class="input-livre" placeholder="Digite ou selecione o destino..." value="Unimetal Cosmopolis SP" style="width: 100%;">
+                        <ul id="autocompleteDestinoRota" class="autocomplete-list"></ul>
+                    </div>
                 </div>
             </div>
             <div style="margin-top: 15px; margin-bottom: 10px;">
@@ -615,6 +621,7 @@
         let tipoAlertaAtualModal = null;
         let chaveAlertaAtualModal = null;
         let countdown = 300;
+        let timerIntervalRef = null;
 
         let mapPlacasProximasGlobal = {};
 
@@ -623,52 +630,39 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95cnF5d29jdG55b3R0d3ZxcmppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMjMyOTQsImV4cCI6MjEwMzc5OTI5NH0.VdqJLc_u1VXFrnOe59Bw7wLWV-GZLnx6_fjzBV_TU8w';
         const USUARIO_GLOBAL = 'global_sistema_frota';
 
-        // --- PERSISTÊNCIA ROBUSTA (SUPABASE + LOCALSTORAGE) ---
         async function carregarDadosDoBanco() {
+            let dadosNuvem = null;
             try {
                 const res = await fetch(`${SUPABASE_URL}/rest/v1/preferencias_usuario?select=*&usuario=eq.${USUARIO_GLOBAL}`, {
                     headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
                 });
                 if (res.ok) {
                     const data = await res.json();
-                    if (data && data.length > 0) {
-                        const reg = data[0];
-                        if (reg.ordem_colunas) columnOrder = reg.ordem_colunas;
-                        if (reg.rotas_salvas) rotasSalvas = reg.rotas_salvas;
-                        if (reg.rotas_veiculos) rotasVeiculos = reg.rotas_veiculos;
-                        if (reg.areas_salvas) areasSalvas = reg.areas_salvas;
-                        if (reg.areas_veiculos) areasVeiculos = reg.areas_veiculos;
-                        if (reg.pontos_referencia) pontosReferenciaSalvos = reg.pontos_referencia;
-                        if (reg.alertas_finalizados) alertasFinalizados = reg.alertas_finalizados;
-                        if (reg.contador_permanencia) contadorPermanenciaAreas = reg.contador_permanencia;
-                        if (reg.hist_permanencias) historicoPermanenciasDashboard = reg.hist_permanencias;
-                        if (reg.hist_desvios) historicoDesviosDashboard = reg.hist_desvios;
-                        if (reg.hist_comboios) historicoComboiosDashboard = reg.hist_comboios;
-                        if (reg.hist_tratativas) historicoTratativas = reg.hist_tratativas;
-                        return; // Sucesso ao carregar da nuvem
-                    }
+                    if (data && data.length > 0) dadosNuvem = data[0];
                 }
-            } catch(e) { console.warn("Aviso ao carregar do Supabase, usando cache local:", e); }
+            } catch(e) {}
 
-            // Fallback para localStorage se a nuvem falhar
+            let dadosLocais = null;
             try {
-                const localData = localStorage.getItem('backup_global_sistema');
-                if (localData) {
-                    const reg = JSON.parse(localData);
-                    if (reg.ordem_colunas) columnOrder = reg.ordem_colunas;
-                    if (reg.rotas_salvas) rotasSalvas = reg.rotas_salvas;
-                    if (reg.rotas_veiculos) rotasVeiculos = reg.rotas_veiculos;
-                    if (reg.areas_salvas) areasSalvas = reg.areas_salvas;
-                    if (reg.areas_veiculos) areasVeiculos = reg.areas_veiculos;
-                    if (reg.pontos_referencia) pontosReferenciaSalvos = reg.pontos_referencia;
-                    if (reg.alertas_finalizados) alertasFinalizados = reg.alertas_finalizados;
-                    if (reg.contador_permanencia) contadorPermanenciaAreas = reg.contador_permanencia;
-                    if (reg.hist_permanencias) historicoPermanenciasDashboard = reg.hist_permanencias;
-                    if (reg.hist_desvios) historicoDesviosDashboard = reg.hist_desvios;
-                    if (reg.hist_comboios) historicoComboiosDashboard = reg.hist_comboios;
-                    if (reg.hist_tratativas) historicoTratativas = reg.hist_tratativas;
-                }
-            } catch(ex) { console.error("Erro ao carregar localStorage:", ex); }
+                const localStr = localStorage.getItem('backup_global_sistema');
+                if (localStr) dadosLocais = JSON.parse(localStr);
+            } catch(e) {}
+
+            const reg = dadosNuvem || dadosLocais;
+            if (reg) {
+                if (reg.ordem_colunas) columnOrder = reg.ordem_colunas;
+                if (reg.rotas_salvas && reg.rotas_salvas.length > 0) rotasSalvas = reg.rotas_salvas;
+                if (reg.rotas_veiculos) rotasVeiculos = reg.rotas_veiculos;
+                if (reg.areas_salvas && reg.areas_salvas.length > 0) areasSalvas = reg.areas_salvas;
+                if (reg.areas_veiculos) areasVeiculos = reg.areas_veiculos;
+                if (reg.pontos_referencia && reg.pontos_referencia.length > 0) pontosReferenciaSalvos = reg.pontos_referencia;
+                if (reg.alertas_finalizados) alertasFinalizados = reg.alertas_finalizados;
+                if (reg.contador_permanencia) contadorPermanenciaAreas = reg.contador_permanencia;
+                if (reg.hist_permanencias) historicoPermanenciasDashboard = reg.hist_permanencias;
+                if (reg.hist_desvios) historicoDesviosDashboard = reg.hist_desvios;
+                if (reg.hist_comboios) historicoComboiosDashboard = reg.hist_comboios;
+                if (reg.hist_tratativas) historicoTratativas = reg.hist_tratativas;
+            }
 
             if (!pontosReferenciaSalvos || pontosReferenciaSalvos.length === 0) {
                 pontosReferenciaSalvos = [
@@ -696,12 +690,10 @@
                 hist_tratativas: historicoTratativas
             };
 
-            // Salva sempre no backup local para garantir redundância imediata
             try {
                 localStorage.setItem('backup_global_sistema', JSON.stringify(payload));
             } catch(e) {}
 
-            // Tenta salvar na nuvem
             try {
                 await fetch(`${SUPABASE_URL}/rest/v1/preferencias_usuario`, {
                     method: 'POST',
@@ -713,7 +705,7 @@
                     },
                     body: JSON.stringify(payload)
                 });
-            } catch(e) { console.error("Erro ao sincronizar com o Supabase:", e); }
+            } catch(e) {}
         }
 
         function verificarSessaoSalva() {
@@ -795,7 +787,7 @@
         let timeoutBusca = null;
         async function buscarAutocomplete(termo, listId, callback) {
             const lista = document.getElementById(listId);
-            if (!termo || termo.length < 3) { lista.style.display = 'none'; return; }
+            if (!termo || termo.length < 3) { if(lista) lista.style.display = 'none'; return; }
             
             const termoBusca = termo.toLowerCase().includes('sp') ? termo : `${termo}, Sao Paulo, Brazil`;
             const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termoBusca)}&limit=5`;
@@ -803,6 +795,7 @@
             try {
                 const res = await fetch(url);
                 const data = await res.json();
+                if(!lista) return;
                 lista.innerHTML = '';
                 
                 if (data.length > 0) {
@@ -828,7 +821,7 @@
                 } else {
                     lista.style.display = 'none';
                 }
-            } catch (e) { console.error(e); }
+            } catch (e) {}
         }
 
         function configurarAutocompleteInput(inputId, listId, isArea) {
@@ -843,12 +836,18 @@
                         const nomeCurto = item.display_name.split(',')[0];
                         input.value = item.display_name;
                         
-                        if (isArea) {
+                        if (isArea === 'area') {
                             if (mapDesenhoAreaInstance) {
                                 mapDesenhoAreaInstance.setView([lat, lon], 15);
                                 camadaDesenhoTemp.clearLayers();
                                 L.marker([lat, lon]).addTo(camadaDesenhoTemp).bindPopup(`<b>${nomeCurto}</b>`).openPopup();
                             }
+                        } else if (isArea === 'origem') {
+                            input.dataset.lat = lat;
+                            input.dataset.lon = lon;
+                        } else if (isArea === 'destino') {
+                            input.dataset.lat = lat;
+                            input.dataset.lon = lon;
                         } else {
                             document.getElementById('refLat').value = lat;
                             document.getElementById('refLon').value = lon;
@@ -866,8 +865,9 @@
             });
             
             document.addEventListener('click', function(e) {
-                if (!input.contains(e.target) && !document.getElementById(listId).contains(e.target)) {
-                    document.getElementById(listId).style.display = 'none';
+                const listaEl = document.getElementById(listId);
+                if (listaEl && !input.contains(e.target) && !listaEl.contains(e.target)) {
+                    listaEl.style.display = 'none';
                 }
             });
         }
@@ -956,8 +956,11 @@
             renderizarTabelaPontosRef();
             renderizarAreasNoMapa();
 
-            configurarAutocompleteInput('inputBuscaRefArea', 'autocompleteArea', true);
-            configurarAutocompleteInput('refBuscaGoogle', 'autocompletePonto', false);
+            configurarAutocompleteInput('inputBuscaRefArea', 'autocompleteArea', 'area');
+            configurarAutocompleteInput('refBuscaGoogle', 'autocompletePonto', 'ponto');
+            configurarAutocompleteInput('iamOrigem', 'autocompleteOrigemRota', 'origem');
+            configurarAutocompleteInput('iamDestino', 'autocompleteDestinoRota', 'destino');
+
             reordenarCabecalhoVisualmente();
             inicializarDragDropColunas();
 
@@ -1068,7 +1071,7 @@
                 renderizarGridEMapa();
                 atualizarKpisETabelasDash();
                 atualizarDashboards();
-            } catch (e) { console.error("Erro ao carregar veículos:", e); }
+            } catch (e) {}
         }
 
         function processarRegrasEAlertas(veiculos) {
@@ -1367,8 +1370,6 @@
 
             const elContador = document.getElementById('contadorAlertasGeral');
             if (elContador) elContador.innerText = `${totalAlertasAtivos} Alertas`;
-
-            countdown = 300;
         }
 
         function abrirModalFinalizarAlerta(placa, tipoAlerta, chaveAlerta) {
@@ -1514,17 +1515,27 @@
 
         function preencherOrigemRef() {
             const val = document.getElementById('selectOrigemRef').value;
+            const inputOrigem = document.getElementById('iamOrigem');
             if (val) {
                 const p = pontosReferenciaSalvos.find(item => `${item.lat},${item.lon}` === val);
-                if (p) document.getElementById('iamOrigem').value = p.nome;
+                if (p) {
+                    inputOrigem.value = p.nome;
+                    inputOrigem.dataset.lat = p.lat;
+                    inputOrigem.dataset.lon = p.lon;
+                }
             }
         }
 
         function preencherDestinoRef() {
             const val = document.getElementById('selectDestinoRef').value;
+            const inputDestino = document.getElementById('iamDestino');
             if (val) {
                 const p = pontosReferenciaSalvos.find(item => `${item.lat},${item.lon}` === val);
-                if (p) document.getElementById('iamDestino').value = p.nome;
+                if (p) {
+                    inputDestino.value = p.nome;
+                    inputDestino.dataset.lat = p.lat;
+                    inputDestino.dataset.lon = p.lon;
+                }
             }
         }
 
@@ -1648,7 +1659,14 @@
             if (elAreas) elAreas.innerHTML = htmlAreas || '<tr><td colspan="5" style="text-align:center; opacity:0.7;">Nenhum registro de permanência em área.</td></tr>';
         }
 
-        function abrirModalEficiencia() { atualizarSelectsPontosRef(); document.getElementById('modalEficiencia').style.display = 'flex'; }
+        function abrirModalEficiencia() { 
+            atualizarSelectsPontosRef(); 
+            const inpOrigem = document.getElementById('iamOrigem');
+            const inpDestino = document.getElementById('iamDestino');
+            if(inpOrigem && !inpOrigem.dataset.lat) { inpOrigem.dataset.lat = -23.9618; inpOrigem.dataset.lon = -46.3919; }
+            if(inpDestino && !inpDestino.dataset.lat) { inpDestino.dataset.lat = -22.6431; inpDestino.dataset.lon = -47.1978; }
+            document.getElementById('modalEficiencia').style.display = 'flex'; 
+        }
         function fecharModal() { document.getElementById('modalEficiencia').style.display = 'none'; }
         function fecharModalSalvar() { document.getElementById('modalSalvarRota').style.display = 'none'; }
 
@@ -1878,11 +1896,15 @@
         }
 
         function iniciarAutoRefresh() {
-            setInterval(() => {
+            if (timerIntervalRef) clearInterval(timerIntervalRef);
+            timerIntervalRef = setInterval(() => {
                 countdown--;
                 const timerEl = document.getElementById('timerRefresh');
                 if (timerEl) timerEl.innerText = countdown;
-                if(countdown <= 0) carregarDadosVeiculos();
+                if(countdown <= 0) {
+                    countdown = 300;
+                    carregarDadosVeiculos();
+                }
             }, 1000);
         }
 
@@ -1893,8 +1915,12 @@
             eixosAtuaisRota = atual;
         }
 
-        async function resolverCoordenadasReferencia(inputId) {
-            const val = document.getElementById(inputId).value.trim();
+        async function resolverCoordenadasInput(inputId) {
+            const inputEl = document.getElementById(inputId);
+            const val = inputEl.value.trim();
+            if (inputEl.dataset.lat && inputEl.dataset.lon) {
+                return { lat: parseFloat(inputEl.dataset.lat), lon: parseFloat(inputEl.dataset.lon), nome: val };
+            }
             const pontoSalvo = pontosReferenciaSalvos.find(p => p.nome.toLowerCase() === val.toLowerCase());
             if (pontoSalvo) return { lat: pontoSalvo.lat, lon: pontoSalvo.lon, nome: pontoSalvo.nome };
             try {
@@ -1909,9 +1935,9 @@
             eixosAtuaisRota = parseInt(document.getElementById('iamEixos').value) || 6;
             fecharModal();
             limparRota();
-            const origCoord = await resolverCoordenadasReferencia('iamOrigem');
-            const destCoord = await resolverCoordenadasReferencia('iamDestino');
-            if (!origCoord || !destCoord) { alert("Origem ou destino não encontrados."); return; }
+            const origCoord = await resolverCoordenadasInput('iamOrigem');
+            const destCoord = await resolverCoordenadasInput('iamDestino');
+            if (!origCoord || !destCoord) { alert("Origem ou destino não encontrados. Selecione uma sugestão da busca."); return; }
 
             routingControl = L.Routing.control({
                 waypoints: [L.latLng(origCoord.lat, origCoord.lon), L.latLng(destCoord.lat, destCoord.lon)],
