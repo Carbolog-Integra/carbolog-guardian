@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Integração - Gerenciamento de Riscos - YHWH</title>
+    <title>Integrador Carbolog - Gerenciamento de Riscos - YHWH</title>
 
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
@@ -149,7 +149,7 @@
     <!-- APLICAÇÃO PRINCIPAL -->
     <div id="app" class="app-container">
         <div class="navbar">
-            <div class="logo"><h3><i class="fas fa-satellite-dish"></i> Integrador Carbolog</h3></div>
+            <div class="logo"><h3><i class="fas fa-satellite-dish"></i> Integrador de Frota</h3></div>
             <div class="nav-menus">
                 <button class="active" onclick="mudarAba('operacional')">Grid Operacional</button>
                 <button onclick="mudarAba('dashboard')">Dashboard</button>
@@ -241,7 +241,7 @@
                 
                 <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 20px 0;">
                 
-                <h4 style="color: var(--accent-blue);"><i class="fas fa-history"></i> Painel Geral (Histórico de Alertas)</h4>
+                <h4 style="color: var(--accent-blue);"><i class="fas fa-history"></i> Registros Brutos - Alertas</h4>
                 <table id="tabelaDash" style="margin-bottom: 25px;">
                     <thead><tr><th>Placa</th><th>Ocorrência</th><th>Duração (Min)</th><th>Máx. Vel. (km/h)</th><th>Data/Hora</th></tr></thead>
                     <tbody id="tbodyDash"></tbody>
@@ -560,6 +560,7 @@
         let desenhoTemporarioLayer = null;
         let dadosGeometriaAtual = null;
         let alertaSelecionadoParaFinalizar = null;
+        let countdown = 300;
 
         let columnOrder = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
         const SUPABASE_URL = 'https://oyrqywoctnyottwvqrji.supabase.co';
@@ -665,15 +666,18 @@
 
         function reordenarCabecalhoVisualmente() {
             const trHead = document.querySelector('#gridOperacional thead tr');
+            if (!trHead) return;
             const ths = Array.from(trHead.children);
             const novosThs = new Array(columnOrder.length);
             
             ths.forEach((th, idx) => {
-                novosThs[columnOrder[idx]] = th;
+                if (columnOrder[idx] !== undefined) {
+                    novosThs[columnOrder[idx]] = th;
+                }
             });
             
             trHead.innerHTML = '';
-            novosThs.forEach(th => trHead.appendChild(th));
+            novosThs.forEach(th => { if(th) trHead.appendChild(th); });
         }
 
         let timeoutBusca = null;
@@ -717,6 +721,7 @@
 
         function configurarAutocompleteInput(inputId, listId, isArea) {
             const input = document.getElementById(inputId);
+            if (!input) return;
             input.addEventListener('input', function(e) {
                 clearTimeout(timeoutBusca);
                 timeoutBusca = setTimeout(() => {
@@ -760,6 +765,7 @@
             let draggedColIndex = null;
 
             ths.forEach(th => {
+                th.setAttribute('draggable', 'true');
                 th.addEventListener('dragstart', (e) => {
                     draggedColIndex = Array.from(th.parentNode.children).indexOf(th);
                     e.dataTransfer.effectAllowed = 'move';
@@ -853,7 +859,6 @@
                 icone.className = "fas fa-moon";
                 localStorage.setItem('tema', 'claro');
             }
-            // Atualiza cores dos gráficos imediatamente ao alternar o tema
             atualizarDashboards();
         }
 
@@ -865,8 +870,6 @@
                 if (map) map.invalidateSize();
                 carregarDadosVeiculos();
                 carregarAbastecimentos();
-                atualizarDashboards();
-                atualizarKpisETabelasDash();
                 iniciarAutoRefresh();
             }, 200);
         }
@@ -882,6 +885,10 @@
             if (btnNav) btnNav.classList.add('active');
             
             if(abaId === 'operacional' && map) setTimeout(() => map.invalidateSize(), 150);
+            if(abaId === 'dashboard') {
+                atualizarKpisETabelasDash();
+                atualizarDashboards();
+            }
             if(abaId === 'rotas') renderizarTabelaRotas();
             if(abaId === 'areas') renderizarTabelaAreas();
             if(abaId === 'pontosRef') renderizarTabelaPontosRef();
@@ -955,7 +962,9 @@
                 
                 processarRegrasEAlertas(veiculosCacheGlobal);
                 renderizarGridEMapa();
-            } catch (e) { return; }
+                atualizarKpisETabelasDash();
+                atualizarDashboards();
+            } catch (e) { console.error("Erro ao carregar veículos:", e); }
         }
 
         function processarRegrasEAlertas(veiculos) {
@@ -1027,6 +1036,7 @@
 
         function renderizarGridEMapa() {
             const tbody = document.getElementById('tbodyOperacional');
+            if (!tbody) return;
             tbody.innerHTML = '';
             Object.values(markers).forEach(m => map.removeLayer(m));
             markers = {};
@@ -1134,36 +1144,42 @@
 
                 let htmlOrdenado = '';
                 for (let i = 0; i < columnOrder.length; i++) {
-                    htmlOrdenado += tds[columnOrder[i]];
+                    if (columnOrder[i] !== undefined && tds[columnOrder[i]]) {
+                        htmlOrdenado += tds[columnOrder[i]];
+                    }
                 }
                 tr.innerHTML = htmlOrdenado;
                 tbody.appendChild(tr);
 
                 if (lat && lon) {
-                    const marcador = L.marker([lat, lon], {icon: iconeCaminhao}).addTo(map);
-                    marcador.on('click', function() {
-                        let acoesHtml = `<div style="min-width: 200px; font-family: Roboto;">
-                            <b>Placa: ${placaFormatada}</b><br>
-                            Velocidade: ${velFinal} km/h<br>
-                            Cidade: ${v.cidade || '-'}<br>
-                            Ult. Comunicação: <b>${dataFormatadaPtBr}</b><br>
-                            Rota Vinculada: <b>${rotaVinculadaNome}</b><br>`;
-                        if (rotaVinculadaObj) {
-                            acoesHtml += `Desvio da Rota: <b style="color:${desvioMetros > 250 ? 'red':'green'}">${desvioMetros}m</b><br>`;
-                        }
-                        acoesHtml += `Áreas Atreladas: <b>${areasStr}</b><br><hr style="margin:5px 0;">`;
-                        
-                        if (rotaVinculadaObj) {
-                            acoesHtml += `<button class="btn" style="background:var(--primary-blue); padding:4px 8px; font-size:11px; width:100%; margin-top:3px;" onclick="visualizarRotaEmbarcada('${placaFormatada}')"><i class="fas fa-route"></i> Visualizar Rota</button>`;
-                            acoesHtml += `<button class="btn" style="background:var(--danger); padding:4px 8px; font-size:11px; width:100%; margin-top:3px;" onclick="desvincularRotaVeiculo('${placaFormatada}')"><i class="fas fa-unlink"></i> Desvincular Rota</button>`;
-                        } else {
-                            acoesHtml += `<button class="btn" style="background:var(--success); padding:4px 8px; font-size:11px; width:100%; margin-top:3px;" onclick="abrirModalVincular('${placaFormatada}')"><i class="fas fa-link"></i> Vincular Rota</button>`;
-                        }
-                        acoesHtml += `<button class="btn" style="background:#00838F; padding:4px 8px; font-size:11px; width:100%; margin-top:3px;" onclick="abrirModalVincularArea('${placaFormatada}')"><i class="fas fa-draw-polygon"></i> Vincular Áreas</button>`;
-                        acoesHtml += `</div>`;
-                        marcador.bindPopup(acoesHtml).openPopup();
-                    });
-                    markers[placaFormatada] = marcador;
+                    const chk = document.querySelector(`input.chk-veiculo[value="${placaFormatada}"]`);
+                    const exibirNoMapa = !chk || chk.checked;
+                    if (exibirNoMapa) {
+                        const marcador = L.marker([lat, lon], {icon: iconeCaminhao}).addTo(map);
+                        marcador.on('click', function() {
+                            let acoesHtml = `<div style="min-width: 200px; font-family: Roboto;">
+                                <b>Placa: ${placaFormatada}</b><br>
+                                Velocidade: ${velFinal} km/h<br>
+                                Cidade: ${v.cidade || '-'}<br>
+                                Ult. Comunicação: <b>${dataFormatadaPtBr}</b><br>
+                                Rota Vinculada: <b>${rotaVinculadaNome}</b><br>`;
+                            if (rotaVinculadaObj) {
+                                acoesHtml += `Desvio da Rota: <b style="color:${desvioMetros > 250 ? 'red':'green'}">${desvioMetros}m</b><br>`;
+                            }
+                            acoesHtml += `Áreas Atreladas: <b>${areasStr}</b><br><hr style="margin:5px 0;">`;
+                            
+                            if (rotaVinculadaObj) {
+                                acoesHtml += `<button class="btn" style="background:var(--primary-blue); padding:4px 8px; font-size:11px; width:100%; margin-top:3px;" onclick="visualizarRotaEmbarcada('${placaFormatada}')"><i class="fas fa-route"></i> Visualizar Rota</button>`;
+                                acoesHtml += `<button class="btn" style="background:var(--danger); padding:4px 8px; font-size:11px; width:100%; margin-top:3px;" onclick="desvincularRotaVeiculo('${placaFormatada}')"><i class="fas fa-unlink"></i> Desvincular Rota</button>`;
+                            } else {
+                                acoesHtml += `<button class="btn" style="background:var(--success); padding:4px 8px; font-size:11px; width:100%; margin-top:3px;" onclick="abrirModalVincular('${placaFormatada}')"><i class="fas fa-link"></i> Vincular Rota</button>`;
+                            }
+                            acoesHtml += `<button class="btn" style="background:#00838F; padding:4px 8px; font-size:11px; width:100%; margin-top:3px;" onclick="abrirModalVincularArea('${placaFormatada}')"><i class="fas fa-draw-polygon"></i> Vincular Áreas</button>`;
+                            acoesHtml += `</div>`;
+                            marcador.bindPopup(acoesHtml).openPopup();
+                        });
+                        markers[placaFormatada] = marcador;
+                    }
                 }
             });
 
@@ -1173,8 +1189,6 @@
             }
 
             countdown = 300;
-            atualizarKpisETabelasDash();
-            atualizarDashboards();
         }
 
         function abrirModalFinalizarAlerta(placa, tipoAlerta, chaveAlerta) {
@@ -1236,6 +1250,7 @@
 
         function renderizarTabelaPontosRef() {
             const tbody = document.getElementById('tbodyPontosRef');
+            if (!tbody) return;
             tbody.innerHTML = '';
             if (pontosReferenciaSalvos.length === 0) { tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; opacity:0.7;">Nenhum ponto cadastrado.</td></tr>`; return; }
             pontosReferenciaSalvos.forEach(p => {
@@ -1280,6 +1295,17 @@
         function atualizarKpisETabelasDash() {
             let emTransito = 0, desligados = 0, paradosLigados = 0;
             let htmlRotas = '', htmlAreas = '';
+            let htmlBrutos = '';
+
+            // Renderizar histórico de desvios e permanências na tabela brutos
+            let totalBrutos = [...historicoDesviosDashboard, ...historicoPermanenciasDashboard];
+            if (totalBrutos.length > 0) {
+                htmlBrutos = totalBrutos.map(item => `<tr><td><b>${item.placa}</b></td><td>${item.ocorrencia}</td><td>${item.duracao} min</td><td>${item.maxVel || 0} km/h</td><td>${item.dataHora}</td></tr>`).join('');
+            } else {
+                htmlBrutos = `<tr><td colspan="5" style="text-align:center; opacity:0.7;">Nenhum registro de desvio ou permanência recente.</td></tr>`;
+            }
+            const tbodyDash = document.getElementById('tbodyDash');
+            if (tbodyDash) tbodyDash.innerHTML = htmlBrutos;
 
             veiculosCacheGlobal.forEach(v => {
                 let p = v.id_veiculo ? String(v.id_veiculo) : 'SEM-PLACA';
@@ -1311,11 +1337,17 @@
                 });
             });
 
-            document.getElementById('kpiEmTransito').innerText = emTransito;
-            document.getElementById('kpiDesligados').innerText = desligados;
-            document.getElementById('kpiParadosLigados').innerText = paradosLigados;
-            document.getElementById('tbodyDashRotas').innerHTML = htmlRotas || '<tr><td colspan="7" style="text-align:center; opacity:0.7;">Nenhum veículo com rota embarcada.</td></tr>';
-            document.getElementById('tbodyDashAreas').innerHTML = htmlAreas || '<tr><td colspan="5" style="text-align:center; opacity:0.7;">Nenhum veículo em área/cerca.</td></tr>';
+            const elEmTransito = document.getElementById('kpiEmTransito');
+            const elDesligados = document.getElementById('kpiDesligados');
+            const elParadosLigados = document.getElementById('kpiParadosLigados');
+            const elRotas = document.getElementById('tbodyDashRotas');
+            const elAreas = document.getElementById('tbodyDashAreas');
+
+            if (elEmTransito) elEmTransito.innerText = emTransito;
+            if (elDesligados) elDesligados.innerText = desligados;
+            if (elParadosLigados) elParadosLigados.innerText = paradosLigados;
+            if (elRotas) elRotas.innerHTML = htmlRotas || '<tr><td colspan="7" style="text-align:center; opacity:0.7;">Nenhum veículo com rota embarcada.</td></tr>';
+            if (elAreas) elAreas.innerHTML = htmlAreas || '<tr><td colspan="5" style="text-align:center; opacity:0.7;">Nenhum veículo em área/cerca.</td></tr>';
         }
 
         function abrirModalComboio(placaAlvo) {
@@ -1396,6 +1428,7 @@
 
         function renderizarTabelaAreas() {
             const tbody = document.getElementById('tbodyAreasSalvas');
+            if (!tbody) return;
             tbody.innerHTML = '';
             if (areasSalvas.length === 0) { tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; opacity:0.7;">Nenhuma área cadastrada.</td></tr>`; return; }
             areasSalvas.forEach(a => {
@@ -1517,8 +1550,11 @@
         function fecharModalDetalhesRota() { document.getElementById('modalDetalhesRota').style.display = 'none'; }
 
         function toggleMarker(placa) {
-            const chk = document.querySelector(`input[value="${placa}"]`);
-            if (chk && markers[placa]) { if (chk.checked) markers[placa].addTo(map); else map.removeLayer(markers[placa]); }
+            const chk = document.querySelector(`input.chk-veiculo[value="${placa}"]`);
+            if (chk && markers[placa]) { 
+                if (chk.checked) markers[placa].addTo(map); 
+                else map.removeLayer(markers[placa]); 
+            }
         }
 
         function marcarTodos(status) {
@@ -1526,10 +1562,14 @@
                 chk.checked = status;
                 if (markers[chk.value]) { if (status) markers[chk.value].addTo(map); else map.removeLayer(markers[chk.value]); }
             });
-            document.getElementById('checkAll').checked = status;
+            const checkAll = document.getElementById('checkAll');
+            if (checkAll) checkAll.checked = status;
         }
 
-        function toggleCheckAll() { marcarTodos(document.getElementById('checkAll').checked); }
+        function toggleCheckAll() { 
+            const checkAll = document.getElementById('checkAll');
+            if (checkAll) marcarTodos(checkAll.checked); 
+        }
 
         function filtrarGrid() {
             document.querySelectorAll('#tbodyOperacional tr').forEach(linha => {
@@ -1622,6 +1662,7 @@
 
         function renderizarTabelaRotas(filtro = '') {
             const tbody = document.getElementById('tbodyRotasSalvas');
+            if (!tbody) return;
             tbody.innerHTML = '';
             const filtradas = rotasSalvas.filter(r => r.nome.toLowerCase().includes(filtro.toLowerCase()));
             if (filtradas.length === 0) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; opacity:0.7;">Nenhuma rota.</td></tr>`; return; }
@@ -1632,7 +1673,10 @@
             });
         }
 
-        function filtrarRotasSalvas() { renderizarTabelaRotas(document.getElementById('filtroRotasInput').value); }
+        function filtrarRotasSalvas() { 
+            const input = document.getElementById('filtroRotasInput');
+            if(input) renderizarTabelaRotas(input.value); 
+        }
 
         function carregarRotaNoMapa(id) {
             const rota = rotasSalvas.find(r => r.id === id);
@@ -1653,19 +1697,12 @@
         async function atualizarDashboards() {
             if(window.graf1) window.graf1.destroy();
             if(window.graf2) window.graf2.destroy();
-            let dadosD = [];
-            try {
-                const res = await fetch(`${SUPABASE_URL}/rest/v1/posicoes_sascar?select=*&order=data_posicao.desc&limit=100`, {
-                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-                });
-                if (res.ok) dadosD = await res.json();
-            } catch(e) {}
-
+            
             let excessosPorPlaca = {};
             let paradosLigadosContagem = {};
             let paradosLigadosTempoMinutos = {};
 
-            dadosD.forEach(v => {
+            veiculosCacheGlobal.forEach(v => {
                 let p = v.id_veiculo ? String(v.id_veiculo) : 'SEM-PLACA';
                 if (p.length === 7 && !isNaN(p)) p = p.substring(0,3) + '-' + p.substring(3);
                 const vel = Number(v.velocidade) || 0;
@@ -1679,117 +1716,121 @@
                     paradosLigadosTempoMinutos[p] = paradosLigadosContagem[p] * 15;
                 }
             });
-
-            document.getElementById('tbodyDash').innerHTML = `<tr><td colspan="5" style="text-align:center; opacity:0.7;">Nenhum alerta crítico recente.</td></tr>`;
             
             const corTextoDinamica = obterCorTextoGrafico();
 
-            window.graf1 = new Chart(document.getElementById('graficoVelocidade').getContext('2d'), {
-                type: 'bar', 
-                data: { 
-                    labels: Object.keys(excessosPorPlaca).length > 0 ? Object.keys(excessosPorPlaca) : ['Sem Registros'], 
-                    datasets: [{ label: 'Excessos (>80km/h)', data: Object.values(excessosPorPlaca).length > 0 ? Object.values(excessosPorPlaca) : [0], backgroundColor: '#D32F2F' }] 
-                },
-                options: {
-                    plugins: {
-                        legend: { labels: { color: corTextoDinamica } },
-                        title: { display: true, text: 'Excessos de Velocidade', color: corTextoDinamica }
+            const canvasVelocidade = document.getElementById('graficoVelocidade');
+            if (canvasVelocidade) {
+                window.graf1 = new Chart(canvasVelocidade.getContext('2d'), {
+                    type: 'bar', 
+                    data: { 
+                        labels: Object.keys(excessosPorPlaca).length > 0 ? Object.keys(excessosPorPlaca) : ['Sem Registros'], 
+                        datasets: [{ label: 'Excessos (>80km/h)', data: Object.values(excessosPorPlaca).length > 0 ? Object.values(excessosPorPlaca) : [0], backgroundColor: '#D32F2F' }] 
                     },
-                    scales: {
-                        x: { ticks: { color: corTextoDinamica }, grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' } },
-                        y: { ticks: { color: corTextoDinamica }, grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' } }
+                    options: {
+                        plugins: {
+                            legend: { labels: { color: corTextoDinamica } },
+                            title: { display: true, text: 'Excessos de Velocidade', color: corTextoDinamica }
+                        },
+                        scales: {
+                            x: { ticks: { color: corTextoDinamica }, grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' } },
+                            y: { ticks: { color: corTextoDinamica }, grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' } }
+                        }
                     }
-                }
-            });
+                });
+            }
 
             const labelsPar = Object.keys(paradosLigadosContagem);
             const valsTemposMinutos = labelsPar.map(p => paradosLigadosTempoMinutos[p]);
             const valsAlertas = labelsPar.map(p => paradosLigadosContagem[p]);
 
-            window.graf2 = new Chart(document.getElementById('graficoParado').getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: labelsPar.length > 0 ? labelsPar : ['Frota Normal'],
-                    datasets: [
-                        {
-                            type: 'bar',
-                            label: 'Tempo Parado e Ligado (HH:MM)',
-                            data: valsTemposMinutos.length > 0 ? valsTemposMinutos : [0],
-                            backgroundColor: '#FF8F00',
-                            yAxisID: 'y'
-                        },
-                        {
-                            type: 'line',
-                            label: 'Qtd. Alertas Gerados',
-                            data: valsAlertas.length > 0 ? valsAlertas : [0],
-                            borderColor: '#D32F2F',
-                            backgroundColor: '#D32F2F',
-                            borderWidth: 2,
-                            fill: false,
-                            yAxisID: 'y1'
-                        }
-                    ]
-                },
-                options: {
-                    plugins: {
-                        legend: { labels: { color: corTextoDinamica } },
-                        datalabels: {
-                            formatter: function(value, context) {
-                                if (context.datasetIndex === 0) {
-                                    return formatarMinutosParaHhMm(value);
-                                }
-                                return value;
+            const canvasParado = document.getElementById('graficoParado');
+            if (canvasParado) {
+                window.graf2 = new Chart(canvasParado.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: labelsPar.length > 0 ? labelsPar : ['Frota Normal'],
+                        datasets: [
+                            {
+                                type: 'bar',
+                                label: 'Tempo Parado e Ligado (HH:MM)',
+                                data: valsTemposMinutos.length > 0 ? valsTemposMinutos : [0],
+                                backgroundColor: '#FF8F00',
+                                yAxisID: 'y'
                             },
-                            color: corTextoDinamica,
-                            font: { weight: 'bold' }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.dataset.label || '';
-                                    if (label) { label += ': '; }
-                                    if (context.datasetIndex === 0) {
-                                        label += formatarMinutosParaHhMm(context.parsed.y);
-                                    } else {
-                                        label += context.parsed.y;
-                                    }
-                                    return label;
-                                }
+                            {
+                                type: 'line',
+                                label: 'Qtd. Alertas Gerados',
+                                data: valsAlertas.length > 0 ? valsAlertas : [0],
+                                borderColor: '#D32F2F',
+                                backgroundColor: '#D32F2F',
+                                borderWidth: 2,
+                                fill: false,
+                                yAxisID: 'y1'
                             }
-                        },
-                        title: { display: true, text: 'Tempo Total (HH:MM) vs Qtd. de Alertas (Parado e Ligado)', color: corTextoDinamica }
+                        ]
                     },
-                    scales: {
-                        x: { 
-                            ticks: { color: corTextoDinamica }, 
-                            grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' } 
-                        },
-                        y: {
-                            type: 'linear',
-                            display: true,
-                            position: 'left',
-                            title: { display: true, text: 'Tempo (Minutos)', color: corTextoDinamica },
-                            beginAtZero: true,
-                            ticks: {
+                    options: {
+                        plugins: {
+                            legend: { labels: { color: corTextoDinamica } },
+                            datalabels: {
+                                formatter: function(value, context) {
+                                    if (context.datasetIndex === 0) {
+                                        return formatarMinutosParaHhMm(value);
+                                    }
+                                    return value;
+                                },
                                 color: corTextoDinamica,
-                                callback: function(value) {
-                                    return formatarMinutosParaHhMm(value);
+                                font: { weight: 'bold' }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) { label += ': '; }
+                                        if (context.datasetIndex === 0) {
+                                            label += formatarMinutosParaHhMm(context.parsed.y);
+                                        } else {
+                                            label += context.parsed.y;
+                                        }
+                                        return label;
+                                    }
                                 }
                             },
-                            grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' }
+                            title: { display: true, text: 'Tempo Total (HH:MM) vs Qtd. de Alertas (Parado e Ligado)', color: corTextoDinamica }
                         },
-                        y1: {
-                            type: 'linear',
-                            display: true,
-                            position: 'right',
-                            title: { display: true, text: 'Qtd Alertas', color: corTextoDinamica },
-                            grid: { drawOnChartArea: false },
-                            beginAtZero: true,
-                            ticks: { color: corTextoDinamica }
+                        scales: {
+                            x: { 
+                                ticks: { color: corTextoDinamica }, 
+                                grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' } 
+                            },
+                            y: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                                title: { display: true, text: 'Tempo (Minutos)', color: corTextoDinamica },
+                                beginAtZero: true,
+                                ticks: {
+                                    color: corTextoDinamica,
+                                    callback: function(value) {
+                                        return formatarMinutosParaHhMm(value);
+                                    }
+                                },
+                                grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' }
+                            },
+                            y1: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                title: { display: true, text: 'Qtd Alertas', color: corTextoDinamica },
+                                grid: { drawOnChartArea: false },
+                                beginAtZero: true,
+                                ticks: { color: corTextoDinamica }
+                            }
                         }
                     }
-                }
-            });
+                });
+            }
         }
 
         function exportarDashboardCompletoExcel() {
@@ -1803,20 +1844,26 @@
 
         function carregarAbastecimentos() {
             const dados = [{placa: 'ABC-1234', data: '06/09/2026 07:58:52', bomba: '3654', local: 'Tres Lagoas - MS', volCTA: 500.34, odo: 338438, dist: 907, media: 1.81}];
-            document.getElementById('tbodyAbastecimentos').innerHTML = dados.map(d => `<tr><td>${d.placa}</td><td>${d.data}</td><td>${d.bomba}</td><td>${d.local}</td><td style="font-weight:bold; color:var(--accent-blue)">${d.volCTA} L</td><td>${d.odo}</td><td>${d.dist} km</td><td>${d.media}</td></tr>`).join('');
+            const tbodyAbast = document.getElementById('tbodyAbastecimentos');
+            if (tbodyAbast) {
+                tbodyAbast.innerHTML = dados.map(d => `<tr><td>${d.placa}</td><td>${d.data}</td><td>${d.bomba}</td><td>${d.local}</td><td style="font-weight:bold; color:var(--accent-blue)">${d.volCTA} L</td><td>${d.odo}</td><td>${d.dist} km</td><td>${d.media}</td></tr>`).join('');
+            }
             
             const corTextoDinamica = obterCorTextoGrafico();
-            new Chart(document.getElementById('graficoConsumo').getContext('2d'), {
-                type: 'bar', 
-                data: { labels: ['ABC-1234'], datasets: [{ label: 'Abastecido', data: [500.34], backgroundColor: '#0055A4' }, { label: 'Consumido', data: [501.10], backgroundColor: '#388E3C' }] },
-                options: {
-                    plugins: { legend: { labels: { color: corTextoDinamica } } },
-                    scales: {
-                        x: { ticks: { color: corTextoDinamica } },
-                        y: { ticks: { color: corTextoDinamica } }
+            const canvasConsumo = document.getElementById('graficoConsumo');
+            if (canvasConsumo) {
+                new Chart(canvasConsumo.getContext('2d'), {
+                    type: 'bar', 
+                    data: { labels: ['ABC-1234'], datasets: [{ label: 'Abastecido', data: [500.34], backgroundColor: '#0055A4' }, { label: 'Consumido', data: [501.10], backgroundColor: '#388E3C' }] },
+                    options: {
+                        plugins: { legend: { labels: { color: corTextoDinamica } } },
+                        scales: {
+                            x: { ticks: { color: corTextoDinamica } },
+                            y: { ticks: { color: corTextoDinamica } }
+                        }
                     }
-                }
-            });
+                });
+            }
         }
 
         function exportarExcel(tableId, nome) { XLSX.writeFile(XLSX.utils.table_to_book(document.getElementById(tableId)), nome + ".xlsx"); }
