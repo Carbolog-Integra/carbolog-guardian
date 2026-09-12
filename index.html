@@ -134,7 +134,7 @@
     <div id="login-screen">
         <div class="login-box">
             <h2><i class="fas fa-shield-alt"></i> Acesso ao Sistema</h2>
-            <p style="font-size: 14px; opacity: 0.8;">Integrador Inteligente</p>
+            <p style="font-size: 14px; opacity: 0.8;">Gerenciamento de Riscos</p>
             <input type="email" id="emailInput" placeholder="usuario@carbolog.com.br" value="v.menezes@carbolog.com.br" required>
             <select id="perfilInput">
                 <option value="Administrador">Administrador</option>
@@ -149,7 +149,7 @@
     <!-- APLICAÇÃO PRINCIPAL -->
     <div id="app" class="app-container">
         <div class="navbar">
-            <div class="logo"><h3><i class="fas fa-satellite-dish"></i> Gerenciamento de Riscos</h3></div>
+            <div class="logo"><h3><i class="fas fa-satellite-dish"></i> Integrador Inteligente</h3></div>
             <div class="nav-menus">
                 <button class="active" onclick="mudarAba('operacional')">Grid Operacional</button>
                 <button onclick="mudarAba('dashboard')">Dashboard</button>
@@ -217,7 +217,6 @@
 
         <!-- ABA 2: DASHBOARD -->
         <div id="dashboard" class="tab-content">
-            <!-- BARRA DE FILTRO DE DATA E HORA -->
             <div class="card" style="padding: 15px; margin-bottom: 20px;">
                 <div class="flex-row" style="flex-wrap: wrap; justify-content: space-between; align-items: flex-end; margin-bottom: 0;">
                     <div>
@@ -624,7 +623,7 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95cnF5d29jdG55b3R0d3ZxcmppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMjMyOTQsImV4cCI6MjEwMzc5OTI5NH0.VdqJLc_u1VXFrnOe59Bw7wLWV-GZLnx6_fjzBV_TU8w';
         const USUARIO_GLOBAL = 'global_sistema_frota';
 
-        // --- PERSISTÊNCIA COMPLETA E COMPARTILHADA NA NUVEM (GLOBAL) ---
+        // --- PERSISTÊNCIA ROBUSTA (SUPABASE + LOCALSTORAGE) ---
         async function carregarDadosDoBanco() {
             try {
                 const res = await fetch(`${SUPABASE_URL}/rest/v1/preferencias_usuario?select=*&usuario=eq.${USUARIO_GLOBAL}`, {
@@ -646,9 +645,30 @@
                         if (reg.hist_desvios) historicoDesviosDashboard = reg.hist_desvios;
                         if (reg.hist_comboios) historicoComboiosDashboard = reg.hist_comboios;
                         if (reg.hist_tratativas) historicoTratativas = reg.hist_tratativas;
+                        return; // Sucesso ao carregar da nuvem
                     }
                 }
-            } catch(e) { console.error("Erro ao carregar dados globais do Supabase:", e); }
+            } catch(e) { console.warn("Aviso ao carregar do Supabase, usando cache local:", e); }
+
+            // Fallback para localStorage se a nuvem falhar
+            try {
+                const localData = localStorage.getItem('backup_global_sistema');
+                if (localData) {
+                    const reg = JSON.parse(localData);
+                    if (reg.ordem_colunas) columnOrder = reg.ordem_colunas;
+                    if (reg.rotas_salvas) rotasSalvas = reg.rotas_salvas;
+                    if (reg.rotas_veiculos) rotasVeiculos = reg.rotas_veiculos;
+                    if (reg.areas_salvas) areasSalvas = reg.areas_salvas;
+                    if (reg.areas_veiculos) areasVeiculos = reg.areas_veiculos;
+                    if (reg.pontos_referencia) pontosReferenciaSalvos = reg.pontos_referencia;
+                    if (reg.alertas_finalizados) alertasFinalizados = reg.alertas_finalizados;
+                    if (reg.contador_permanencia) contadorPermanenciaAreas = reg.contador_permanencia;
+                    if (reg.hist_permanencias) historicoPermanenciasDashboard = reg.hist_permanencias;
+                    if (reg.hist_desvios) historicoDesviosDashboard = reg.hist_desvios;
+                    if (reg.hist_comboios) historicoComboiosDashboard = reg.hist_comboios;
+                    if (reg.hist_tratativas) historicoTratativas = reg.hist_tratativas;
+                }
+            } catch(ex) { console.error("Erro ao carregar localStorage:", ex); }
 
             if (!pontosReferenciaSalvos || pontosReferenciaSalvos.length === 0) {
                 pontosReferenciaSalvos = [
@@ -660,6 +680,28 @@
         }
 
         async function salvarDadosNoBanco() {
+            const payload = {
+                usuario: USUARIO_GLOBAL,
+                ordem_colunas: columnOrder,
+                rotas_salvas: rotasSalvas,
+                rotas_veiculos: rotasVeiculos,
+                areas_salvas: areasSalvas,
+                areas_veiculos: areasVeiculos,
+                pontos_referencia: pontosReferenciaSalvos,
+                alertas_finalizados: alertasFinalizados,
+                contador_permanencia: contadorPermanenciaAreas,
+                hist_permanencias: historicoPermanenciasDashboard,
+                hist_desvios: historicoDesviosDashboard,
+                hist_comboios: historicoComboiosDashboard,
+                hist_tratativas: historicoTratativas
+            };
+
+            // Salva sempre no backup local para garantir redundância imediata
+            try {
+                localStorage.setItem('backup_global_sistema', JSON.stringify(payload));
+            } catch(e) {}
+
+            // Tenta salvar na nuvem
             try {
                 await fetch(`${SUPABASE_URL}/rest/v1/preferencias_usuario`, {
                     method: 'POST',
@@ -669,43 +711,29 @@
                         'Content-Type': 'application/json',
                         'Prefer': 'resolution=merge-duplicates'
                     },
-                    body: JSON.stringify({
-                        usuario: USUARIO_GLOBAL,
-                        ordem_colunas: columnOrder,
-                        rotas_salvas: rotasSalvas,
-                        rotas_veiculos: rotasVeiculos,
-                        areas_salvas: areasSalvas,
-                        areas_veiculos: areasVeiculos,
-                        pontos_referencia: pontosReferenciaSalvos,
-                        alertas_finalizados: alertasFinalizados,
-                        contador_permanencia: contadorPermanenciaAreas,
-                        hist_permanencias: historicoPermanenciasDashboard,
-                        hist_desvios: historicoDesviosDashboard,
-                        hist_comboios: historicoComboiosDashboard,
-                        hist_tratativas: historicoTratativas
-                    })
+                    body: JSON.stringify(payload)
                 });
-            } catch(e) { console.error("Erro ao salvar dados globais no Supabase:", e); }
+            } catch(e) { console.error("Erro ao sincronizar com o Supabase:", e); }
         }
 
-        async function verificarSessaoSalva() {
+        function verificarSessaoSalva() {
             const usuarioSalvo = localStorage.getItem('usuarioLogado');
             if (usuarioSalvo) {
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('app').style.display = 'block';
                 document.getElementById('userLogado').innerHTML = `<b>Usuário:</b> ${usuarioSalvo}`;
                 
-                await carregarDadosDoBanco();
+                carregarDadosDoBanco().then(() => {
+                    const abaAtivaSalva = localStorage.getItem('abaAtiva') || 'operacional';
+                    mudarAba(abaAtivaSalva);
 
-                const abaAtivaSalva = localStorage.getItem('abaAtiva') || 'operacional';
-                mudarAba(abaAtivaSalva);
-
-                setTimeout(() => {
-                    if (map) map.invalidateSize();
-                    carregarDadosVeiculos();
-                    carregarAbastecimentos();
-                    iniciarAutoRefresh();
-                }, 200);
+                    setTimeout(() => {
+                        if (map) map.invalidateSize();
+                        carregarDadosVeiculos();
+                        carregarAbastecimentos();
+                        iniciarAutoRefresh();
+                    }, 200);
+                });
             }
         }
 
@@ -1421,7 +1449,7 @@
             fecharModalFinalizarAlerta();
             renderizarGridEMapa();
             atualizarKpisETabelasDash();
-            alert("Alerta tratado, finalizado e salvo globalmente!");
+            alert("Alerta tratado, finalizado e salvo com sucesso!");
         }
 
         function abrirModalPontoRef() {
@@ -1453,7 +1481,7 @@
             await salvarDadosNoBanco();
             fecharModalPontoRef();
             renderizarTabelaPontosRef();
-            alert("Ponto de referência salvo globalmente com sucesso!");
+            alert("Ponto de referência salvo com sucesso!");
         }
 
         function renderizarTabelaPontosRef() {
