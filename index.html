@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Integrador Carbolog - Gerenciamento de Riscos - YHWH</title>
+    <title>Integração Carbolog - Gerenciamento de Riscos - YHWH</title>
 
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
@@ -149,7 +149,7 @@
     <!-- APLICAÇÃO PRINCIPAL -->
     <div id="app" class="app-container">
         <div class="navbar">
-            <div class="logo"><h3><i class="fas fa-satellite-dish"></i> Integrador Carbolog</h3></div>
+            <div class="logo"><h3><i class="fas fa-satellite-dish"></i> Integrador de Frota</h3></div>
             <div class="nav-menus">
                 <button class="active" onclick="mudarAba('operacional')">Grid Operacional</button>
                 <button onclick="mudarAba('dashboard')">Dashboard</button>
@@ -171,7 +171,7 @@
         <div id="operacional" class="tab-content active">
             <div class="card" style="padding-bottom: 0;">
                 <div class="flex-row" style="justify-content: space-between;">
-                    <h3 style="color: var(--accent-blue);"><i class="fas fa-map"></i> Monitor de Frota</h3>
+                    <h3 style="color: var(--accent-blue);"><i class="fas fa-map"></i> Robô Monitor de Frota (SASCAR)</h3>
                     <div>
                         <span class="info-tag">Auto-Refresh Robô: <span id="timerRefresh">300</span>s</span>
                         <button class="btn" onclick="carregarDadosVeiculos()"><i class="fas fa-sync"></i> Refresh</button>
@@ -214,6 +214,30 @@
 
         <!-- ABA 2: DASHBOARD -->
         <div id="dashboard" class="tab-content">
+            <!-- BARRA DE FILTRO DE DATA E HORA -->
+            <div class="card" style="padding: 15px; margin-bottom: 20px;">
+                <div class="flex-row" style="flex-wrap: wrap; justify-content: space-between; align-items: flex-end; margin-bottom: 0;">
+                    <div>
+                        <h4 style="margin: 0 0 5px 0; color: var(--accent-blue);"><i class="fas fa-filter"></i> Filtro de Período (Histórico e Exceções)</h4>
+                        <p style="margin: 0; font-size: 12px; opacity: 0.8;">Selecione o intervalo de data e hora para filtrar os gráficos e registros brutos.</p>
+                    </div>
+                    <div style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+                        <div>
+                            <label style="font-size: 12px; font-weight: bold;">Data/Hora Inicial:</label><br>
+                            <input type="datetime-local" id="filtroDataInicio" class="input-livre" style="margin-top: 3px; width: 210px;">
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; font-weight: bold;">Data/Hora Final:</label><br>
+                            <input type="datetime-local" id="filtroDataFim" class="input-livre" style="margin-top: 3px; width: 210px;">
+                        </div>
+                        <div>
+                            <button class="btn" style="background: var(--primary-blue); margin-top: 0; padding: 11px 18px;" onclick="aplicarFiltroDashboard()"><i class="fas fa-search"></i> Filtrar</button>
+                            <button class="btn" style="background: #757575; margin-top: 0; padding: 11px 18px;" onclick="limparFiltroDashboard()"><i class="fas fa-undo"></i> Limpar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="flex-row" style="margin-bottom: 20px;">
                 <div class="card" style="flex: 1; text-align: center; border-left: 4px solid var(--success); padding: 15px; margin-bottom: 0;">
                     <h4 style="margin: 0; color: var(--accent-blue); font-size: 14px;"><i class="fas fa-truck-moving"></i> Em Trânsito (>10km/h)</h4>
@@ -241,7 +265,7 @@
                 
                 <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 20px 0;">
                 
-                <h4 style="color: var(--accent-blue);"><i class="fas fa-history"></i> Registros Brutos - Alertas</h4>
+                <h4 style="color: var(--accent-blue);"><i class="fas fa-history"></i> Registros Brutos (Alertas)</h4>
                 <table id="tabelaDash" style="margin-bottom: 25px;">
                     <thead><tr><th>Placa</th><th>Ocorrência</th><th>Duração (Min)</th><th>Máx. Vel. (km/h)</th><th>Data/Hora</th></tr></thead>
                     <tbody id="tbodyDash"></tbody>
@@ -560,9 +584,10 @@
         let alertasFinalizados = {}; 
 
         let contadorPermanenciaAreas = {}; 
-        // Históricos recuperados diretamente do LocalStorage para resistirem a F5
+        // Históricos persistidos no LocalStorage
         let historicoPermanenciasDashboard = JSON.parse(localStorage.getItem('histPermanencias')) || [];
         let historicoDesviosDashboard = JSON.parse(localStorage.getItem('histDesvios')) || [];
+        let historicoComboiosDashboard = JSON.parse(localStorage.getItem('histComboios')) || [];
 
         let modoDesenhoAtual = null; 
         let pontosPoligonoTemp = [];
@@ -892,7 +917,6 @@
             reordenarCabecalhoVisualmente();
             inicializarDragDropColunas();
 
-            // Verifica login salvo ao carregar
             verificarSessaoSalva();
         });
 
@@ -1005,6 +1029,43 @@
 
         function processarRegrasEAlertas(veiculos) {
             const agora = Date.now();
+            
+            // 1. Processar Comboios Globais para gravação na Dashboard
+            for (let i = 0; i < veiculos.length; i++) {
+                for (let j = i + 1; j < veiculos.length; j++) {
+                    const v1 = veiculos[i], v2 = veiculos[j];
+                    const vel1 = Number(v1.velocidade) || 0;
+                    const vel2 = Number(v2.velocidade) || 0;
+                    
+                    if (v1.latitude && v1.longitude && v2.latitude && v2.longitude && vel1 > 10 && vel2 > 10) {
+                        const distancia = calcularDistanciaMetros(v1.latitude, v1.longitude, v2.latitude, v2.longitude);
+                        if (distancia <= 300) {
+                            let p1 = v1.id_veiculo ? String(v1.id_veiculo) : 'SEM-PLACA';
+                            if (p1.length === 7 && !isNaN(p1)) p1 = p1.substring(0,3) + '-' + p1.substring(3);
+                            let p2 = v2.id_veiculo ? String(v2.id_veiculo) : 'SEM-PLACA';
+                            if (p2.length === 7 && !isNaN(p2)) p2 = p2.substring(0,3) + '-' + p2.substring(3);
+
+                            const chaveComboioHist = `comboio_${p1}_${p2}`;
+                            const jaExisteComboio = historicoComboiosDashboard.some(c => c.chave === chaveComboioHist && (agora - c.timestamp) < 600000);
+                            
+                            if (!jaExisteComboio) {
+                                historicoComboiosDashboard.push({
+                                    chave: chaveComboioHist,
+                                    placa: `${p1} & ${p2}`,
+                                    ocorrencia: `Comboio Próximo (${Math.round(distancia)}m)`,
+                                    duracao: 1,
+                                    maxVel: Math.max(vel1, vel2),
+                                    dataHora: new Date().toLocaleString('pt-BR'),
+                                    timestamp: agora,
+                                    rawDate: new Date()
+                                });
+                                localStorage.setItem('histComboios', JSON.stringify(historicoComboiosDashboard));
+                            }
+                        }
+                    }
+                }
+            }
+
             veiculos.forEach(v => {
                 let placaRaw = v.id_veiculo ? String(v.id_veiculo) : 'SEM-PLACA';
                 let placaFormatada = (placaRaw !== 'SEM-PLACA' && placaRaw.length === 7 && !isNaN(placaRaw)) ? placaRaw.substring(0, 3) + '-' + placaRaw.substring(3) : placaRaw;
@@ -1028,9 +1089,9 @@
                                 maxVel: Number(v.velocidade) || 0,
                                 metrosDesvio: metrosArredondados,
                                 dataHora: new Date().toLocaleString('pt-BR'),
-                                timestamp: agora
+                                timestamp: agora,
+                                rawDate: new Date()
                             });
-                            // PERSISTE NO LOCALSTORAGE IMEDIATAMENTE
                             localStorage.setItem('histDesvios', JSON.stringify(historicoDesviosDashboard));
                         }
                     }
@@ -1063,9 +1124,9 @@
                                 ocorrencia: `Permanência na Área (${perm.nomeArea})`,
                                 duracao: duracaoMin,
                                 maxVel: perm.maxVel,
-                                dataHora: new Date().toLocaleString('pt-BR')
+                                dataHora: new Date().toLocaleString('pt-BR'),
+                                rawDate: new Date()
                             });
-                            // PERSISTE NO LOCALSTORAGE IMEDIATAMENTE
                             localStorage.setItem('histPermanencias', JSON.stringify(historicoPermanenciasDashboard));
                             delete contadorPermanenciaAreas[chaveKey];
                         }
@@ -1368,16 +1429,53 @@
             }
         }
 
+        // --- FUNÇÕES DE FILTRAGEM POR DATA/HORA ---
+        function filtrarItensPorData(lista) {
+            const dtInicioVal = document.getElementById('filtroDataInicio').value;
+            const dtFimVal = document.getElementById('filtroDataFim').value;
+            
+            if (!dtInicioVal && !dtFimVal) return lista;
+
+            const inicio = dtInicioVal ? new Date(dtInicioVal).getTime() : 0;
+            const fim = dtFimVal ? new Date(dtFimVal).getTime() : Infinity;
+
+            return lista.filter(item => {
+                let tempoItem = item.timestamp || (item.rawDate ? new Date(item.rawDate).getTime() : new Date(item.dataHora.split(',')[0].split('/').reverse().join('-') + ' ' + item.dataHora.split(',')[1]).getTime());
+                if (isNaN(tempoItem)) return true;
+                return tempoItem >= inicio && tempoItem <= fim;
+            });
+        }
+
+        function aplicarFiltroDashboard() {
+            atualizarKpisETabelasDash();
+            atualizarDashboards();
+            alert("Filtro de período aplicado com sucesso!");
+        }
+
+        function limparFiltroDashboard() {
+            document.getElementById('filtroDataInicio').value = '';
+            document.getElementById('filtroDataFim').value = '';
+            atualizarKpisETabelasDash();
+            atualizarDashboards();
+        }
+
         function atualizarKpisETabelasDash() {
             let emTransito = 0, desligados = 0, paradosLigados = 0;
             let htmlRotas = '', htmlAreas = '';
             let htmlBrutos = '';
 
-            let totalBrutos = [...historicoDesviosDashboard, ...historicoPermanenciasDashboard];
-            if (totalBrutos.length > 0) {
-                htmlBrutos = totalBrutos.map(item => `<tr><td><b>${item.placa}</b></td><td>${item.ocorrencia}</td><td>${item.duracao} min</td><td>${item.maxVel || 0} km/h</td><td>${item.dataHora}</td></tr>`).join('');
+            // Unir todos os registros de desvios, permanências e comboios aplicando o filtro de data
+            let todosBrutosUnidos = [
+                ...historicoDesviosDashboard, 
+                ...historicoPermanenciasDashboard, 
+                ...historicoComboiosDashboard
+            ];
+            let totalBrutosFiltrados = filtrarItensPorData(todosBrutosUnidos);
+
+            if (totalBrutosFiltrados.length > 0) {
+                htmlBrutos = totalBrutosFiltrados.map(item => `<tr><td><b>${item.placa}</b></td><td>${item.ocorrencia}</td><td>${item.duracao} min</td><td>${item.maxVel || 0} km/h</td><td>${item.dataHora}</td></tr>`).join('');
             } else {
-                htmlBrutos = `<tr><td colspan="5" style="text-align:center; opacity:0.7;">Nenhum registro de desvio ou permanência recente.</td></tr>`;
+                htmlBrutos = `<tr><td colspan="5" style="text-align:center; opacity:0.7;">Nenhum registro de desvio, permanência ou comboio no período selecionado.</td></tr>`;
             }
             const tbodyDash = document.getElementById('tbodyDash');
             if (tbodyDash) tbodyDash.innerHTML = htmlBrutos;
