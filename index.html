@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Integrador Carbolog - Gerenciamento de Riscos - YHWH</title>
+    <title>Sistema de Integração - Gerenciamento de Riscos - YHWH</title>
 
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
@@ -174,7 +174,8 @@
                     <h3 style="color: var(--accent-blue);"><i class="fas fa-map"></i> Monitor de Frota</h3>
                     <div>
                         <span class="info-tag">Auto-Refresh Robô: <span id="timerRefresh">300</span>s</span>
-                        <button class="btn" onclick="carregarDadosVeiculos()"><i class="fas fa-sync"></i> Refresh</button>
+                        <button class="btn" onclick="carregarDadosVeiculos()"><i class="fas fa-sync"></i> Varredura Agora</button>
+                        <button class="btn" style="background:#00838F;" onclick="carregarAcidentesWazeGoogle()"><i class="fas fa-traffic-light"></i> Tráfego / Waze Reais</button>
                         <button class="btn" onclick="abrirModalEficiencia()"><i class="fas fa-route"></i> Criar Nova Rota</button>
                     </div>
                 </div>
@@ -641,6 +642,10 @@
             return `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`;
         }
 
+        function obterCorTextoGrafico() {
+            return document.body.classList.contains('dark-mode') ? '#FFFFFF' : '#333333';
+        }
+
         async function salvarOrdemColunasNoBanco() {
             try {
                 await fetch(`${SUPABASE_URL}/rest/v1/preferencias_usuario`, {
@@ -849,6 +854,8 @@
                 icone.className = "fas fa-moon";
                 localStorage.setItem('tema', 'claro');
             }
+            // Atualiza cores dos gráficos imediatamente ao alternar o tema
+            atualizarDashboards();
         }
 
         function fazerLogin() {
@@ -1670,18 +1677,29 @@
                 }
                 if (ign && vel === 0) { 
                     paradosLigadosContagem[p] = (paradosLigadosContagem[p] || 0) + 1;
-                    // Cálculo do tempo total proporcional à quantidade de alertas (ex: 15 minutos por alerta gerado)
                     paradosLigadosTempoMinutos[p] = paradosLigadosContagem[p] * 15;
                 }
             });
 
             document.getElementById('tbodyDash').innerHTML = `<tr><td colspan="5" style="text-align:center; opacity:0.7;">Nenhum alerta crítico recente.</td></tr>`;
             
+            const corTextoDinamica = obterCorTextoGrafico();
+
             window.graf1 = new Chart(document.getElementById('graficoVelocidade').getContext('2d'), {
                 type: 'bar', 
                 data: { 
                     labels: Object.keys(excessosPorPlaca).length > 0 ? Object.keys(excessosPorPlaca) : ['Sem Registros'], 
                     datasets: [{ label: 'Excessos (>80km/h)', data: Object.values(excessosPorPlaca).length > 0 ? Object.values(excessosPorPlaca) : [0], backgroundColor: '#D32F2F' }] 
+                },
+                options: {
+                    plugins: {
+                        legend: { labels: { color: corTextoDinamica } },
+                        title: { display: true, text: 'Excessos de Velocidade', color: corTextoDinamica }
+                    },
+                    scales: {
+                        x: { ticks: { color: corTextoDinamica }, grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' } },
+                        y: { ticks: { color: corTextoDinamica }, grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' } }
+                    }
                 }
             });
 
@@ -1689,7 +1707,6 @@
             const valsTemposMinutos = labelsPar.map(p => paradosLigadosTempoMinutos[p]);
             const valsAlertas = labelsPar.map(p => paradosLigadosContagem[p]);
 
-            // Gráfico de Combinação (Barras para Tempo convertido em HH:MM e Linha para Quantidade de Alertas)
             window.graf2 = new Chart(document.getElementById('graficoParado').getContext('2d'), {
                 type: 'bar',
                 data: {
@@ -1716,24 +1733,22 @@
                 },
                 options: {
                     plugins: {
+                        legend: { labels: { color: corTextoDinamica } },
                         datalabels: {
                             formatter: function(value, context) {
-                                // Se for o dataset de barras (índice 0), converte os minutos para HH:MM nas etiquetas visuais
                                 if (context.datasetIndex === 0) {
                                     return formatarMinutosParaHhMm(value);
                                 }
-                                return value; // Mostra o número normal para a linha de alertas
+                                return value;
                             },
-                            color: 'white',
+                            color: corTextoDinamica,
                             font: { weight: 'bold' }
                         },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
                                     let label = context.dataset.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
+                                    if (label) { label += ': '; }
                                     if (context.datasetIndex === 0) {
                                         label += formatarMinutosParaHhMm(context.parsed.y);
                                     } else {
@@ -1743,28 +1758,35 @@
                                 }
                             }
                         },
-                        title: { display: true, text: 'Tempo Total (HH:MM) vs Qtd. de Alertas (Parado e Ligado)' }
+                        title: { display: true, text: 'Tempo Total (HH:MM) vs Qtd. de Alertas (Parado e Ligado)', color: corTextoDinamica }
                     },
                     scales: {
+                        x: { 
+                            ticks: { color: corTextoDinamica }, 
+                            grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' } 
+                        },
                         y: {
                             type: 'linear',
                             display: true,
                             position: 'left',
-                            title: { display: true, text: 'Tempo (Minutos)' },
+                            title: { display: true, text: 'Tempo (Minutos)', color: corTextoDinamica },
                             beginAtZero: true,
                             ticks: {
+                                color: corTextoDinamica,
                                 callback: function(value) {
                                     return formatarMinutosParaHhMm(value);
                                 }
-                            }
+                            },
+                            grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' }
                         },
                         y1: {
                             type: 'linear',
                             display: true,
                             position: 'right',
-                            title: { display: true, text: 'Qtd Alertas' },
+                            title: { display: true, text: 'Qtd Alertas', color: corTextoDinamica },
                             grid: { drawOnChartArea: false },
-                            beginAtZero: true
+                            beginAtZero: true,
+                            ticks: { color: corTextoDinamica }
                         }
                     }
                 }
@@ -1783,8 +1805,18 @@
         function carregarAbastecimentos() {
             const dados = [{placa: 'ABC-1234', data: '06/09/2026 07:58:52', bomba: '3654', local: 'Tres Lagoas - MS', volCTA: 500.34, odo: 338438, dist: 907, media: 1.81}];
             document.getElementById('tbodyAbastecimentos').innerHTML = dados.map(d => `<tr><td>${d.placa}</td><td>${d.data}</td><td>${d.bomba}</td><td>${d.local}</td><td style="font-weight:bold; color:var(--accent-blue)">${d.volCTA} L</td><td>${d.odo}</td><td>${d.dist} km</td><td>${d.media}</td></tr>`).join('');
+            
+            const corTextoDinamica = obterCorTextoGrafico();
             new Chart(document.getElementById('graficoConsumo').getContext('2d'), {
-                type: 'bar', data: { labels: ['ABC-1234'], datasets: [{ label: 'Abastecido', data: [500.34], backgroundColor: '#0055A4' }, { label: 'Consumido', data: [501.10], backgroundColor: '#388E3C' }] }
+                type: 'bar', 
+                data: { labels: ['ABC-1234'], datasets: [{ label: 'Abastecido', data: [500.34], backgroundColor: '#0055A4' }, { label: 'Consumido', data: [501.10], backgroundColor: '#388E3C' }] },
+                options: {
+                    plugins: { legend: { labels: { color: corTextoDinamica } } },
+                    scales: {
+                        x: { ticks: { color: corTextoDinamica } },
+                        y: { ticks: { color: corTextoDinamica } }
+                    }
+                }
             });
         }
 
