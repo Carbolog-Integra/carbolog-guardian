@@ -127,7 +127,7 @@
         .dragging { opacity: 0.5; background-color: rgba(0, 141, 218, 0.5) !important; }
         .drag-over { border-left: 3px solid #FF8F00 !important; }
 
-        /* Grid padronizado para manter todos os gráficos com o mesmo tamanho (2 colunas por linha) */
+        /* Grid padronizado com tamanho equilibrado (nem pequeno demais, nem gigante) */
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -143,11 +143,11 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 320px;
+            height: 390px; /* Tamanho intermediário ideal */
             box-sizing: border-box;
         }
         .chart-box canvas {
-            max-height: 250px !important;
+            max-height: 310px !important;
             width: 100% !important;
         }
     </style>
@@ -285,7 +285,7 @@
                     <div><button class="btn" style="background: #1D6F42;" onclick="exportarDashboardCompletoExcel()"><i class="fas fa-file-excel"></i> Exportar Toda Dashboard (Excel)</button></div>
                 </div>
 
-                <!-- Grid de gráficos padronizados com tamanhos estritamente iguais -->
+                <!-- Grid de gráficos com tamanhos idênticos e dimensionados harmonicamente -->
                 <div class="dashboard-grid">
                     <div class="chart-box">
                         <canvas id="graficoVelocidade"></canvas>
@@ -2440,7 +2440,7 @@
                 });
             }
 
-            // Gráfico 3: Pizza Broto - Veículos em Trânsito vs Parados
+            // Gráfico 3: Pizza - Veículos em Trânsito vs Parados (tamanho balanceado e padronizado)
             let qtdEmTransitoPizza = 0;
             let qtdParadosPizza = 0;
             veiculosCacheGlobal.forEach(v => {
@@ -2465,11 +2465,11 @@
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: {
-                            legend: { position: 'bottom', labels: { boxWidth: 12, color: corTextoDinamica, font: { size: 11, weight: 'bold' } } },
+                            legend: { position: 'bottom', labels: { boxWidth: 12, color: corTextoDinamica, font: { size: 12, weight: 'bold' } } },
                             title: { display: true, text: 'Veículos em Trânsito vs Parados', color: corTextoDinamica, font: { size: 14, weight: 'bold' } },
                             datalabels: {
                                 color: '#FFFFFF',
-                                font: { size: 12, weight: 'bold' },
+                                font: { size: 13, weight: 'bold' },
                                 formatter: (val) => val > 0 ? val : ''
                             }
                         }
@@ -2477,7 +2477,7 @@
                 });
             }
 
-            // Gráfico 4: Pizza Broto - Com Rota Vinculada vs Sem Rota Vinculada
+            // Gráfico 4: Pizza - Com Rota Vinculada vs Sem Rota Vinculada (tamanho balanceado e padronizado)
             let qtdComRota = 0;
             let qtdSemRota = 0;
             const uniquePlacas = new Set(veiculosCacheGlobal.map(v => {
@@ -2506,11 +2506,11 @@
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: {
-                            legend: { position: 'bottom', labels: { boxWidth: 12, color: corTextoDinamica, font: { size: 11, weight: 'bold' } } },
+                            legend: { position: 'bottom', labels: { boxWidth: 12, color: corTextoDinamica, font: { size: 12, weight: 'bold' } } },
                             title: { display: true, text: 'Veículos com Rota vs Sem Rota', color: corTextoDinamica, font: { size: 14, weight: 'bold' } },
                             datalabels: {
                                 color: '#FFFFFF',
-                                font: { size: 12, weight: 'bold' },
+                                font: { size: 13, weight: 'bold' },
                                 formatter: (val) => val > 0 ? val : ''
                             }
                         }
@@ -2518,7 +2518,7 @@
                 });
             }
 
-            // Gráfico 5: Barras - Custo Médio por Viagem vs Custo Total das Viagens (Padronizado na grid)
+            // Gráfico 5: Barras - Custo Médio por Viagem vs Custo Total das Viagens (tamanho equilibrado na grid)
             let labelsPlacasEmbarcadas = [];
             let dadosCustoMedio = [];
             let dadosCustoTotal = [];
