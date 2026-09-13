@@ -1536,7 +1536,7 @@
                         ${htmlAlertas}
                         <a href="${linkGoogle}" target="_blank" title="Google Maps" style="margin-left: 10px;"><i class="fas fa-map-marker-alt"></i></a>
                         <a href="${linkWaze}" target="_blank" title="Waze"><i class="fab fa-waze"></i></a>
-                    `
+                    </td>`
                 ];
 
                 let htmlOrdenado = '';
@@ -2527,7 +2527,7 @@
                 });
             }
 
-            // Gráfico 5: Custo Médio por Viagem por Placa vs Custo Total Geral (Soma de todas as placas)
+            // Gráfico 5: Custo Médio por Viagem por Placa + 1 Barra Separada à Direita com o Total Geral da Frota
             let labelsPlacasEmbarcadas = [];
             let dadosCustoMedio = [];
             let somaTotalGeralViagens = 0;
@@ -2542,13 +2542,21 @@
                 }
             });
 
-            if (labelsPlacasEmbarcadas.length > 10) {
-                labelsPlacasEmbarcadas = labelsPlacasEmbarcadas.slice(-10);
-                dadosCustoMedio = dadosCustoMedio.slice(-10);
+            if (labelsPlacasEmbarcadas.length > 9) {
+                labelsPlacasEmbarcadas = labelsPlacasEmbarcadas.slice(-9);
+                dadosCustoMedio = dadosCustoMedio.slice(-9);
             }
 
-            // Cria um array repetido do Custo Total Geral para exibir como linha comparativa ou barra de total geral em cada ponto (ou metrica agregada)
-            let dadosCustoTotalGeralArray = labelsPlacasEmbarcadas.map(() => somaTotalGeralViagens);
+            // Adiciona a categoria independente "TOTAL GERAL" na última posição (lado direito)
+            labelsPlacasEmbarcadas.push("TOTAL GERAL");
+            
+            // Para o dataset de Custo Médio, as placas exibem seus custos e a barra do "TOTAL GERAL" exibe o valor acumulado geral
+            let dadosCustoMedioDataset = [...dadosCustoMedio];
+            dadosCustoMedioDataset[dadosCustoMedioDataset.length - 1] = somaTotalGeralViagens;
+
+            // Para o dataset de Custo Total Geral, zeramos nas placas e mantemos apenas na última coluna da direita
+            let dadosCustoTotalGeralDataset = new Array(labelsPlacasEmbarcadas.length).fill(null);
+            dadosCustoTotalGeralDataset[dadosCustoTotalGeralDataset.length - 1] = somaTotalGeralViagens;
 
             const canvasCustoRotas = document.getElementById('graficoCustoRotasEmbarcadas');
             if (canvasCustoRotas) {
@@ -2558,14 +2566,14 @@
                         labels: labelsPlacasEmbarcadas.length > 0 ? labelsPlacasEmbarcadas : ['Sem Rotas Embarcadas'],
                         datasets: [
                             {
-                                label: 'Custo Total Geral (Frota/Viagens)',
-                                data: dadosCustoTotalGeralArray.length > 0 ? dadosCustoTotalGeralArray : [0],
-                                backgroundColor: '#0055A4'
+                                label: 'Custo Médio por Viagem (R$)',
+                                data: dadosCustoMedioDataset,
+                                backgroundColor: '#008DDA'
                             },
                             {
-                                label: 'Custo Médio por Viagem (R$)',
-                                data: dadosCustoMedio.length > 0 ? dadosCustoMedio : [0],
-                                backgroundColor: '#008DDA'
+                                label: 'Custo Total Geral (R$)',
+                                data: dadosCustoTotalGeralDataset,
+                                backgroundColor: '#0055A4'
                             }
                         ]
                     },
@@ -2576,7 +2584,7 @@
                             legend: { labels: { color: corTextoDinamica, font: fontPadraoGrafico } },
                             title: { display: true, text: `Custo Médio por Viagem vs Custo Total Geral (Total: R$ ${somaTotalGeralViagens.toFixed(2)})`, color: corTextoDinamica, font: { size: 14, weight: 'bold' } },
                             datalabels: {
-                                formatter: (val) => 'R$ ' + Number(val).toFixed(2),
+                                formatter: (val) => val !== null && val > 0 ? 'R$ ' + Number(val).toFixed(2) : '',
                                 color: corTextoDinamica,
                                 font: { size: 11, weight: 'bold' }
                             }
