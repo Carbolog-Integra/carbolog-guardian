@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Integrador Inteligente - Torre de Controle - YHWH</title>
+    <title>Integrador inteligente - Torre de Controle - YHWH</title>
 
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
@@ -763,13 +763,15 @@
         
         function parseDateToMs(dateStr) {
             if (!dateStr) return 0;
+            const d = new Date(dateStr);
+            if (!isNaN(d.getTime())) return d.getTime();
+
             const regexBR = /^(\d{2})\/(\d{2})\/(\d{4})[ ,]+(\d{2}):(\d{2}):(\d{2})/;
             const match = String(dateStr).match(regexBR);
             if (match) {
                 return new Date(`${match[3]}-${match[2]}-${match[1]}T${match[4]}:${match[5]}:${match[6]}`).getTime();
             }
-            const d = new Date(dateStr);
-            return isNaN(d.getTime()) ? 0 : d.getTime();
+            return 0;
         }
 
         function formatarMinutosParaHhMm(totalMinutos) {
@@ -1057,8 +1059,8 @@
 
         async function carregarDadosVeiculos() {
             try {
-                // Consulta estrita na API SASCAR no Supabase ordenando rigorosamente pelas mais recentes
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/posicoes_sascar?select=*&order=data_posicao.desc&limit=10000`, {
+                // Consulta sem limite arbitrário e ordenando rigorosamente pelo timestamp real do banco (SASCAR)
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/posicoes_sascar?select=*&order=data_posicao.desc`, {
                     method: 'GET',
                     headers: {
                         'apikey': SUPABASE_KEY,
@@ -1070,7 +1072,7 @@
                 const dadosBrutos = await response.json();
                 if (!dadosBrutos || !Array.isArray(dadosBrutos)) return;
 
-                // Ordenação determinística por timestamp real da base
+                // Ordenação estrita garantida no cliente com base no timestamp real do SASCAR
                 dadosBrutos.sort((a, b) => parseDateToMs(b.data_posicao) - parseDateToMs(a.data_posicao));
 
                 const veiculosMap = new Map();
@@ -1079,8 +1081,14 @@
                     const placaLimpa = id.replace(/[^a-zA-Z0-9]/g, '');
                     if (placaLimpa === 'SEMPLACA' || placaLimpa.length !== 7) return; 
 
-                    // Pega estritamente a última posição real recebida do veículo
-                    if (!veiculosMap.has(id)) veiculosMap.set(id, v);
+                    // Mantém obrigatoriamente apenas o registro mais recente retornado pelo SASCAR para cada veículo
+                    if (!veiculosMap.has(id)) {
+                        veiculosMap.set(id, {
+                            ...v,
+                            velocidade: Number(v.velocidade) || 0,
+                            ignicao: v.ignicao === 1 || v.ignicao === true || String(v.ignicao) === '1' || String(v.ignicao).toLowerCase() === 'true'
+                        });
+                    }
                 });
                 veiculosCacheGlobal = Array.from(veiculosMap.values());
                 
@@ -1317,7 +1325,7 @@
 
                 const linkGoogle = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
                 const linkWaze = `https://waze.com/ul?ll=${lat},${lon}&navigate=yes`;
-                const ignicaoBool = v.ignicao === 1 || v.ignicao === true || String(v.ignicao) === '1';
+                const ignicaoBool = Boolean(v.ignicao);
                 const velFinal = Number(v.velocidade) || 0;
                 
                 const rotaVinculadaObj = rotasVeiculos[placaFormatada];
@@ -1667,7 +1675,7 @@
                 if (p.length === 7 && !isNaN(p)) p = p.substring(0,3) + '-' + p.substring(3);
                 
                 const vel = Number(v.velocidade) || 0;
-                const ign = v.ignicao === 1 || v.ignicao === true || String(v.ignicao) === '1';
+                const ign = Boolean(v.ignicao);
                 
                 if (ign && vel > 10) emTransito++;
                 else if (!ign && vel === 0) desligados++;
@@ -2110,7 +2118,7 @@
                 let p = v.id_veiculo ? String(v.id_veiculo) : 'SEM-PLACA';
                 if (p.length === 7 && !isNaN(p)) p = p.substring(0,3) + '-' + p.substring(3);
                 const vel = Number(v.velocidade) || 0;
-                const ign = v.ignicao === 1 || v.ignicao === true || String(v.ignicao) === '1';
+                const ign = Boolean(v.ignicao);
                 
                 if (vel > 80) { 
                     excessosPorPlaca[p] = (excessosPorPlaca[p] || 0) + 1; 
