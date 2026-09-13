@@ -1536,7 +1536,7 @@
                         ${htmlAlertas}
                         <a href="${linkGoogle}" target="_blank" title="Google Maps" style="margin-left: 10px;"><i class="fas fa-map-marker-alt"></i></a>
                         <a href="${linkWaze}" target="_blank" title="Waze"><i class="fab fa-waze"></i></a>
-                    </td>`
+                    `
                 ];
 
                 let htmlOrdenado = '';
@@ -2371,7 +2371,7 @@
                 });
             }
 
-            // Gráfico 2: Parados e Ligados (limitado a 10 barras e fonte de alertas com cor padrão do tema)
+            // Gráfico 2: Parados e Ligados (limitado a 10 barras)
             let labelsPar = Object.keys(paradosLigadosContagem);
             let valsTemposMinutos = labelsPar.map(p => paradosLigadosTempoMinutos[p]);
             let valsAlertas = labelsPar.map(p => paradosLigadosContagem[p]);
@@ -2418,7 +2418,7 @@
                                     if (context.datasetIndex === 0) return formatarMinutosParaHhMm(value);
                                     return value;
                                 },
-                                color: corTextoDinamica, // Cor padronizada conforme solicitado (removido vermelho forçado)
+                                color: corTextoDinamica,
                                 font: function(context) {
                                     if (context.datasetIndex === 1) {
                                         return { size: 14, weight: 'bold' };
@@ -2527,26 +2527,28 @@
                 });
             }
 
-            // Gráfico 5: Barras - Custo Médio vs Total (limitado a 10 barras)
+            // Gráfico 5: Custo Médio por Viagem por Placa vs Custo Total Geral (Soma de todas as placas)
             let labelsPlacasEmbarcadas = [];
             let dadosCustoMedio = [];
-            let dadosCustoTotal = [];
+            let somaTotalGeralViagens = 0;
 
             Object.keys(rotasVeiculos).forEach(placa => {
                 const r = rotasVeiculos[placa];
                 if (r && r.custo) {
-                    const custoTotalVal = parseFloat(r.custo);
+                    const custoVal = parseFloat(r.custo);
                     labelsPlacasEmbarcadas.push(placa);
-                    dadosCustoTotal.push(custoTotalVal);
-                    dadosCustoMedio.push(custoTotalVal);
+                    dadosCustoMedio.push(custoVal);
+                    somaTotalGeralViagens += custoVal;
                 }
             });
 
             if (labelsPlacasEmbarcadas.length > 10) {
                 labelsPlacasEmbarcadas = labelsPlacasEmbarcadas.slice(-10);
-                dadosCustoTotal = dadosCustoTotal.slice(-10);
                 dadosCustoMedio = dadosCustoMedio.slice(-10);
             }
+
+            // Cria um array repetido do Custo Total Geral para exibir como linha comparativa ou barra de total geral em cada ponto (ou metrica agregada)
+            let dadosCustoTotalGeralArray = labelsPlacasEmbarcadas.map(() => somaTotalGeralViagens);
 
             const canvasCustoRotas = document.getElementById('graficoCustoRotasEmbarcadas');
             if (canvasCustoRotas) {
@@ -2556,8 +2558,8 @@
                         labels: labelsPlacasEmbarcadas.length > 0 ? labelsPlacasEmbarcadas : ['Sem Rotas Embarcadas'],
                         datasets: [
                             {
-                                label: 'Custo Total da Viagem (R$)',
-                                data: dadosCustoTotal.length > 0 ? dadosCustoTotal : [0],
+                                label: 'Custo Total Geral (Frota/Viagens)',
+                                data: dadosCustoTotalGeralArray.length > 0 ? dadosCustoTotalGeralArray : [0],
                                 backgroundColor: '#0055A4'
                             },
                             {
@@ -2572,7 +2574,7 @@
                         maintainAspectRatio: false,
                         plugins: {
                             legend: { labels: { color: corTextoDinamica, font: fontPadraoGrafico } },
-                            title: { display: true, text: 'Custo Médio vs Custo Total (Rotas Embarcadas - Máx. 10 Barras)', color: corTextoDinamica, font: { size: 14, weight: 'bold' } },
+                            title: { display: true, text: `Custo Médio por Viagem vs Custo Total Geral (Total: R$ ${somaTotalGeralViagens.toFixed(2)})`, color: corTextoDinamica, font: { size: 14, weight: 'bold' } },
                             datalabels: {
                                 formatter: (val) => 'R$ ' + Number(val).toFixed(2),
                                 color: corTextoDinamica,
