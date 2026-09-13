@@ -711,6 +711,7 @@
         let rotasVeiculos = {}; 
         let areasVeiculos = {}; 
         let veiculosCacheGlobal = []; 
+        let veiculosOcultosGlobal = {}; // NOVO: Armazena o estado do checkbox dos veículos (ocultos)
         let veiculoFocoGlobal = null; 
         let linhaRotaVeiculoAtivo = null; 
 
@@ -784,7 +785,7 @@
             if (reg) {
                 if (reg.ordem_colunas) columnOrder = reg.ordem_colunas;
                 if (reg.rotas_salvas && reg.rotas_salvas.length > 0) rotasSalvas = reg.rotas_salvas;
-                if (reg.rotas_veiculos) rotasVeiculos = rotasVeiculos;
+                if (reg.rotas_veiculos) rotasVeiculos = reg.rotas_veiculos;
                 if (reg.areas_salvas && reg.areas_salvas.length > 0) areasSalvas = reg.areas_salvas;
                 if (reg.areas_veiculos) areasVeiculos = reg.areas_veiculos;
                 if (reg.pontos_referencia && reg.pontos_referencia.length > 0) pontosReferenciaSalvos = reg.pontos_referencia;
@@ -1340,7 +1341,6 @@
                 btnRefresh.disabled = true;
             }
             
-            // Reseta imediatamente o contador visual e a variável de tempo
             countdown = 300;
             const timerEl = document.getElementById('timerRefresh');
             if(timerEl) timerEl.innerText = countdown;
@@ -1361,20 +1361,38 @@
 
                 dadosBrutos.sort((a, b) => parseDateToMs(b.data_posicao) - parseDateToMs(a.data_posicao));
 
+                // Carrega os veículos atuais no Map
                 const veiculosMap = new Map();
+                veiculosCacheGlobal.forEach(v => veiculosMap.set(v.id_veiculo, v));
+
+                // Processa a nova chamada (pegando a posição mais recente de cada)
+                const novosVeiculosMap = new Map();
                 dadosBrutos.forEach(v => {
                     const id = v.id_veiculo ? String(v.id_veiculo).trim() : 'SEM-PLACA';
                     const placaLimpa = id.replace(/[^a-zA-Z0-9]/g, '');
                     if (placaLimpa === 'SEMPLACA' || placaLimpa.length !== 7) return; 
 
-                    if (!veiculosMap.has(id)) {
-                        veiculosMap.set(id, {
+                    if (!novosVeiculosMap.has(id)) {
+                        novosVeiculosMap.set(id, {
                             ...v,
                             velocidade: Number(v.velocidade) ? Math.round(Number(v.velocidade)) : 0,
                             ignicao: v.ignicao === 1 || v.ignicao === true || String(v.ignicao) === '1' || String(v.ignicao).toLowerCase() === 'true'
                         });
                     }
                 });
+
+                // Faz o Merge (mantém os que sumiram, atualiza os que moveram)
+                novosVeiculosMap.forEach((novoV, id) => {
+                    if (veiculosMap.has(id)) {
+                        const velhoV = veiculosMap.get(id);
+                        if (parseDateToMs(novoV.data_posicao) >= parseDateToMs(velhoV.data_posicao)) {
+                            veiculosMap.set(id, novoV);
+                        }
+                    } else {
+                        veiculosMap.set(id, novoV);
+                    }
+                });
+
                 veiculosCacheGlobal = Array.from(veiculosMap.values());
                 
                 expirarAlertasNaoTratados();
@@ -1749,9 +1767,12 @@
                 }).filter(Boolean);
                 const areasStr = nomesAreas.length > 0 ? nomesAreas.join(', ') : 'Nenhuma';
                 
+                // Puxa o estado atual se o veículo foi oculto manualmente ou não
+                const isChecked = veiculosOcultosGlobal[placaFormatada] ? '' : 'checked';
+
                 const tds = [
                     `<td><b>${index + 1}</b></td>`,
-                    `<td><input type="checkbox" class="chk-veiculo" value="${placaFormatada}" checked onchange="toggleMarker('${placaFormatada}')"></td>`,
+                    `<td><input type="checkbox" class="chk-veiculo" value="${placaFormatada}" ${isChecked} onchange="toggleMarker('${placaFormatada}')"></td>`,
                     `<td><a href="#" onclick="focarVeiculoNoMapa('${placaFormatada}'); return false;" style="color:var(--accent-blue); font-weight:bold;">${placaFormatada}</a></td>`,
                     `<td>${dataFormatadaPtBr}</td>`,
                     `<td><span style="color: ${ignicaoBool ? 'var(--success)' : 'var(--danger)'}; font-weight:bold;">${ignicaoBool ? 'LIGADA' : 'DESLIGADA'}</span></td>`,
@@ -1778,8 +1799,7 @@
                 tbody.appendChild(tr);
 
                 if (!isNaN(lat) && !isNaN(lon)) {
-                    const chk = document.querySelector(`input.chk-veiculo[value="${placaFormatada}"]`);
-                    const exibirNoMapa = !chk || chk.checked;
+                    const exibirNoMapa = !veiculosOcultosGlobal[placaFormatada];
                     if (exibirNoMapa) {
                         const marcador = L.marker([lat, lon], {icon: iconeCaminhao}).addTo(map);
                         
@@ -2370,6 +2390,7 @@
             const chk = document.querySelector(`input.chk-veiculo[value="${placa}"]`);
             if (chk && !chk.checked) {
                 chk.checked = true;
+                veiculosOcultosGlobal[placa] = false;
             }
             
             veiculoFocoGlobal = placa;
@@ -2446,15 +2467,19 @@
 
         function toggleMarker(placa) {
             const chk = document.querySelector(`input.chk-veiculo[value="${placa}"]`);
-            if (chk && markers[placa]) { 
-                if (chk.checked) markers[placa].addTo(map); 
-                else map.removeLayer(markers[placa]); 
+            if (chk) {
+                veiculosOcultosGlobal[placa] = !chk.checked;
+                if (markers[placa]) { 
+                    if (chk.checked) markers[placa].addTo(map); 
+                    else map.removeLayer(markers[placa]); 
+                }
             }
         }
 
         function marcarTodos(status) {
             document.querySelectorAll('.chk-veiculo').forEach(chk => {
                 chk.checked = status;
+                veiculosOcultosGlobal[chk.value] = !status;
                 if (markers[chk.value]) { if (status) markers[chk.value].addTo(map); else map.removeLayer(markers[chk.value]); }
             });
             const checkAll = document.getElementById('checkAll');
