@@ -3,7 +3,7 @@ name: Sincronizador SASCAR - Robô
 on:
   workflow_dispatch:
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: '*/5 * * * *'
 
 jobs:
   sincronizar:
