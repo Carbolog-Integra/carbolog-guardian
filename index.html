@@ -1057,6 +1057,7 @@
 
         async function carregarDadosVeiculos() {
             try {
+                // Consulta estrita na API SASCAR no Supabase ordenando rigorosamente pelas mais recentes
                 const response = await fetch(`${SUPABASE_URL}/rest/v1/posicoes_sascar?select=*&order=data_posicao.desc&limit=10000`, {
                     method: 'GET',
                     headers: {
@@ -1067,16 +1068,18 @@
                 });
                 if (!response.ok) return;
                 const dadosBrutos = await response.json();
-                if (!dadosBrutos) return;
+                if (!dadosBrutos || !Array.isArray(dadosBrutos)) return;
 
+                // Ordenação determinística por timestamp real da base
                 dadosBrutos.sort((a, b) => parseDateToMs(b.data_posicao) - parseDateToMs(a.data_posicao));
 
                 const veiculosMap = new Map();
                 dadosBrutos.forEach(v => {
-                    const id = v.id_veiculo ? String(v.id_veiculo) : 'SEM-PLACA';
+                    const id = v.id_veiculo ? String(v.id_veiculo).trim() : 'SEM-PLACA';
                     const placaLimpa = id.replace(/[^a-zA-Z0-9]/g, '');
                     if (placaLimpa === 'SEMPLACA' || placaLimpa.length !== 7) return; 
 
+                    // Pega estritamente a última posição real recebida do veículo
                     if (!veiculosMap.has(id)) veiculosMap.set(id, v);
                 });
                 veiculosCacheGlobal = Array.from(veiculosMap.values());
@@ -1264,6 +1267,11 @@
                     if (p.length === 7 && !isNaN(p)) p = p.substring(0,3) + '-' + p.substring(3);
                     return p === veiculoFocoGlobal;
                 });
+            }
+
+            if (dadosFiltrados.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="12" style="text-align:center; opacity:0.7; padding: 20px;">Nenhum veículo encontrado na API do SASCAR.</td></tr>`;
+                return;
             }
 
             const mapPlacasProximas = {};
