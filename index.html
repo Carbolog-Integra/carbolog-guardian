@@ -141,7 +141,6 @@
         
         .tag-cadastrado { font-size: 10px; background: #008DDA; color: white; padding: 2px 6px; border-radius: 10px; margin-left: 5px; }
 
-        /* Painel de Cards de Áreas em Tempo Real (Remanejado para a Dashboard) */
         .areas-cards-container {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -390,10 +389,7 @@
                 <div class="flex-row" style="justify-content: space-between;">
                     <h3 style="color: var(--accent-blue);"><i class="fas fa-draw-polygon"></i> Painel de Cercas Eletrônicas (Tempo Real)</h3>
                 </div>
-                <!-- Painel de Cards de Áreas em Tempo Real remanejado para a Dashboard -->
-                <div id="painelCardsAreas" class="areas-cards-container" style="margin-top: 15px;">
-                    <!-- Renderizado dinamicamente via JS -->
-                </div>
+                <div id="painelCardsAreas" class="areas-cards-container" style="margin-top: 15px;"></div>
 
                 <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 25px 0;">
 
@@ -403,21 +399,11 @@
                 </div>
 
                 <div class="dashboard-grid">
-                    <div class="chart-box">
-                        <canvas id="graficoVelocidade"></canvas>
-                    </div>
-                    <div class="chart-box">
-                        <canvas id="graficoParado"></canvas>
-                    </div>
-                    <div class="chart-box">
-                        <canvas id="graficoPizzaStatus"></canvas>
-                    </div>
-                    <div class="chart-box">
-                        <canvas id="graficoPizzaRotas"></canvas>
-                    </div>
-                    <div class="chart-box" style="grid-column: span 2; width: 100%;">
-                        <canvas id="graficoCustoRotasEmbarcadas"></canvas>
-                    </div>
+                    <div class="chart-box"><canvas id="graficoVelocidade"></canvas></div>
+                    <div class="chart-box"><canvas id="graficoParado"></canvas></div>
+                    <div class="chart-box"><canvas id="graficoPizzaStatus"></canvas></div>
+                    <div class="chart-box"><canvas id="graficoPizzaRotas"></canvas></div>
+                    <div class="chart-box" style="grid-column: span 2; width: 100%;"><canvas id="graficoCustoRotasEmbarcadas"></canvas></div>
                 </div>
 
                 <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 25px 0;">
@@ -480,7 +466,6 @@
             </div>
         </div>
 
-        <!-- OUTRAS ABAS (ABASTECIMENTOS, ROTAS, AREAS, PONTOS)... -->
         <!-- ABA 3: ABASTECIMENTOS -->
         <div id="abastecimentos" class="tab-content">
             <div class="card" id="exportAreaAbastecimento">
@@ -1267,7 +1252,6 @@
         function exportarDashboardCompletoExcel() {
             const wb = XLSX.utils.book_new();
 
-            // Aba extra para exportar os Dados Consolidados das Cercas Eletrônicas em Tempo Real
             const dadosCercasRealtime = areasSalvas.map(area => {
                 let veiculosNaArea = [];
                 veiculosCacheGlobal.forEach(v => {
