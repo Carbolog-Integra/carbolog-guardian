@@ -172,7 +172,7 @@
             <div class="card" style="padding-bottom: 0;">
                 <div class="flex-row" style="justify-content: space-between;">
                     <h3 style="color: var(--accent-blue);">
-                        <i class="fas fa-map"></i> Monitor de Frota - 
+                        <i class="fas fa-map"></i> Robô Monitor de Frota (SASCAR) - 
                         <span id="contadorAlertasGeral" style="color: red; font-weight: bold;">0 Alertas</span>
                     </h3>
                     <div>
@@ -763,13 +763,16 @@
         
         function parseDateToMs(dateStr) {
             if (!dateStr) return 0;
-            const d = new Date(dateStr);
-            if (!isNaN(d.getTime())) return d.getTime();
-            const parts = String(dateStr).split(/[\s\/:,]+/).filter(Boolean);
-            if (parts.length >= 6) {
-                return new Date(`${parts[2]}-${parts[1]}-${parts[0]}T${parts[3]}:${parts[4]}:${parts[5]}`).getTime();
+            // Verifica estritamente o formato Brasileiro retornado pelo DB: DD/MM/YYYY HH:mm:ss
+            const regexBR = /^(\d{2})\/(\d{2})\/(\d{4})[ ,]+(\d{2}):(\d{2}):(\d{2})/;
+            const match = String(dateStr).match(regexBR);
+            if (match) {
+                // Força o formato seguro ISO YYYY-MM-DDTHH:mm:ss
+                return new Date(`${match[3]}-${match[2]}-${match[1]}T${match[4]}:${match[5]}:${match[6]}`).getTime();
             }
-            return 0;
+            // Fallback padrão
+            const d = new Date(dateStr);
+            return isNaN(d.getTime()) ? 0 : d.getTime();
         }
 
         function formatarMinutosParaHhMm(totalMinutos) {
@@ -1057,7 +1060,8 @@
 
         async function carregarDadosVeiculos() {
             try {
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/posicoes_sascar?select=*&limit=10000`, {
+                // A ordenação order=data_posicao.desc voltou para a API. Assim, os 10000 registros limitados serão sempre os mais recentes.
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/posicoes_sascar?select=*&order=data_posicao.desc&limit=10000`, {
                     method: 'GET',
                     headers: {
                         'apikey': SUPABASE_KEY,
@@ -1069,7 +1073,7 @@
                 const dadosBrutos = await response.json();
                 if (!dadosBrutos) return;
 
-                // Ordenação real por data para garantir sempre a ÚLTIMA posição, evitando conflitos de ordenação de strings
+                // Garante também o JS sort caso o banco envie fora de ordem localmente
                 dadosBrutos.sort((a, b) => parseDateToMs(b.data_posicao) - parseDateToMs(a.data_posicao));
 
                 const veiculosMap = new Map();
@@ -1078,6 +1082,7 @@
                     const placaLimpa = id.replace(/[^a-zA-Z0-9]/g, '');
                     if (placaLimpa === 'SEMPLACA' || placaLimpa.length !== 7) return; 
 
+                    // Salva apenas o primeiro que aparece (que graças à ordenação acima, é o mais novo)
                     if (!veiculosMap.has(id)) veiculosMap.set(id, v);
                 });
                 veiculosCacheGlobal = Array.from(veiculosMap.values());
