@@ -1308,7 +1308,7 @@
                 dadosBrutos.forEach(v => {
                     const id = v.id_veiculo ? String(v.id_veiculo).trim() : 'SEM-PLACA';
                     const placaLimpa = id.replace(/[^a-zA-Z0-9]/g, '');
-                    if (placaLimpa === 'SEMPLACA' || placaLimpa.length !== 7) return; 
+                    if (placaLimpa === 'SEMPLACA' || placaLimpa.length < 5) return; 
 
                     if (!veiculosMap.has(id)) {
                         veiculosMap.set(id, {
