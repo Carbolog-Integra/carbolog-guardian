@@ -200,12 +200,14 @@
         <!-- ABA 1: GRID OPERACIONAL -->
         <div id="operacional" class="tab-content active">
             <div class="card" style="padding-bottom: 0;">
-                <div class="flex-row" style="justify-content: space-between;">
+                <div class="flex-row" style="justify-content: space-between; flex-wrap: wrap;">
                     <h3 style="color: var(--accent-blue);">
                         <i class="fas fa-map"></i> Monitor de Frota 
                         <span id="contadorAlertasGeral" style="color: red; font-weight: bold;">0 Alertas</span>
                     </h3>
-                    <div>
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <span class="info-tag">Pop-up 20m: <b id="statusPopupAlertaTxt" style="color: var(--success);">Habilitado</b></span>
+                        <button class="btn" id="btnTogglePopup20m" style="background: var(--warning); padding: 6px 12px; font-size: 12px;" onclick="alternarPopupAlertas20Min()"><i class="fas fa-bell-slash"></i> Desabilitar Pop-up</button>
                         <span class="info-tag">Auto-Refresh: <span id="timerRefresh">300</span>s</span>
                         <button class="btn" onclick="carregarDadosVeiculos()"><i class="fas fa-sync"></i> Refresh</button>
                         <button class="btn" onclick="abrirModalEficiencia()"><i class="fas fa-route"></i> Criar Nova Rota</button>
@@ -479,6 +481,30 @@
     </div>
 
     <!-- MODAIS -->
+    <div id="modalPopupAlertas20Min" class="modal">
+        <div class="modal-content" style="max-width: 750px;">
+            <div class="modal-header">
+                <i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i> Alertas Pendentes (Resumo de 20 Minutos)
+                <span class="close-modal" onclick="fecharModalPopupAlertas20Min()">×</span>
+            </div>
+            <p style="font-size: 13px; opacity: 0.8;">Abaixo estão listados todos os veículos que possuem alertas ativos e ainda não tratados no grid operacional:</p>
+            <div style="overflow-x: auto; max-height: 350px;">
+                <table style="width: 100%; border: 1px solid var(--border-color);">
+                    <thead>
+                        <tr>
+                            <th>Placa</th>
+                            <th>Tipo de Alerta</th>
+                            <th>Data / Hora</th>
+                            <th>Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyPopupAlertas20Min"></tbody>
+                </table>
+            </div>
+            <button class="btn" style="width: 100%; margin-top: 15px; background: var(--primary-blue);" onclick="fecharModalPopupAlertas20Min()">Entendido / Fechar</button>
+        </div>
+    </div>
+
     <div id="modalPontoRef" class="modal">
         <div class="modal-content" style="max-width: 600px;">
             <div class="modal-header">Cadastrar Ponto de Referência <span class="close-modal" onclick="fecharModalPontoRef()">×</span></div>
@@ -712,6 +738,9 @@
         let chaveAlertaAtualModal = null;
         let countdown = 300;
         let timerIntervalRef = null;
+        
+        let popupAlertasHabilitado = true;
+        let popup20MinIntervalRef = null;
 
         let mapPlacasProximasGlobal = {};
 
@@ -827,6 +856,7 @@
                         carregarDadosVeiculos();
                         carregarAbastecimentos();
                         iniciarAutoRefresh();
+                        iniciarPopupAlertas20MinTimer();
                     }, 200);
                 });
             }
@@ -1384,7 +1414,6 @@
                 const velFinal = Number(v.velocidade) || 0;
                 const ign = Boolean(v.ignicao);
                 
-                // Regra de Perda de Sinal (> 20 minutos sem comunicação)
                 const tempoMsCom = parseDateToMs(v.data_posicao);
                 const diffMinutosCom = tempoMsCom > 0 ? (agora - tempoMsCom) / 60000 : 0;
                 const chaveSinal = `sinal_${placaFormatada}`;
@@ -1755,6 +1784,105 @@
 
             const elContador = document.getElementById('contadorAlertasGeral');
             if (elContador) elContador.innerText = `${totalAlertasAtivos} Alertas`;
+        }
+
+        function alternarPopupAlertas20Min() {
+            popupAlertasHabilitado = !popupAlertasHabilitado;
+            const txtEl = document.getElementById('statusPopupAlertaTxt');
+            const btnEl = document.getElementById('btnTogglePopup20m');
+            
+            if (popupAlertasHabilitado) {
+                txtEl.innerText = "Habilitado";
+                txtEl.style.color = "var(--success)";
+                btnEl.innerHTML = `<i class="fas fa-bell-slash"></i> Desabilitar Pop-up`;
+                btnEl.style.background = "var(--warning)";
+                iniciarPopupAlertas20MinTimer();
+                alert("Pop-up automático a cada 20 minutos habilitado com sucesso!");
+            } else {
+                txtEl.innerText = "Desabilitado";
+                txtEl.style.color = "var(--danger)";
+                btnEl.innerHTML = `<i class="fas fa-bell"></i> Habilitar Pop-up`;
+                btnEl.style.background = "var(--success)";
+                if (popup20MinIntervalRef) clearInterval(popup20MinIntervalRef);
+                alert("Pop-up automático a cada 20 minutos desabilitado.");
+            }
+        }
+
+        function iniciarPopupAlertas20MinTimer() {
+            if (popup20MinIntervalRef) clearInterval(popup20MinIntervalRef);
+            // 20 minutos em milissegundos = 20 * 60 * 1000 = 1.200.000 ms
+            popup20MinIntervalRef = setInterval(() => {
+                if (popupAlertasHabilitado) {
+                    verificarEAbrirPopupAlertasPendentes();
+                }
+            }, 20 * 60 * 1000);
+        }
+
+        function verificarEAbrirPopupAlertasPendentes() {
+            const tbody = document.getElementById('tbodyPopupAlertas20Min');
+            if (!tbody) return;
+            
+            let alertasPendentes = [];
+            
+            veiculosCacheGlobal.forEach(v => {
+                let placaRaw = v.id_veiculo ? String(v.id_veiculo) : 'SEM-PLACA';
+                let placaFormatada = (placaRaw !== 'SEM-PLACA' && placaRaw.length === 7 && !isNaN(placaRaw)) ? placaRaw.substring(0, 3) + '-' + placaRaw.substring(3) : placaRaw;
+                
+                const velFinal = Number(v.velocidade) || 0;
+                const ign = Boolean(v.ignicao);
+                const tempoMsCom = parseDateToMs(v.data_posicao);
+                const diffMinutosCom = tempoMsCom > 0 ? (Date.now() - tempoMsCom) / 60000 : 0;
+                
+                const rotaVinculadaObj = rotasVeiculos[placaFormatada];
+                let desvioMetros = 0;
+                if (rotaVinculadaObj && rotaVinculadaObj.coordenadas) {
+                    const lat = parseFloat(String(v.latitude).replace(',', '.'));
+                    const lon = parseFloat(String(v.longitude).replace(',', '.'));
+                    if (!isNaN(lat) && !isNaN(lon)) {
+                        desvioMetros = Math.round(calcularMenorDistanciaAteRota(lat, lon, rotaVinculadaObj.coordenadas));
+                    }
+                }
+
+                const chaveVel = `vel_${placaFormatada}`;
+                const chaveSinal = `sinal_${placaFormatada}`;
+                const chaveDesvio = `desvio_${placaFormatada}_${rotaVinculadaObj ? rotaVinculadaObj.id : 'nenhuma'}`;
+                const chaveParado = `parado_${placaFormatada}`;
+
+                let duracaoParadoMin = 0;
+                if (statusParadoLigado[chaveParado]) {
+                    duracaoParadoMin = Math.round((Date.now() - statusParadoLigado[chaveParado]) / 60000);
+                }
+
+                if (diffMinutosCom > 20 && !alertasFinalizados[chaveSinal]) {
+                    alertasPendentes.push({ placa: placaFormatada, tipo: `Perda de Sinal (${Math.round(diffMinutosCom)} min)`, data: formatarDataHoraPtBr(v.data_posicao), chave: chaveSinal });
+                }
+                if (velFinal > 80 && !alertasFinalizados[chaveVel]) {
+                    alertasPendentes.push({ placa: placaFormatada, tipo: `Excesso de Velocidade (${velFinal} km/h)`, data: formatarDataHoraPtBr(v.data_posicao), chave: chaveVel });
+                }
+                if (rotaVinculadaObj && desvioMetros > 250 && !alertasFinalizados[chaveDesvio]) {
+                    alertasPendentes.push({ placa: placaFormatada, tipo: `Desvio de Rota (${desvioMetros}m)`, data: formatarDataHoraPtBr(v.data_posicao), chave: chaveDesvio });
+                }
+                if (duracaoParadoMin >= 10 && !alertasFinalizados[chaveParado]) {
+                    alertasPendentes.push({ placa: placaFormatada, tipo: `Parado e Ligado (${duracaoParadoMin} min)`, data: formatarDataHoraPtBr(v.data_posicao), chave: chaveParado });
+                }
+            });
+
+            if (alertasPendentes.length > 0) {
+                tbody.innerHTML = alertasPendentes.map(a => `
+                    <tr>
+                        <td><b>${a.placa}</b></td>
+                        <td><span class="badge-alerta bg-danger">${a.tipo}</span></td>
+                        <td>${a.data}</td>
+                        <td><button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--success);" onclick="fecharModalPopupAlertas20Min(); abrirModalFinalizarAlerta('${a.placa}', '${a.tipo}', '${a.chave}')">Tratar Alerta</button></td>
+                    </tr>
+                `).join('');
+                
+                document.getElementById('modalPopupAlertas20Min').style.display = 'flex';
+            }
+        }
+
+        function fecharModalPopupAlertas20Min() {
+            document.getElementById('modalPopupAlertas20Min').style.display = 'none';
         }
 
         function abrirModalFinalizarAlerta(placa, tipoAlerta, chaveAlerta) {
@@ -2494,7 +2622,7 @@
             });
 
             const agora = Date.now();
-            if (agora >= inicio && agoran <= fim) {
+            if (agora >= inicio && agora <= fim) {
                 Object.keys(statusParadoLigado).forEach(chave => {
                     const placa = chave.replace('parado_', '');
                     const duracaoMin = Math.round((agora - statusParadoLigado[chave]) / 60000);
