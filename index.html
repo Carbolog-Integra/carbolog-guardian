@@ -610,6 +610,8 @@
         let historicoDesviosDashboard = [];
         let historicoComboiosDashboard = [];
         let historicoExcessoVelocidadeDashboard = [];
+        let historicoParadosLigados = [];
+        let statusParadoLigado = {}; 
         let historicoTratativas = [];
 
         let modoDesenhoAtual = null; 
@@ -662,7 +664,11 @@
                 if (reg.hist_permanencias) historicoPermanenciasDashboard = reg.hist_permanencias;
                 if (reg.hist_desvios) historicoDesviosDashboard = reg.hist_desvios;
                 if (reg.hist_comboios) historicoComboiosDashboard = reg.hist_comboios;
+                
                 if (reg.hist_excesso_vel) historicoExcessoVelocidadeDashboard = reg.hist_excesso_vel;
+                if (reg.hist_parados) historicoParadosLigados = reg.hist_parados;
+                if (reg.status_parado) statusParadoLigado = reg.status_parado;
+                
                 if (reg.hist_tratativas) historicoTratativas = reg.hist_tratativas;
             }
 
@@ -690,6 +696,8 @@
                 hist_desvios: historicoDesviosDashboard,
                 hist_comboios: historicoComboiosDashboard,
                 hist_excesso_vel: historicoExcessoVelocidadeDashboard,
+                hist_parados: historicoParadosLigados,
+                status_parado: statusParadoLigado,
                 hist_tratativas: historicoTratativas
             };
 
@@ -1057,7 +1065,6 @@
             return false;
         }
 
-        // NOVO: Função para expirar alertas com mais de 20 minutos sem tratativa
         function expirarAlertasNaoTratados() {
             const agora = Date.now();
             let mudou = false;
@@ -1178,7 +1185,35 @@
                 const lat = parseFloat(String(v.latitude).replace(',', '.'));
                 const lon = parseFloat(String(v.longitude).replace(',', '.'));
                 const velFinal = Number(v.velocidade) || 0;
+                const ign = Boolean(v.ignicao);
                 
+                // === LÓGICA PARADO E LIGADO ===
+                const chaveParado = `parado_${placaFormatada}`;
+                if (velFinal === 0 && ign) {
+                    if (!statusParadoLigado[chaveParado]) {
+                        statusParadoLigado[chaveParado] = agora;
+                        houveMudanca = true;
+                    }
+                } else {
+                    if (statusParadoLigado[chaveParado]) {
+                        const inicio = statusParadoLigado[chaveParado];
+                        const duracaoMin = Math.round((agora - inicio) / 60000);
+                        if (duracaoMin > 0) { 
+                            historicoParadosLigados.push({
+                                placa: placaFormatada,
+                                ocorrencia: 'Parado e Ligado',
+                                duracao: duracaoMin,
+                                maxVel: 0,
+                                dataHora: new Date(inicio).toLocaleString('pt-BR'),
+                                timestamp: inicio,
+                                rawDate: new Date(inicio)
+                            });
+                        }
+                        delete statusParadoLigado[chaveParado];
+                        houveMudanca = true;
+                    }
+                }
+
                 if (velFinal > 80) {
                     const chaveVel = `vel_${placaFormatada}`;
                     const jaExisteVel = historicoExcessoVelocidadeDashboard.some(e => e.placa === placaFormatada && (agora - e.timestamp) < 300000);
@@ -1233,7 +1268,6 @@
 
                     if (dentro) {
                         if (!contadorPermanenciaAreas[chaveKey]) {
-                            // NOVO: Usa os dadosBrutos da API SASCAR para encontrar o tempo real em que entrou
                             let tempoEntrada = agora;
                             if (dadosBrutos) {
                                 let histVeic = dadosBrutos.filter(d => {
@@ -1704,7 +1738,8 @@
                 ...historicoDesviosDashboard, 
                 ...historicoPermanenciasDashboard, 
                 ...historicoComboiosDashboard,
-                ...historicoExcessoVelocidadeDashboard
+                ...historicoExcessoVelocidadeDashboard,
+                ...historicoParadosLigados
             ];
             
             let totalBrutosFiltrados = filtrarItensPorData(todosBrutosUnidos);
@@ -2165,7 +2200,7 @@
             renderizarTabelaRotas();
         }
 
-        async function atualizarDashboards() {
+        function atualizarDashboards() {
             if(window.graf1) window.graf1.destroy();
             if(window.graf2) window.graf2.destroy();
             
@@ -2173,20 +2208,37 @@
             let paradosLigadosContagem = {};
             let paradosLigadosTempoMinutos = {};
 
-            veiculosCacheGlobal.forEach(v => {
-                let p = v.id_veiculo ? String(v.id_veiculo) : 'SEM-PLACA';
-                if (p.length === 7 && !isNaN(p)) p = p.substring(0,3) + '-' + p.substring(3);
-                const vel = Number(v.velocidade) || 0;
-                const ign = Boolean(v.ignicao);
-                
-                if (vel > 80) { 
-                    excessosPorPlaca[p] = (excessosPorPlaca[p] || 0) + 1; 
-                }
-                if (ign && vel === 0) { 
-                    paradosLigadosContagem[p] = (paradosLigadosContagem[p] || 0) + 1;
-                    paradosLigadosTempoMinutos[p] = paradosLigadosContagem[p] * 15;
-                }
+            const dtInicioVal = document.getElementById('filtroDataInicio').value;
+            const dtFimVal = document.getElementById('filtroDataFim').value;
+            const inicio = dtInicioVal ? new Date(dtInicioVal).getTime() : 0;
+            const fim = dtFimVal ? new Date(dtFimVal).getTime() : Infinity;
+
+            const filtrarData = (item) => {
+                const t = item.timestamp || parseDateToMs(item.dataHora);
+                if (isNaN(t) || t === 0) return true;
+                return t >= inicio && t <= fim;
+            };
+
+            historicoExcessoVelocidadeDashboard.filter(filtrarData).forEach(e => {
+                excessosPorPlaca[e.placa] = (excessosPorPlaca[e.placa] || 0) + 1;
             });
+
+            historicoParadosLigados.filter(filtrarData).forEach(p => {
+                paradosLigadosContagem[p.placa] = (paradosLigadosContagem[p.placa] || 0) + 1;
+                paradosLigadosTempoMinutos[p.placa] = (paradosLigadosTempoMinutos[p.placa] || 0) + p.duracao;
+            });
+
+            const agora = Date.now();
+            if (agora >= inicio && agora <= fim) {
+                Object.keys(statusParadoLigado).forEach(chave => {
+                    const placa = chave.replace('parado_', '');
+                    const duracaoMin = Math.round((agora - statusParadoLigado[chave]) / 60000);
+                    if (duracaoMin > 0) {
+                        paradosLigadosContagem[placa] = (paradosLigadosContagem[placa] || 0) + 1;
+                        paradosLigadosTempoMinutos[placa] = (paradosLigadosTempoMinutos[placa] || 0) + duracaoMin;
+                    }
+                });
+            }
             
             const corTextoDinamica = obterCorTextoGrafico();
 
@@ -2205,7 +2257,7 @@
                         },
                         scales: {
                             x: { ticks: { color: corTextoDinamica }, grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' } },
-                            y: { ticks: { color: corTextoDinamica }, grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' } }
+                            y: { ticks: { color: corTextoDinamica }, grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' }, beginAtZero: true }
                         }
                     }
                 });
@@ -2220,7 +2272,7 @@
                 window.graf2 = new Chart(canvasParado.getContext('2d'), {
                     type: 'bar',
                     data: {
-                        labels: labelsPar.length > 0 ? labelsPar : ['Frota Normal'],
+                        labels: labelsPar.length > 0 ? labelsPar : ['Sem Registros'],
                         datasets: [
                             {
                                 type: 'bar',
@@ -2246,9 +2298,7 @@
                             legend: { labels: { color: corTextoDinamica } },
                             datalabels: {
                                 formatter: function(value, context) {
-                                    if (context.datasetIndex === 0) {
-                                        return formatarMinutosParaHhMm(value);
-                                    }
+                                    if (context.datasetIndex === 0) return formatarMinutosParaHhMm(value);
                                     return value;
                                 },
                                 color: corTextoDinamica,
@@ -2258,41 +2308,26 @@
                                 callbacks: {
                                     label: function(context) {
                                         let label = context.dataset.label || '';
-                                        if (label) { label += ': '; }
-                                        if (context.datasetIndex === 0) {
-                                            label += formatarMinutosParaHhMm(context.parsed.y);
-                                        } else {
-                                            label += context.parsed.y;
-                                        }
+                                        if (label) label += ': ';
+                                        if (context.datasetIndex === 0) label += formatarMinutosParaHhMm(context.parsed.y);
+                                        else label += context.parsed.y;
                                         return label;
                                     }
                                 }
                             },
-                            title: { display: true, text: 'Tempo Total (HH:MM) vs Qtd. de Alertas (Parado e Ligado)', color: corTextoDinamica }
+                            title: { display: true, text: 'Tempo Total vs Qtd. de Alertas (Parado e Ligado)', color: corTextoDinamica }
                         },
                         scales: {
-                            x: { 
-                                ticks: { color: corTextoDinamica }, 
-                                grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' } 
-                            },
+                            x: { ticks: { color: corTextoDinamica }, grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' } },
                             y: {
-                                type: 'linear',
-                                display: true,
-                                position: 'left',
-                                title: { display: true, text: 'Tempo (Minutos)', color: corTextoDinamica },
+                                type: 'linear', display: true, position: 'left',
+                                title: { display: true, text: 'Tempo (HH:MM)', color: corTextoDinamica },
                                 beginAtZero: true,
-                                ticks: {
-                                    color: corTextoDinamica,
-                                    callback: function(value) {
-                                        return formatarMinutosParaHhMm(value);
-                                    }
-                                },
+                                ticks: { color: corTextoDinamica, callback: function(value) { return formatarMinutosParaHhMm(value); } },
                                 grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' }
                             },
                             y1: {
-                                type: 'linear',
-                                display: true,
-                                position: 'right',
+                                type: 'linear', display: true, position: 'right',
                                 title: { display: true, text: 'Qtd Alertas', color: corTextoDinamica },
                                 grid: { drawOnChartArea: false },
                                 beginAtZero: true,
