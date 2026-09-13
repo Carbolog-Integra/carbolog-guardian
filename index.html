@@ -64,6 +64,7 @@
         .login-box input, .login-box select { width: 90%; padding: 12px; margin: 10px 0; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); color: var(--text-color); }
         .btn { background: var(--primary-blue); color: #FFFFFF; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; font-weight: bold; margin-top: 10px; text-transform: uppercase;}
         .btn:hover { background: var(--accent-blue); }
+        .btn:disabled { opacity: 0.7; cursor: not-allowed; }
 
         .navbar { background: var(--bg-dark); color: #FFFFFF; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); }
         .nav-menus button { background: none; border: none; color: #FFFFFF; font-size: 16px; margin: 0 10px; cursor: pointer; padding-bottom: 5px; }
@@ -209,7 +210,7 @@
                         <span class="info-tag">Pop-up 20m: <b id="statusPopupAlertaTxt" style="color: var(--success);">Habilitado</b></span>
                         <button class="btn" id="btnTogglePopup20m" style="background: var(--warning); padding: 6px 12px; font-size: 12px;" onclick="alternarPopupAlertas20Min()"><i class="fas fa-bell-slash"></i> Desabilitar Pop-up</button>
                         <span class="info-tag">Auto-Refresh: <span id="timerRefresh">300</span>s</span>
-                        <button class="btn" onclick="carregarDadosVeiculos()"><i class="fas fa-sync"></i> Refresh</button>
+                        <button class="btn" id="btnRefreshManual" onclick="carregarDadosVeiculos()"><i class="fas fa-sync"></i> Refresh</button>
                         <button class="btn" onclick="abrirModalEficiencia()"><i class="fas fa-route"></i> Criar Nova Rota</button>
                     </div>
                 </div>
@@ -220,8 +221,8 @@
             <div class="card">
                 <div class="flex-row">
                     <h3 style="color: var(--accent-blue);"><i class="fas fa-list"></i> Grid de Monitoramento e Alertas</h3>
-                    <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(true)">Marcar Todos os Veículos</button>
-                    <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(false)">Desmarcar Todos os Veículos</button>
+                    <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(true)"><i class="fas fa-check-square"></i> Marcar Todos os Veículos</button>
+                    <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(false)"><i class="fas fa-square"></i> Desmarcar Todos os Veículos</button>
                 </div>
                 <div style="overflow-x: auto;">
                     <table id="gridOperacional">
@@ -680,10 +681,19 @@
     </div>
 
     <div id="modalVincularArea" class="modal">
-        <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-content" style="max-width: 420px;">
             <div class="modal-header">Vincular Área ao Veículo <span class="close-modal" onclick="fecharModalVincularArea()">×</span></div>
             <p>Veículo: <b id="veiculoSelecionadoAreaModal"></b></p>
-            <div style="margin-bottom: 15px;"><label><b>Selecione as Áreas (Cercas):</b></label><br><div id="listaCheckboxAreas" style="max-height: 150px; overflow-y: auto; border: 1px solid var(--border-color); padding: 10px; border-radius: 4px; margin-top: 5px;"></div></div>
+            <div style="margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <label><b>Selecione as Áreas (Cercas):</b></label>
+                    <div>
+                        <button class="btn" style="background: #555; padding: 3px 8px; font-size: 10px; margin-top: 0;" onclick="marcarTodasAreasModal(true)"><i class="fas fa-check-square"></i> Marcar Todas</button>
+                        <button class="btn" style="background: #555; padding: 3px 8px; font-size: 10px; margin-top: 0;" onclick="marcarTodasAreasModal(false)"><i class="fas fa-square"></i> Desmarcar</button>
+                    </div>
+                </div>
+                <div id="listaCheckboxAreas" style="max-height: 180px; overflow-y: auto; border: 1px solid var(--border-color); padding: 10px; border-radius: 4px; margin-top: 5px;"></div>
+            </div>
             <div style="display: flex; gap: 10px;">
                 <button class="btn" style="background: var(--success); flex: 1;" onclick="confirmarVinculacaoArea()">Salvar Vínculo de Áreas</button>
                 <button class="btn" style="background: var(--danger); flex: 1;" onclick="fecharModalVincularArea()">Cancelar</button>
@@ -774,7 +784,7 @@
             if (reg) {
                 if (reg.ordem_colunas) columnOrder = reg.ordem_colunas;
                 if (reg.rotas_salvas && reg.rotas_salvas.length > 0) rotasSalvas = reg.rotas_salvas;
-                if (reg.rotas_veiculos) rotasVeiculos = reg.rotas_veiculos;
+                if (reg.rotas_veiculos) rotasVeiculos = rotasVeiculos;
                 if (reg.areas_salvas && reg.areas_salvas.length > 0) areasSalvas = reg.areas_salvas;
                 if (reg.areas_veiculos) areasVeiculos = reg.areas_veiculos;
                 if (reg.pontos_referencia && reg.pontos_referencia.length > 0) pontosReferenciaSalvos = reg.pontos_referencia;
@@ -1323,6 +1333,18 @@
         }
 
         async function carregarDadosVeiculos() {
+            const btnRefresh = document.getElementById('btnRefreshManual');
+            const iconOriginal = '<i class="fas fa-sync"></i> Refresh';
+            if (btnRefresh) {
+                btnRefresh.innerHTML = '<i class="fas fa-sync fa-spin"></i> Atualizando...';
+                btnRefresh.disabled = true;
+            }
+            
+            // Reseta imediatamente o contador visual e a variável de tempo
+            countdown = 300;
+            const timerEl = document.getElementById('timerRefresh');
+            if(timerEl) timerEl.innerText = countdown;
+
             try {
                 const response = await fetch(`${SUPABASE_URL}/rest/v1/posicoes_sascar?select=*&order=data_posicao.desc`, {
                     method: 'GET',
@@ -1332,7 +1354,8 @@
                         'Content-Type': 'application/json'
                     }
                 });
-                if (!response.ok) return;
+                if (!response.ok) throw new Error("Erro na resposta SASCAR");
+                
                 const dadosBrutos = await response.json();
                 if (!dadosBrutos || !Array.isArray(dadosBrutos)) return;
 
@@ -1359,7 +1382,14 @@
                 renderizarGridEMapa();
                 atualizarKpisETabelasDash();
                 atualizarDashboards();
-            } catch (e) {}
+            } catch (e) {
+                console.error("Falha ao atualizar posições:", e);
+            } finally {
+                if (btnRefresh) {
+                    btnRefresh.innerHTML = iconOriginal;
+                    btnRefresh.disabled = false;
+                }
+            }
         }
 
         function processarRegrasEAlertas(veiculos, dadosBrutos) {
@@ -1810,7 +1840,6 @@
 
         function iniciarPopupAlertas20MinTimer() {
             if (popup20MinIntervalRef) clearInterval(popup20MinIntervalRef);
-            // 20 minutos em milissegundos = 20 * 60 * 1000 = 1.200.000 ms
             popup20MinIntervalRef = setInterval(() => {
                 if (popupAlertasHabilitado) {
                     verificarEAbrirPopupAlertasPendentes();
@@ -2376,6 +2405,12 @@
             const vinculadasAtuais = areasVeiculos[placa] || [];
             container.innerHTML = areasSalvas.length === 0 ? `<p style="font-size:12px; opacity:0.7;">Nenhuma área criada.</p>` : areasSalvas.map(a => `<label style="display:block; margin-bottom:5px; font-size:13px;"><input type="checkbox" value="${a.id}" ${vinculadasAtuais.includes(a.id) ? 'checked' : ''}> ${a.nome}</label>`).join('');
             document.getElementById('modalVincularArea').style.display = 'flex';
+        }
+
+        function marcarTodasAreasModal(status) {
+            document.querySelectorAll('#listaCheckboxAreas input[type="checkbox"]').forEach(chk => {
+                chk.checked = status;
+            });
         }
 
         function fecharModalVincularArea() { document.getElementById('modalVincularArea').style.display = 'none'; }
