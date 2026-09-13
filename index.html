@@ -127,7 +127,6 @@
         .dragging { opacity: 0.5; background-color: rgba(0, 141, 218, 0.5) !important; }
         .drag-over { border-left: 3px solid #FF8F00 !important; }
 
-        /* Grid padronizado com tamanho equilibrado (nem pequeno demais, nem gigante) */
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -143,7 +142,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 390px; /* Tamanho intermediário ideal */
+            height: 390px;
             box-sizing: border-box;
         }
         .chart-box canvas {
@@ -281,11 +280,10 @@
 
             <div class="card" id="exportAreaDash">
                 <div class="flex-row" style="justify-content: space-between;">
-                    <h3 style="color: var(--accent-blue);"><i class="fas fa-chart-pie"></i> Painel de Indicadores</h3>
+                    <h3 style="color: var(--accent-blue);"><i class="fas fa-chart-pie"></i> Painel de Indicadores (Máximo de 10 Barras por Gráfico)</h3>
                     <div><button class="btn" style="background: #1D6F42;" onclick="exportarDashboardCompletoExcel()"><i class="fas fa-file-excel"></i> Exportar Toda Dashboard (Excel)</button></div>
                 </div>
 
-                <!-- Grid de gráficos com tamanhos idênticos e dimensionados harmonicamente -->
                 <div class="dashboard-grid">
                     <div class="chart-box">
                         <canvas id="graficoVelocidade"></canvas>
@@ -2341,21 +2339,28 @@
             const corTextoDinamica = obterCorTextoGrafico();
             const fontPadraoGrafico = { size: 12, weight: 'bold' };
 
-            // Gráfico 1: Velocidade
+            // Gráfico 1: Velocidade (limitado a 10 barras recentes)
+            let keysVel = Object.keys(excessosPorPlaca);
+            let valsVel = Object.values(excessosPorPlaca);
+            if (keysVel.length > 10) {
+                keysVel = keysVel.slice(-10);
+                valsVel = valsVel.slice(-10);
+            }
+
             const canvasVelocidade = document.getElementById('graficoVelocidade');
             if (canvasVelocidade) {
                 window.graf1 = new Chart(canvasVelocidade.getContext('2d'), {
                     type: 'bar', 
                     data: { 
-                        labels: Object.keys(excessosPorPlaca).length > 0 ? Object.keys(excessosPorPlaca) : ['Sem Registros'], 
-                        datasets: [{ label: 'Excessos (>80km/h)', data: Object.values(excessosPorPlaca).length > 0 ? Object.values(excessosPorPlaca) : [0], backgroundColor: '#D32F2F' }] 
+                        labels: keysVel.length > 0 ? keysVel : ['Sem Registros'], 
+                        datasets: [{ label: 'Excessos (>80km/h)', data: valsVel.length > 0 ? valsVel : [0], backgroundColor: '#D32F2F' }] 
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: {
                             legend: { labels: { color: corTextoDinamica, font: fontPadraoGrafico } },
-                            title: { display: true, text: 'Excessos de Velocidade', color: corTextoDinamica, font: { size: 14, weight: 'bold' } },
+                            title: { display: true, text: 'Excessos de Velocidade (Máx. 10 Barras)', color: corTextoDinamica, font: { size: 14, weight: 'bold' } },
                             datalabels: { font: fontPadraoGrafico, color: corTextoDinamica }
                         },
                         scales: {
@@ -2366,10 +2371,16 @@
                 });
             }
 
-            // Gráfico 2: Parados e Ligados (Com fonte da quantidade de alertas aumentada)
-            const labelsPar = Object.keys(paradosLigadosContagem);
-            const valsTemposMinutos = labelsPar.map(p => paradosLigadosTempoMinutos[p]);
-            const valsAlertas = labelsPar.map(p => paradosLigadosContagem[p]);
+            // Gráfico 2: Parados e Ligados (limitado a 10 barras e fonte de alertas com cor padrão do tema)
+            let labelsPar = Object.keys(paradosLigadosContagem);
+            let valsTemposMinutos = labelsPar.map(p => paradosLigadosTempoMinutos[p]);
+            let valsAlertas = labelsPar.map(p => paradosLigadosContagem[p]);
+
+            if (labelsPar.length > 10) {
+                labelsPar = labelsPar.slice(-10);
+                valsTemposMinutos = valsTemposMinutos.slice(-10);
+                valsAlertas = valsAlertas.slice(-10);
+            }
 
             const canvasParado = document.getElementById('graficoParado');
             if (canvasParado) {
@@ -2405,19 +2416,17 @@
                             datalabels: {
                                 formatter: function(value, context) {
                                     if (context.datasetIndex === 0) return formatarMinutosParaHhMm(value);
-                                    return value; // Qtd. de alertas
+                                    return value;
                                 },
-                                color: function(context) {
-                                    return context.datasetIndex === 1 ? '#D32F2F' : corTextoDinamica;
-                                },
+                                color: corTextoDinamica, // Cor padronizada conforme solicitado (removido vermelho forçado)
                                 font: function(context) {
                                     if (context.datasetIndex === 1) {
-                                        return { size: 15, weight: 'bold' }; // Aumentado conforme solicitado
+                                        return { size: 14, weight: 'bold' };
                                     }
                                     return fontPadraoGrafico;
                                 }
                             },
-                            title: { display: true, text: 'Tempo Total vs Qtd. de Alertas (Parado e Ligado)', color: corTextoDinamica, font: { size: 14, weight: 'bold' } }
+                            title: { display: true, text: 'Tempo Total vs Qtd. de Alertas (Parado e Ligado - Máx. 10 Barras)', color: corTextoDinamica, font: { size: 14, weight: 'bold' } }
                         },
                         scales: {
                             x: { ticks: { color: corTextoDinamica, font: fontPadraoGrafico }, grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' } },
@@ -2440,7 +2449,7 @@
                 });
             }
 
-            // Gráfico 3: Pizza - Veículos em Trânsito vs Parados (tamanho balanceado e padronizado)
+            // Gráfico 3: Pizza - Veículos em Trânsito vs Parados
             let qtdEmTransitoPizza = 0;
             let qtdParadosPizza = 0;
             veiculosCacheGlobal.forEach(v => {
@@ -2477,7 +2486,7 @@
                 });
             }
 
-            // Gráfico 4: Pizza - Com Rota Vinculada vs Sem Rota Vinculada (tamanho balanceado e padronizado)
+            // Gráfico 4: Pizza - Com Rota Vinculada vs Sem Rota Vinculada
             let qtdComRota = 0;
             let qtdSemRota = 0;
             const uniquePlacas = new Set(veiculosCacheGlobal.map(v => {
@@ -2518,7 +2527,7 @@
                 });
             }
 
-            // Gráfico 5: Barras - Custo Médio por Viagem vs Custo Total das Viagens (tamanho equilibrado na grid)
+            // Gráfico 5: Barras - Custo Médio vs Total (limitado a 10 barras)
             let labelsPlacasEmbarcadas = [];
             let dadosCustoMedio = [];
             let dadosCustoTotal = [];
@@ -2532,6 +2541,12 @@
                     dadosCustoMedio.push(custoTotalVal);
                 }
             });
+
+            if (labelsPlacasEmbarcadas.length > 10) {
+                labelsPlacasEmbarcadas = labelsPlacasEmbarcadas.slice(-10);
+                dadosCustoTotal = dadosCustoTotal.slice(-10);
+                dadosCustoMedio = dadosCustoMedio.slice(-10);
+            }
 
             const canvasCustoRotas = document.getElementById('graficoCustoRotasEmbarcadas');
             if (canvasCustoRotas) {
@@ -2557,7 +2572,7 @@
                         maintainAspectRatio: false,
                         plugins: {
                             legend: { labels: { color: corTextoDinamica, font: fontPadraoGrafico } },
-                            title: { display: true, text: 'Custo Médio vs Custo Total (Rotas Embarcadas)', color: corTextoDinamica, font: { size: 14, weight: 'bold' } },
+                            title: { display: true, text: 'Custo Médio vs Custo Total (Rotas Embarcadas - Máx. 10 Barras)', color: corTextoDinamica, font: { size: 14, weight: 'bold' } },
                             datalabels: {
                                 formatter: (val) => 'R$ ' + Number(val).toFixed(2),
                                 color: corTextoDinamica,
