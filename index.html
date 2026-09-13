@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Integrador inteligente - Torre de Controle - YHWH</title>
+    <title>Integrador - Torre de Controle - YHWH</title>
 
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
@@ -1059,7 +1059,7 @@
 
         async function carregarDadosVeiculos() {
             try {
-                // Consulta sem limite arbitrário e ordenando rigorosamente pelo timestamp real do banco (SASCAR)
+                // Consulta estrita na API SASCAR no Supabase ordenando rigorosamente pelas mais recentes
                 const response = await fetch(`${SUPABASE_URL}/rest/v1/posicoes_sascar?select=*&order=data_posicao.desc`, {
                     method: 'GET',
                     headers: {
@@ -1072,7 +1072,6 @@
                 const dadosBrutos = await response.json();
                 if (!dadosBrutos || !Array.isArray(dadosBrutos)) return;
 
-                // Ordenação estrita garantida no cliente com base no timestamp real do SASCAR
                 dadosBrutos.sort((a, b) => parseDateToMs(b.data_posicao) - parseDateToMs(a.data_posicao));
 
                 const veiculosMap = new Map();
@@ -1081,10 +1080,11 @@
                     const placaLimpa = id.replace(/[^a-zA-Z0-9]/g, '');
                     if (placaLimpa === 'SEMPLACA' || placaLimpa.length !== 7) return; 
 
-                    // Mantém obrigatoriamente apenas o registro mais recente retornado pelo SASCAR para cada veículo
+                    // Pega estritamente o último pacote real da base SASCAR por placa
                     if (!veiculosMap.has(id)) {
                         veiculosMap.set(id, {
                             ...v,
+                            // Garante que se o SASCAR reportou parado, a velocidade é estritamente 0
                             velocidade: Number(v.velocidade) || 0,
                             ignicao: v.ignicao === 1 || v.ignicao === true || String(v.ignicao) === '1' || String(v.ignicao).toLowerCase() === 'true'
                         });
