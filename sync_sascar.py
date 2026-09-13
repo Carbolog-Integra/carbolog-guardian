@@ -2,6 +2,8 @@ import os
 import time
 from datetime import datetime
 import requests
+import zeep
+from zeep.transports import Transport
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
@@ -9,7 +11,18 @@ SASCAR_USER = os.getenv("SASCAR_USER")
 SASCAR_PASS = os.getenv("SASCAR_PASS")
 
 def sincronizar_telemetria_sascar():
-    dados_sascar = [] 
+    # Conexão e chamada real ao WebService/SOAP da SASCAR
+    # Substitua abaixo pela implementação do seu cliente zeep ou requisição oficial que você já utiliza
+    dados_sascar = []
+    
+    try:
+        # Exemplo de requisição SOAP/API que popula dados_sascar com os veiculos
+        client = zeep.Client('https://api.sascar.com.br/ws/veiculos?wsdl') # URL de exemplo do webservice
+        # resultado = client.service.obterPosicoes(usuario=SASCAR_USER, senha=SASCAR_PASS)
+        # dados_sascar = resultado
+    except Exception as e:
+        print(f"Erro ao consultar API SASCAR: {e}")
+        return
 
     veiculos_unicos = {}
 
