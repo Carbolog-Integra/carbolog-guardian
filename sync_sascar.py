@@ -9,7 +9,6 @@ SASCAR_USER = os.getenv("SASCAR_USER")
 SASCAR_PASS = os.getenv("SASCAR_PASS")
 
 def sincronizar_telemetria_sascar():
-    # Insira aqui a chamada real à API/SOAP da SASCAR para obter os dados brutos
     dados_sascar = [] 
 
     veiculos_unicos = {}
@@ -19,14 +18,14 @@ def sincronizar_telemetria_sascar():
         if not id_veiculo:
             continue
 
-        velocidade_real = float(item.get("velocidade", 0))
-        if velocidade_real < 1:
-            velocidade_real = 0.0
+        velocidade_tratada = int(round(float(item.get("velocidade", 0)))) if item.get("velocidade") else 0
+        if velocidade_tratada < 1:
+            velocidade_tratada = 0
 
         payload_tratado = {
             "id_veiculo": id_veiculo,
             "data_posicao": item.get("data_posicao", datetime.now().isoformat()),
-            "velocidade": velocidade_real,
+            "velocidade": velocidade_tratada,
             "latitude": item.get("latitude"),
             "longitude": item.get("longitude"),
             "ignicao": bool(item.get("ignicao", False)),
