@@ -122,8 +122,8 @@
         .autocomplete-list li i { color: #ea4335; font-size: 16px; }
         .autocomplete-list small { display: block; font-size: 11px; opacity: 0.7; margin-top: 3px; }
 
-        th[draggable="true"] { cursor: grab; position: relative; }
-        th[draggable="true"]:active { cursor: grabbing; }
+        .th[draggable="true"] { cursor: grab; position: relative; }
+        .th[draggable="true"]:active { cursor: grabbing; }
         .dragging { opacity: 0.5; background-color: rgba(0, 141, 218, 0.5) !important; }
         .drag-over { border-left: 3px solid #FF8F00 !important; }
     </style>
@@ -1057,6 +1057,37 @@
             return false;
         }
 
+        // NOVO: Função para expirar alertas com mais de 20 minutos sem tratativa
+        function expirarAlertasNaoTratados() {
+            const agora = Date.now();
+            let mudou = false;
+
+            const verificarEExpirar = (lista, tipoGeral) => {
+                lista.forEach(alerta => {
+                    if (!alertasFinalizados[alerta.chave] && (agora - alerta.timestamp) >= 20 * 60 * 1000) {
+                        const dataTratativa = new Date().toLocaleString('pt-BR');
+                        alertasFinalizados[alerta.chave] = { motivo: 'Expirado automaticamente (Sem tratativa > 20 min)', data: dataTratativa };
+                        historicoTratativas.push({
+                            placa: alerta.placa,
+                            alerta: alerta.ocorrencia || tipoGeral,
+                            dataHora: dataTratativa,
+                            motivo: 'Expirado automaticamente (Sem tratativa > 20 min)',
+                            timestamp: agora
+                        });
+                        mudou = true;
+                    }
+                });
+            };
+
+            verificarEExpirar(historicoExcessoVelocidadeDashboard, 'Excesso de Velocidade');
+            verificarEExpirar(historicoDesviosDashboard, 'Desvio de Rota');
+            verificarEExpirar(historicoComboiosDashboard, 'Comboio');
+
+            if (mudou) {
+                salvarDadosNoBanco();
+            }
+        }
+
         async function carregarDadosVeiculos() {
             try {
                 const response = await fetch(`${SUPABASE_URL}/rest/v1/posicoes_sascar?select=*&order=data_posicao.desc`, {
@@ -1082,7 +1113,6 @@
                     if (!veiculosMap.has(id)) {
                         veiculosMap.set(id, {
                             ...v,
-                            // CORREÇÃO CRUCIAL APLICADA: Tratamento direto e estrito da velocidade sem conversões fantasmas
                             velocidade: Number(v.velocidade) ? Math.round(Number(v.velocidade)) : 0,
                             ignicao: v.ignicao === 1 || v.ignicao === true || String(v.ignicao) === '1' || String(v.ignicao).toLowerCase() === 'true'
                         });
@@ -1090,14 +1120,15 @@
                 });
                 veiculosCacheGlobal = Array.from(veiculosMap.values());
                 
-                processarRegrasEAlertas(veiculosCacheGlobal);
+                expirarAlertasNaoTratados();
+                processarRegrasEAlertas(veiculosCacheGlobal, dadosBrutos);
                 renderizarGridEMapa();
                 atualizarKpisETabelasDash();
                 atualizarDashboards();
             } catch (e) {}
         }
 
-        function processarRegrasEAlertas(veiculos) {
+        function processarRegrasEAlertas(veiculos, dadosBrutos) {
             const agora = Date.now();
             let houveMudanca = false;
             
@@ -1202,9 +1233,31 @@
 
                     if (dentro) {
                         if (!contadorPermanenciaAreas[chaveKey]) {
-                            const dataEntradaObj = new Date();
+                            // NOVO: Usa os dadosBrutos da API SASCAR para encontrar o tempo real em que entrou
+                            let tempoEntrada = agora;
+                            if (dadosBrutos) {
+                                let histVeic = dadosBrutos.filter(d => {
+                                    let pRaw = d.id_veiculo ? String(d.id_veiculo) : 'SEM-PLACA';
+                                    let pFmt = (pRaw !== 'SEM-PLACA' && pRaw.length === 7 && !isNaN(pRaw)) ? pRaw.substring(0, 3) + '-' + pRaw.substring(3) : pRaw;
+                                    return pFmt === placaFormatada;
+                                });
+                                let foundAny = false;
+                                for (let k = 0; k < histVeic.length; k++) {
+                                    const hLat = parseFloat(String(histVeic[k].latitude).replace(',', '.'));
+                                    const hLon = parseFloat(String(histVeic[k].longitude).replace(',', '.'));
+                                    if (!isNaN(hLat) && !isNaN(hLon) && veiculoDentroDaArea(hLat, hLon, areaObj)) {
+                                        let ms = parseDateToMs(histVeic[k].data_posicao);
+                                        if(ms > 0) tempoEntrada = ms;
+                                        foundAny = true;
+                                    } else {
+                                        if (foundAny) break;
+                                    }
+                                }
+                            }
+
+                            const dataEntradaObj = new Date(tempoEntrada);
                             contadorPermanenciaAreas[chaveKey] = { 
-                                inicio: agora, 
+                                inicio: tempoEntrada, 
                                 maxVel: velFinal, 
                                 nomeArea: areaObj.nome,
                                 dataEntradaStr: dataEntradaObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
@@ -1621,6 +1674,14 @@
         }
 
         function aplicarFiltroDashboard() {
+            const dtInicioVal = document.getElementById('filtroDataInicio').value;
+            const dtFimVal = document.getElementById('filtroDataFim').value;
+            
+            if (!dtInicioVal || !dtFimVal) {
+                alert("Atenção: Preencha a Data/Hora Inicial e a Data/Hora Final para aplicar o filtro corretamente.");
+                return;
+            }
+
             atualizarKpisETabelasDash();
             atualizarDashboards();
             alert("Filtro de período aplicado com sucesso!");
