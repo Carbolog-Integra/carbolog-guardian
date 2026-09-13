@@ -251,7 +251,7 @@
                 </div>
                 <div class="card" style="flex: 1; text-align: center; border-left: 4px solid var(--warning); padding: 15px; margin-bottom: 0;">
                     <h4 style="margin: 0; color: var(--accent-blue); font-size: 14px;"><i class="fas fa-pause-circle"></i> Parados Ligados</h4>
-                    <h2 id="kpiParadosLigados" style="margin: 14px 0 0 0; color: var(--text-color);">0</h2>
+                    <h2 id="kpiParadosLigados" style="margin: 10px 0 0 0; color: var(--text-color);">0</h2>
                 </div>
             </div>
 
@@ -270,8 +270,8 @@
                     <div style="width: 50%;"><canvas id="graficoPizzaRotas"></canvas></div>
                 </div>
 
-                <div class="flex-row" style="margin-top: 30px;">
-                    <div style="width: 100%;"><canvas id="graficoCustoRotasEmbarcadas"></canvas></div>
+                <div class="flex-row" style="margin-top: 30px; justify-content: center;">
+                    <div style="width: 60%; max-width: 600px;"><canvas id="graficoCustoRotasEmbarcadas"></canvas></div>
                 </div>
 
                 <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 20px 0;">
@@ -520,26 +520,36 @@
     </div>
 
     <div id="modalEficiencia" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">Criar Rota (Busca Inteligente de Referências) <span class="close-modal" onclick="fecharModal()">×</span></div>
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">Criar Rota (Busca Inteligente e Pontos de Parada) <span class="close-modal" onclick="fecharModal()">×</span></div>
+            
             <div class="flex-row" style="align-items: flex-start;">
                 <div style="width: 50%;">
-                    <label><b>Origem (Digite para buscar ou selecione):</b></label><br>
+                    <label><b>Origem:</b></label><br>
                     <select id="selectOrigemRef" class="input-livre" onchange="preencherOrigemRef()" style="margin-bottom: 5px;"></select>
                     <div class="autocomplete-container">
-                        <input type="text" id="iamOrigem" class="input-livre" placeholder="Digite local/empresa..." value="Unimetal Sao Vicente SP" style="width: 100%;">
+                        <input type="text" id="iamOrigem" class="input-livre" placeholder="Digite origem..." value="Unimetal Sao Vicente SP" style="width: 100%;">
                         <ul id="autocompleteOrigemRota" class="autocomplete-list"></ul>
                     </div>
                 </div>
                 <div style="width: 50%;">
-                    <label><b>Destino (Digite para buscar ou selecione):</b></label><br>
+                    <label><b>Destino Final:</b></label><br>
                     <select id="selectDestinoRef" class="input-livre" onchange="preencherDestinoRef()" style="margin-bottom: 5px;"></select>
                     <div class="autocomplete-container">
-                        <input type="text" id="iamDestino" class="input-livre" placeholder="Digite local/empresa..." value="Unimetal Cosmopolis SP" style="width: 100%;">
+                        <input type="text" id="iamDestino" class="input-livre" placeholder="Digite destino..." value="Unimetal Cosmopolis SP" style="width: 100%;">
                         <ul id="autocompleteDestinoRota" class="autocomplete-list"></ul>
                     </div>
                 </div>
             </div>
+
+            <div style="margin-top: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <label><b>Pontos Intermediários / Paradas (Opcional - Máx 10):</b></label>
+                    <button class="btn" style="background: var(--success); padding: 5px 10px; font-size: 12px; margin-top:0;" onclick="adicionarCampoPontoIntermediario()"><i class="fas fa-plus"></i> Adicionar Ponto</button>
+                </div>
+                <div id="containerPontosIntermediarios" style="max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;"></div>
+            </div>
+
             <div style="margin-top: 15px; margin-bottom: 10px;">
                 <label><b>Quantidade de Eixos:</b></label>
                 <div class="eixos-control">
@@ -857,8 +867,8 @@
             } catch (e) {}
         }
 
-        function configurarAutocompleteInput(inputId, listId, tipoDestino) {
-            const input = document.getElementById(inputId);
+        function configurarAutocompleteInput(inputId, listId, tipoDestino, customInputEl = null) {
+            const input = customInputEl || document.getElementById(inputId);
             if (!input) return;
             
             input.addEventListener('input', function(e) {
@@ -901,6 +911,32 @@
                     listaEl.style.display = 'none';
                 }
             });
+        }
+
+        function adicionarCampoPontoIntermediario() {
+            const container = document.getElementById('containerPontosIntermediarios');
+            const itensAtuais = container.querySelectorAll('.ponto-intermediario-item');
+            if (itensAtuais.length >= 10) {
+                alert("Limite máximo de 10 pontos intermediários atingido por rota.");
+                return;
+            }
+
+            const idUnico = 'ponto_int_' + Date.now() + '_' + Math.random().toString(36.2);
+            const div = document.createElement('div');
+            div.className = 'flex-row ponto-intermediario-item';
+            div.style.marginBottom = '5px';
+            div.innerHTML = `
+                <div class="autocomplete-container" style="flex: 1;">
+                    <input type="text" id="${idUnico}" class="input-livre" placeholder="Digite endereço ou parada..." style="width: 100%;">
+                    <ul id="${idUnico}_lista" class="autocomplete-list"></ul>
+                </div>
+                <button class="btn" style="background: var(--danger); padding: 8px 12px; margin-top:0;" onclick="this.parentElement.remove()"><i class="fas fa-trash"></i></button>
+            `;
+            container.appendChild(div);
+
+            const inputEl = document.getElementById(idUnico);
+            const listaEl = document.getElementById(`${idUnico}_lista`);
+            configurarAutocompleteInput(null, `${idUnico}_lista`, 'intermediario', inputEl);
         }
 
         function inicializarDragDropColunas() {
@@ -1842,6 +1878,7 @@
             const inpDestino = document.getElementById('iamDestino');
             if(inpOrigem && !inpOrigem.dataset.lat) { inpOrigem.dataset.lat = -23.9618; inpOrigem.dataset.lon = -46.3919; }
             if(inpDestino && !inpDestino.dataset.lat) { inpDestino.dataset.lat = -22.6431; inpDestino.dataset.lon = -47.1978; }
+            document.getElementById('containerPontosIntermediarios').innerHTML = '';
             document.getElementById('modalEficiencia').style.display = 'flex'; 
         }
         function fecharModal() { document.getElementById('modalEficiencia').style.display = 'none'; }
@@ -2116,8 +2153,7 @@
             eixosAtuaisRota = atual;
         }
 
-        async function resolverCoordenadasInput(inputId) {
-            const inputEl = document.getElementById(inputId);
+        async function resolverCoordenadasInput(inputEl) {
             const val = inputEl.value.trim();
             if (inputEl.dataset.lat && inputEl.dataset.lon) {
                 return { lat: parseFloat(inputEl.dataset.lat), lon: parseFloat(inputEl.dataset.lon), nome: val };
@@ -2134,14 +2170,32 @@
 
         async function iniciarRotaInterativa() {
             eixosAtuaisRota = parseInt(document.getElementById('iamEixos').value) || 6;
-            fecharModal();
-            limparRota();
-            const origCoord = await resolverCoordenadasInput('iamOrigem');
-            const destCoord = await resolverCoordenadasInput('iamDestino');
+            
+            const origInput = document.getElementById('iamOrigem');
+            const destInput = document.getElementById('iamDestino');
+            
+            const origCoord = await resolverCoordenadasInput(origInput);
+            const destCoord = await resolverCoordenadasInput(destInput);
+            
             if (!origCoord || !destCoord) { alert("Origem ou destino não encontrados. Selecione uma sugestão da busca."); return; }
 
+            const inputsIntermediarios = document.querySelectorAll('#containerPontosIntermediarios input.input-livre');
+            let waypointsArray = [L.latLng(origCoord.lat, origCoord.lon)];
+
+            for (let i = 0; i < inputsIntermediarios.length; i++) {
+                const ptCoord = await resolverCoordenadasInput(inputsIntermediarios[i]);
+                if (ptCoord) {
+                    waypointsArray.push(L.latLng(ptCoord.lat, ptCoord.lon));
+                }
+            }
+
+            waypointsArray.push(L.latLng(destCoord.lat, destCoord.lon));
+
+            fecharModal();
+            limparRota();
+
             routingControl = L.Routing.control({
-                waypoints: [L.latLng(origCoord.lat, origCoord.lon), L.latLng(destCoord.lat, destCoord.lon)],
+                waypoints: waypointsArray,
                 routeWhileDragging: true, language: 'pt-BR', show: false,
                 lineOptions: { styles: [{color: '#00838F', opacity: 0.9, weight: 6}] }
             }).addTo(map);
@@ -2255,7 +2309,7 @@
             }
             
             const corTextoDinamica = obterCorTextoGrafico();
-            const fontPadraoGrafico = { size: 14, weight: 'bold' };
+            const fontPadraoGrafico = { size: 12, weight: 'bold' };
 
             // Gráfico 1: Velocidade
             const canvasVelocidade = document.getElementById('graficoVelocidade');
@@ -2269,7 +2323,7 @@
                     options: {
                         plugins: {
                             legend: { labels: { color: corTextoDinamica, font: fontPadraoGrafico } },
-                            title: { display: true, text: 'Excessos de Velocidade', color: corTextoDinamica, font: { size: 16, weight: 'bold' } },
+                            title: { display: true, text: 'Excessos de Velocidade', color: corTextoDinamica, font: { size: 14, weight: 'bold' } },
                             datalabels: { font: fontPadraoGrafico, color: corTextoDinamica }
                         },
                         scales: {
@@ -2322,7 +2376,7 @@
                                 color: corTextoDinamica,
                                 font: fontPadraoGrafico
                             },
-                            title: { display: true, text: 'Tempo Total vs Qtd. de Alertas (Parado e Ligado)', color: corTextoDinamica, font: { size: 16, weight: 'bold' } }
+                            title: { display: true, text: 'Tempo Total vs Qtd. de Alertas (Parado e Ligado)', color: corTextoDinamica, font: { size: 14, weight: 'bold' } }
                         },
                         scales: {
                             x: { ticks: { color: corTextoDinamica, font: fontPadraoGrafico }, grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' } },
@@ -2369,10 +2423,10 @@
                     options: {
                         plugins: {
                             legend: { labels: { color: corTextoDinamica, font: fontPadraoGrafico } },
-                            title: { display: true, text: 'Veículos em Trânsito vs Parados', color: corTextoDinamica, font: { size: 16, weight: 'bold' } },
+                            title: { display: true, text: 'Veículos em Trânsito vs Parados', color: corTextoDinamica, font: { size: 14, weight: 'bold' } },
                             datalabels: {
                                 color: '#FFFFFF',
-                                font: { size: 16, weight: 'bold' },
+                                font: { size: 14, weight: 'bold' },
                                 formatter: (val) => val > 0 ? val : ''
                             }
                         }
@@ -2408,10 +2462,10 @@
                     options: {
                         plugins: {
                             legend: { labels: { color: corTextoDinamica, font: fontPadraoGrafico } },
-                            title: { display: true, text: 'Veículos com Rota vs Sem Rota Vinculada', color: corTextoDinamica, font: { size: 16, weight: 'bold' } },
+                            title: { display: true, text: 'Veículos com Rota vs Sem Rota Vinculada', color: corTextoDinamica, font: { size: 14, weight: 'bold' } },
                             datalabels: {
                                 color: '#FFFFFF',
-                                font: { size: 16, weight: 'bold' },
+                                font: { size: 14, weight: 'bold' },
                                 formatter: (val) => val > 0 ? val : ''
                             }
                         }
@@ -2419,7 +2473,7 @@
                 });
             }
 
-            // Gráfico 5: Barras - Custo Médio por Viagem vs Custo Total das Viagens (A partir das rotas embarcadas nos veículos)
+            // Gráfico 5: Barras - Custo Médio por Viagem vs Custo Total das Viagens (tamanho menor e compacto)
             let labelsPlacasEmbarcadas = [];
             let dadosCustoMedio = [];
             let dadosCustoTotal = [];
@@ -2430,7 +2484,6 @@
                     const custoTotalVal = parseFloat(r.custo);
                     labelsPlacasEmbarcadas.push(placa);
                     dadosCustoTotal.push(custoTotalVal);
-                    // Como cada veículo possui 1 rota embarcada ativa no momento, o custo médio por viagem individual dessa rota é igual ao custo total dela (ou pode ser demonstrado comparativamente)
                     dadosCustoMedio.push(custoTotalVal);
                 }
             });
@@ -2455,13 +2508,15 @@
                         ]
                     },
                     options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
                         plugins: {
                             legend: { labels: { color: corTextoDinamica, font: fontPadraoGrafico } },
-                            title: { display: true, text: 'Custo Médio vs Custo Total (Veículos com Rota Embarcada)', color: corTextoDinamica, font: { size: 16, weight: 'bold' } },
+                            title: { display: true, text: 'Custo Médio vs Custo Total (Rotas Embarcadas)', color: corTextoDinamica, font: { size: 14, weight: 'bold' } },
                             datalabels: {
                                 formatter: (val) => 'R$ ' + Number(val).toFixed(2),
                                 color: corTextoDinamica,
-                                font: fontPadraoGrafico
+                                font: { size: 11, weight: 'bold' }
                             }
                         },
                         scales: {
