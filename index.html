@@ -172,12 +172,13 @@
             <div class="card" style="padding-bottom: 0;">
                 <div class="flex-row" style="justify-content: space-between;">
                     <h3 style="color: var(--accent-blue);">
-                        <i class="fas fa-map"></i> Robô Monitor de Frota (SASCAR) - 
+                        <i class="fas fa-map"></i> Monitor de Frota - 
                         <span id="contadorAlertasGeral" style="color: red; font-weight: bold;">0 Alertas</span>
                     </h3>
                     <div>
-                        <span class="info-tag">Auto-Refresh Robô: <span id="timerRefresh">300</span>s</span>
-                        <button class="btn" onclick="carregarDadosVeiculos()"><i class="fas fa-sync"></i> Refresh</button>
+                        <span class="info-tag">Auto-Refresh: <span id="timerRefresh">300</span>s</span>
+                        <button class="btn" onclick="carregarDadosVeiculos()"><i class="fas fa-sync"></i> Varredura Agora</button>
+                        <button class="btn" style="background:#00838F;" onclick="carregarAcidentesWazeGoogle()"><i class="fas fa-traffic-light"></i> Tráfego / Waze Reais</button>
                         <button class="btn" onclick="abrirModalEficiencia()"><i class="fas fa-route"></i> Criar Nova Rota</button>
                     </div>
                 </div>
@@ -763,14 +764,11 @@
         
         function parseDateToMs(dateStr) {
             if (!dateStr) return 0;
-            // Verifica estritamente o formato Brasileiro retornado pelo DB: DD/MM/YYYY HH:mm:ss
             const regexBR = /^(\d{2})\/(\d{2})\/(\d{4})[ ,]+(\d{2}):(\d{2}):(\d{2})/;
             const match = String(dateStr).match(regexBR);
             if (match) {
-                // Força o formato seguro ISO YYYY-MM-DDTHH:mm:ss
                 return new Date(`${match[3]}-${match[2]}-${match[1]}T${match[4]}:${match[5]}:${match[6]}`).getTime();
             }
-            // Fallback padrão
             const d = new Date(dateStr);
             return isNaN(d.getTime()) ? 0 : d.getTime();
         }
@@ -1060,7 +1058,6 @@
 
         async function carregarDadosVeiculos() {
             try {
-                // A ordenação order=data_posicao.desc voltou para a API. Assim, os 10000 registros limitados serão sempre os mais recentes.
                 const response = await fetch(`${SUPABASE_URL}/rest/v1/posicoes_sascar?select=*&order=data_posicao.desc&limit=10000`, {
                     method: 'GET',
                     headers: {
@@ -1073,7 +1070,6 @@
                 const dadosBrutos = await response.json();
                 if (!dadosBrutos) return;
 
-                // Garante também o JS sort caso o banco envie fora de ordem localmente
                 dadosBrutos.sort((a, b) => parseDateToMs(b.data_posicao) - parseDateToMs(a.data_posicao));
 
                 const veiculosMap = new Map();
@@ -1082,7 +1078,6 @@
                     const placaLimpa = id.replace(/[^a-zA-Z0-9]/g, '');
                     if (placaLimpa === 'SEMPLACA' || placaLimpa.length !== 7) return; 
 
-                    // Salva apenas o primeiro que aparece (que graças à ordenação acima, é o mais novo)
                     if (!veiculosMap.has(id)) veiculosMap.set(id, v);
                 });
                 veiculosCacheGlobal = Array.from(veiculosMap.values());
@@ -1518,7 +1513,7 @@
                     const mapaSatelitePonto = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
                     const rotulosPonto = L.layerGroup([mapaSatelitePonto, L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 })]);
 
-                    mapPontoRefInstance = L.map('mapPontoRef', { center: [-23.5505, -46.6333], zoom: 8, layers: [rotulosPonto] }); // Map Satellite default
+                    mapPontoRefInstance = L.map('mapPontoRef', { center: [-23.5505, -46.6333], zoom: 8, layers: [rotulosPonto] });
                     camadaPontoRefTemp.addTo(mapPontoRefInstance);
                     L.control.layers({"Satélite (Com Nomes/Vias)": rotulosPonto, "Normal": mapaNormalPonto}).addTo(mapPontoRefInstance);
                 }
@@ -1639,8 +1634,6 @@
             ];
             
             let totalBrutosFiltrados = filtrarItensPorData(todosBrutosUnidos);
-            
-            // Ordena os registros brutos do mais recente para o mais antigo
             totalBrutosFiltrados.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
             if (totalBrutosFiltrados.length > 0) {
@@ -1742,7 +1735,7 @@
                     const mapaSateliteArea = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
                     const rotulosArea = L.layerGroup([mapaSateliteArea, L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 })]);
 
-                    mapDesenhoAreaInstance = L.map('mapDesenhoArea', { center: [-23.5505, -46.6333], zoom: 8, layers: [rotulosArea] }); // SATELLITE Default
+                    mapDesenhoAreaInstance = L.map('mapDesenhoArea', { center: [-23.5505, -46.6333], zoom: 8, layers: [rotulosArea] });
                     camadaDesenhoTemp.addTo(mapDesenhoAreaInstance);
                     
                     L.control.layers({"Satélite (Com Vias)": rotulosArea, "Normal": mapaNormalArea}).addTo(mapDesenhoAreaInstance);
@@ -1875,21 +1868,17 @@
             const rotaObj = rotasVeiculos[placa];
             if (!rotaObj || !rotaObj.coordenadas) return;
 
-            // Garante que o veículo específico está visível no mapa (marcando seu checkbox na grid)
             const chk = document.querySelector(`input.chk-veiculo[value="${placa}"]`);
             if (chk && !chk.checked) {
                 chk.checked = true;
             }
             
-            // Recarrega o grid/mapa focando no veículo e mantendo-o visível
             veiculoFocoGlobal = placa;
             renderizarGridEMapa();
 
-            // Desenha a linha da rota
             if (linhaRotaVeiculoAtivo) map.removeLayer(linhaRotaVeiculoAtivo);
             linhaRotaVeiculoAtivo = L.polyline(rotaObj.coordenadas, {color: '#008DDA', weight: 6, opacity: 0.9}).addTo(map);
 
-            // Ajusta o zoom do mapa para abranger tanto a rota quanto a posição atual do veículo
             let bounds = linhaRotaVeiculoAtivo.getBounds();
             if (markers[placa]) {
                 bounds.extend(markers[placa].getLatLng());
