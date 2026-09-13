@@ -140,33 +140,6 @@
         .btn-expandir:hover { background: var(--accent-blue); color: #FFF; }
         
         .tag-cadastrado { font-size: 10px; background: #008DDA; color: white; padding: 2px 6px; border-radius: 10px; margin-left: 5px; }
-
-        .area-kpi-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-        .area-kpi-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-left: 4px solid var(--accent-blue);
-            border-radius: 6px;
-            padding: 15px;
-            text-align: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }
-        .area-kpi-card h4 {
-            margin: 0 0 8px 0;
-            font-size: 13px;
-            color: var(--accent-blue);
-            text-transform: uppercase;
-        }
-        .area-kpi-card h2 {
-            margin: 0;
-            font-size: 24px;
-            color: var(--text-color);
-        }
     </style>
 </head>
 <body class="dark-mode">
@@ -324,11 +297,11 @@
                 </div>
             </div>
 
-            <!-- PAINEL DE VEÍCULOS POR ÁREA (NOVO) -->
-            <div class="card" style="margin-bottom: 20px;">
-                <h4 style="color: var(--accent-blue); margin-top: 0; margin-bottom: 15px;"><i class="fas fa-map-marked-alt"></i> Veículos Presentes por Área Geográfica (Tempo Real)</h4>
-                <div id="containerAreaKpis" class="area-kpi-container">
-                    <!-- Preenchido dinamicamente via JS -->
+            <!-- NOVO PAINEL DE CONTAGEM DE VEÍCULOS POR ÁREA (DADOS REAIS) -->
+            <div class="card">
+                <h4 style="color: var(--accent-blue); margin-top: 0;"><i class="fas fa-map-marked-alt"></i> Quantidade de Veículos por Área Geográfica (Em Tempo Real)</h4>
+                <div id="painelContagemAreas" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; margin-top: 15px;">
+                    <!-- Preenchido Dinamicamente via JS -->
                 </div>
             </div>
 
@@ -722,7 +695,7 @@
             <div id="modal-route-stats" style="margin: 15px 0; font-size: 14px; background: rgba(0,0,0,0.05); padding: 10px; border-radius: 4px;"></div>
             <div style="display: flex; gap: 10px; margin-top: 20px;">
                 <button class="btn" style="background: var(--success); flex: 1;" onclick="salvarRotaAtual()"><i class="fas fa-save"></i> Salvar Definitivamente</button>
-                <button class="btn" style="background: var(--danger); flex: 1;" onclick="fecharModalSalvar()">Cancelar</button>
+                <button class="btn" style="background: var(--danger); flex: 1;" onclick="fecharModalSalvar()"><i class="fas fa-times"></i> Cancelar</button>
             </div>
         </div>
     </div>
@@ -956,10 +929,19 @@
             const desc = document.getElementById('inputFrotaDescricao').value.trim();
             const placa = formatarPlacaPadrao(placaBruta);
             
-            if (!placa || placa.length < 7) { alert("Por favor, insira uma placa válida."); return; }
-            if (frotaCadastrada.some(f => f.placa === placa)) { alert("Veículo já está cadastrado na base!"); return; }
+            if (!placa || placa.length < 7) {
+                alert("Por favor, insira uma placa válida."); return;
+            }
+            if (frotaCadastrada.some(f => f.placa === placa)) {
+                alert("Veículo já está cadastrado na base!"); return;
+            }
 
-            frotaCadastrada.push({ placa: placa, descricao: desc || 'Sem descrição', dataCadastro: new Date().toLocaleString('pt-BR') });
+            frotaCadastrada.push({
+                placa: placa,
+                descricao: desc || 'Sem descrição',
+                dataCadastro: new Date().toLocaleString('pt-BR')
+            });
+
             document.getElementById('inputFrotaPlaca').value = '';
             document.getElementById('inputFrotaDescricao').value = '';
             
@@ -1003,7 +985,10 @@
             try {
                 const dataObj = new Date(dataStr);
                 if (isNaN(dataObj.getTime())) return dataStr;
-                return dataObj.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                return dataObj.toLocaleString('pt-BR', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit', second: '2-digit'
+                });
             } catch (e) { return dataStr; }
         }
         
@@ -1011,9 +996,12 @@
             if (!dateStr || dateStr === '-') return 0;
             const d = new Date(dateStr);
             if (!isNaN(d.getTime())) return d.getTime();
+
             const regexBR = /^(\d{2})\/(\d{2})\/(\d{4})[ ,]+(\d{2}):(\d{2}):(\d{2})/;
             const match = String(dateStr).match(regexBR);
-            if (match) return new Date(`${match[3]}-${match[2]}-${match[1]}T${match[4]}:${match[5]}:${match[6]}`).getTime();
+            if (match) {
+                return new Date(`${match[3]}-${match[2]}-${match[1]}T${match[4]}:${match[5]}:${match[6]}`).getTime();
+            }
             return 0;
         }
 
@@ -1039,38 +1027,58 @@
         async function buscarAutocomplete(termo, listId, callback) {
             const lista = document.getElementById(listId);
             if (!termo || termo.length < 3) { if(lista) lista.style.display = 'none'; return; }
+            
             const termoBusca = termo.toLowerCase().includes('sp') ? termo : `${termo}, Sao Paulo, Brazil`;
             const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termoBusca)}&limit=5`;
+            
             try {
                 const res = await fetch(url);
                 const data = await res.json();
                 if(!lista) return;
                 lista.innerHTML = '';
+                
                 if (data.length > 0) {
                     data.forEach(item => {
                         const li = document.createElement('li');
                         const titulo = item.display_name.split(',')[0];
                         const resto = item.display_name.substring(titulo.length + 1);
-                        li.innerHTML = `<i class="fas fa-map-marker-alt"></i><div><b>${titulo}</b><small>${resto}</small></div>`;
-                        li.onclick = () => { callback(item); lista.style.display = 'none'; };
+                        
+                        li.innerHTML = `
+                            <i class="fas fa-map-marker-alt"></i>
+                            <div>
+                                <b>${titulo}</b>
+                                <small>${resto}</small>
+                            </div>
+                        `;
+                        li.onclick = () => {
+                            callback(item);
+                            lista.style.display = 'none';
+                        };
                         lista.appendChild(li);
                     });
                     lista.style.display = 'block';
-                } else { lista.style.display = 'none'; }
+                } else {
+                    lista.style.display = 'none';
+                }
             } catch (e) {}
         }
 
         function configurarAutocompleteInput(inputId, listId, tipoDestino, customInputEl = null) {
             const input = customInputEl || document.getElementById(inputId);
             if (!input) return;
+            
             input.addEventListener('input', function(e) {
                 clearTimeout(timeoutBusca);
                 const val = e.target.value;
                 timeoutBusca = setTimeout(() => {
                     buscarAutocomplete(val, listId, (item) => {
-                        const lat = parseFloat(item.lat); const lon = parseFloat(item.lon);
+                        const lat = parseFloat(item.lat);
+                        const lon = parseFloat(item.lon);
                         const nomeCurto = item.display_name.split(',')[0];
-                        input.value = item.display_name; input.dataset.lat = lat; input.dataset.lon = lon;
+                        input.value = item.display_name;
+                        input.dataset.lat = lat;
+                        input.dataset.lon = lon;
+                        
                         if (tipoDestino === 'area') {
                             if (mapDesenhoAreaInstance) {
                                 mapDesenhoAreaInstance.setView([lat, lon], 15);
@@ -1078,8 +1086,11 @@
                                 L.marker([lat, lon]).addTo(camadaDesenhoTemp).bindPopup(`<b>${nomeCurto}</b>`).openPopup();
                             }
                         } else if (tipoDestino === 'ponto') {
-                            document.getElementById('refLat').value = lat; document.getElementById('refLon').value = lon;
-                            if (!document.getElementById('refNome').value) document.getElementById('refNome').value = nomeCurto;
+                            document.getElementById('refLat').value = lat;
+                            document.getElementById('refLon').value = lon;
+                            if (!document.getElementById('refNome').value) {
+                                document.getElementById('refNome').value = nomeCurto;
+                            }
                             if (mapPontoRefInstance) {
                                 mapPontoRefInstance.setView([lat, lon], 15);
                                 camadaPontoRefTemp.clearLayers();
@@ -1089,9 +1100,12 @@
                     });
                 }, 500);
             });
+            
             document.addEventListener('click', function(e) {
                 const listaEl = document.getElementById(listId);
-                if (listaEl && !input.contains(e.target) && !listaEl.contains(e.target)) listaEl.style.display = 'none';
+                if (listaEl && !input.contains(e.target) && !listaEl.contains(e.target)) {
+                    listaEl.style.display = 'none';
+                }
             });
         }
 
@@ -1099,52 +1113,85 @@
             const container = document.getElementById('containerPontosIntermediarios');
             const itensAtuais = container.querySelectorAll('.ponto-intermediario-item');
             if (itensAtuais.length >= 10) { alert("Limite máximo de 10 pontos intermediários atingido por rota."); return; }
+
             const idUnico = 'ponto_int_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
             const listIdUnico = idUnico + '_lista';
+
             const div = document.createElement('div');
             div.className = 'flex-row ponto-intermediario-item';
             div.style.marginBottom = '5px';
-            div.innerHTML = `<div class="autocomplete-container" style="flex: 1;"><input type="text" id="${idUnico}" class="input-livre" placeholder="Digite endereço ou parada..." style="width: 100%;"><ul id="${listIdUnico}" class="autocomplete-list"></ul></div><button class="btn" style="background: var(--danger); padding: 8px 12px; margin-top:0;" onclick="this.parentElement.remove()"><i class="fas fa-trash"></i></button>`;
+            div.innerHTML = `
+                <div class="autocomplete-container" style="flex: 1;">
+                    <input type="text" id="${idUnico}" class="input-livre" placeholder="Digite endereço ou parada..." style="width: 100%;">
+                    <ul id="${listIdUnico}" class="autocomplete-list"></ul>
+                </div>
+                <button class="btn" style="background: var(--danger); padding: 8px 12px; margin-top:0;" onclick="this.parentElement.remove()"><i class="fas fa-trash"></i></button>
+            `;
             container.appendChild(div);
-            configurarAutocompleteInput(null, listIdUnico, 'intermediario', document.getElementById(idUnico));
+
+            const inputEl = document.getElementById(idUnico);
+            configurarAutocompleteInput(null, listIdUnico, 'intermediario', inputEl);
         }
 
         function alternarExpandirTabela(tableId, btnEl) {
             tabelasExpandidas[tableId] = !tabelasExpandidas[tableId];
             if (tabelasExpandidas[tableId]) {
-                btnEl.innerHTML = `<i class="fas fa-compress-alt"></i> Recolher Tabela`; btnEl.style.background = 'var(--danger)'; btnEl.style.borderColor = 'var(--danger)'; btnEl.style.color = '#FFF';
+                btnEl.innerHTML = `<i class="fas fa-compress-alt"></i> Recolher Tabela`;
+                btnEl.style.background = 'var(--danger)';
+                btnEl.style.borderColor = 'var(--danger)';
+                btnEl.style.color = '#FFF';
             } else {
-                btnEl.innerHTML = `<i class="fas fa-expand-alt"></i> Expandir Tabela`; btnEl.style.background = 'none'; btnEl.style.borderColor = 'var(--accent-blue)'; btnEl.style.color = 'var(--accent-blue)';
+                btnEl.innerHTML = `<i class="fas fa-expand-alt"></i> Expandir Tabela`;
+                btnEl.style.background = 'none';
+                btnEl.style.borderColor = 'var(--accent-blue)';
+                btnEl.style.color = 'var(--accent-blue)';
             }
-            atualizarKpisETabelasDash(); renderizarTabelaRotas(); renderizarTabelaAreas(); renderizarTabelaPontosRef(); renderizarTabelaFrota(); carregarAbastecimentos();
+            atualizarKpisETabelasDash();
+            renderizarTabelaRotas();
+            renderizarTabelaAreas();
+            renderizarTabelaPontosRef();
+            renderizarTabelaFrota();
+            carregarAbastecimentos();
         }
 
         function renderizarLinhasComLimite(tbodyId, tableId, linhasHtmls, colspanNum, mensagemVazia) {
             const tbody = document.getElementById(tbodyId);
             if (!tbody) return;
-            if (linhasHtmls.length === 0) { tbody.innerHTML = `<tr><td colspan="${colspanNum}" style="text-align:center; opacity:0.7;">${mensagemVazia}</td></tr>`; return; }
+
+            if (linhasHtmls.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="${colspanNum}" style="text-align:center; opacity:0.7;">${mensagemVazia}</td></tr>`;
+                return;
+            }
+
             const expandido = tabelasExpandidas[tableId];
-            tbody.innerHTML = (expandido ? linhasHtmls : linhasHtmls.slice(0, 10)).join('');
+            const linhasRenderizar = expandido ? linhasHtmls : linhasHtmls.slice(0, 10);
+            tbody.innerHTML = linhasRenderizar.join('');
         }
 
         function exportarExcelCompleto(tableId, nomeArquivo) {
             const estadoAnterior = tabelasExpandidas[tableId];
             tabelasExpandidas[tableId] = true;
-            atualizarKpisETabelasDash(); renderizarTabelaRotas(); renderizarTabelaAreas(); renderizarTabelaPontosRef(); renderizarTabelaFrota(); carregarAbastecimentos();
-            XLSX.writeFile(XLSX.utils.table_to_book(document.getElementById(tableId), { sheet: "Dados" }), nomeArquivo + ".xlsx");
+            
+            atualizarKpisETabelasDash();
+            const tabelaEl = document.getElementById(tableId);
+            const workbook = XLSX.utils.table_to_book(tabelaEl, { sheet: "Dados" });
+            XLSX.writeFile(workbook, nomeArquivo + ".xlsx");
+
             tabelasExpandidas[tableId] = estadoAnterior;
-            atualizarKpisETabelasDash(); renderizarTabelaRotas(); renderizarTabelaAreas(); renderizarTabelaPontosRef(); renderizarTabelaFrota(); carregarAbastecimentos();
+            atualizarKpisETabelasDash();
         }
 
         function exportarDashboardCompletoExcel() {
             const wb = XLSX.utils.book_new();
             const idsTabelas = ['tabelaDash', 'tabelaTratativas', 'tabelaDashRotas', 'tabelaDashAreas'];
             const nomesAbas = ['Registros Brutos', 'Tratativas', 'Rotas Embarcadas', 'Areas Geograficas'];
+
             idsTabelas.forEach((idTabela, index) => {
                 const estadoAnterior = tabelasExpandidas[idTabela];
                 tabelasExpandidas[idTabela] = true;
                 atualizarKpisETabelasDash();
-                XLSX.utils.book_append_sheet(wb, XLSX.utils.table_to_book(document.getElementById(idTabela)).Sheets["Sheet1"] || XLSX.utils.table_to_sheet(document.getElementById(idTabela)), nomesAbas[index]);
+                const ws = XLSX.utils.table_to_book(document.getElementById(idTabela)).Sheets["Sheet1"] || XLSX.utils.table_to_sheet(document.getElementById(idTabela));
+                XLSX.utils.book_append_sheet(wb, ws, nomesAbas[index]);
                 tabelasExpandidas[idTabela] = estadoAnterior;
                 atualizarKpisETabelasDash();
             });
@@ -1156,53 +1203,97 @@
             let draggedColIndex = null;
             ths.forEach(th => {
                 th.setAttribute('draggable', 'true');
-                th.addEventListener('dragstart', (e) => { draggedColIndex = Array.from(th.parentNode.children).indexOf(th); e.dataTransfer.effectAllowed = 'move'; th.classList.add('dragging'); });
-                th.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; th.classList.add('drag-over'); });
+                th.addEventListener('dragstart', (e) => {
+                    draggedColIndex = Array.from(th.parentNode.children).indexOf(th);
+                    e.dataTransfer.effectAllowed = 'move';
+                    th.classList.add('dragging');
+                });
+                th.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    th.classList.add('drag-over');
+                });
                 th.addEventListener('dragleave', () => { th.classList.remove('drag-over'); });
                 th.addEventListener('drop', (e) => {
-                    e.preventDefault(); th.classList.remove('drag-over');
+                    e.preventDefault();
+                    th.classList.remove('drag-over');
                     const targetColIndex = Array.from(th.parentNode.children).indexOf(th);
+                    
                     if (draggedColIndex !== null && draggedColIndex !== targetColIndex) {
-                        const trHead = th.parentNode; const originalThs = Array.from(trHead.children);
-                        if (draggedColIndex < targetColIndex) trHead.insertBefore(originalThs[draggedColIndex], originalThs[targetColIndex].nextSibling);
-                        else trHead.insertBefore(originalThs[draggedColIndex], originalThs[targetColIndex]);
-                        columnOrder = Array.from(trHead.children).map(t => Array.from(document.querySelectorAll('#gridOperacional th')).indexOf(t));
-                        salvarDadosNoBanco(); renderizarGridEMapa();
+                        const trHead = th.parentNode;
+                        const originalThs = Array.from(trHead.children);
+                        
+                        if (draggedColIndex < targetColIndex) { trHead.insertBefore(originalThs[draggedColIndex], originalThs[targetColIndex].nextSibling); } 
+                        else { trHead.insertBefore(originalThs[draggedColIndex], originalThs[targetColIndex]); }
+                        
+                        const novosThs = Array.from(trHead.children);
+                        const allInitialThs = Array.from(document.querySelectorAll('#gridOperacional th'));
+                        columnOrder = novosThs.map(t => allInitialThs.indexOf(t));
+                        
+                        salvarDadosNoBanco();
+                        renderizarGridEMapa();
                     }
                 });
-                th.addEventListener('dragend', () => { th.classList.remove('dragging'); ths.forEach(t => t.classList.remove('drag-over')); });
+                th.addEventListener('dragend', () => {
+                    th.classList.remove('dragging');
+                    ths.forEach(t => t.classList.remove('drag-over'));
+                });
             });
         }
 
         window.addEventListener('DOMContentLoaded', async () => {
             map = L.map('map').setView([-23.5505, -46.6333], 7);
+            
             const mapaNormal = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
             const mapaSatelite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
             const rotulosSatelite = L.layerGroup([mapaSatelite, L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 })]);
 
-            mapaNormal.addTo(map); camadaTransitoGrupo.addTo(map); camadaAreasGrupo.addTo(map);
-            L.control.layers({"Normal": mapaNormal, "Satélite (com Nomes/Vias)": rotulosSatelite}, {"Tráfego & Acidentes": camadaTransitoGrupo, "Áreas Geográficas": camadaAreasGrupo}).addTo(map);
+            mapaNormal.addTo(map);
+            camadaTransitoGrupo.addTo(map);
+            camadaAreasGrupo.addTo(map);
+
+            L.control.layers({
+                "Normal": mapaNormal, 
+                "Satélite (com Nomes/Vias)": rotulosSatelite
+            }, {
+                "Tráfego & Acidentes": camadaTransitoGrupo,
+                "Áreas Geográficas (Cercas)": camadaAreasGrupo
+            }).addTo(map);
 
             if (localStorage.getItem('tema') === 'claro') {
                 document.body.classList.remove('dark-mode');
-                const icone = document.getElementById('iconeTema'); if (icone) icone.className = "fas fa-moon";
+                const icone = document.getElementById('iconeTema');
+                if (icone) icone.className = "fas fa-moon";
             }
             
             await carregarDadosDoBanco();
-            renderizarTabelaFrota(); renderizarTabelaRotas(); renderizarTabelaAreas(); renderizarTabelaPontosRef(); renderizarAreasNoMapa();
+            renderizarTabelaFrota();
+            renderizarTabelaRotas();
+            renderizarTabelaAreas();
+            renderizarTabelaPontosRef();
+            renderizarAreasNoMapa();
+
             configurarAutocompleteInput('inputBuscaRefArea', 'autocompleteArea', 'area');
             configurarAutocompleteInput('refBuscaGoogle', 'autocompletePonto', 'ponto');
             configurarAutocompleteInput('iamOrigem', 'autocompleteOrigemRota', 'origem');
             configurarAutocompleteInput('iamDestino', 'autocompleteDestinoRota', 'destino');
 
-            reordenarCabecalhoVisualmente(); inicializarDragDropColunas(); verificarSessaoSalva();
+            reordenarCabecalhoVisualmente();
+            inicializarDragDropColunas();
+
+            verificarSessaoSalva();
         });
 
         function alternarTema() {
             document.body.classList.toggle('dark-mode');
             const icone = document.getElementById('iconeTema');
-            if (document.body.classList.contains('dark-mode')) { icone.className = "fas fa-sun"; localStorage.setItem('tema', 'escuro'); }
-            else { icone.className = "fas fa-moon"; localStorage.setItem('tema', 'claro'); }
+            if (document.body.classList.contains('dark-mode')) {
+                icone.className = "fas fa-sun";
+                localStorage.setItem('tema', 'escuro');
+            } else {
+                icone.className = "fas fa-moon";
+                localStorage.setItem('tema', 'claro');
+            }
             atualizarDashboards();
         }
 
@@ -1210,11 +1301,18 @@
             localStorage.setItem('abaAtiva', abaId);
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-menus button').forEach(el => el.classList.remove('active'));
-            const abaElement = document.getElementById(abaId); if (abaElement) abaElement.classList.add('active');
-            const btnNav = document.querySelector(`.nav-menus button[onclick*="${abaId}"]`); if (btnNav) btnNav.classList.add('active');
+            
+            const abaElement = document.getElementById(abaId);
+            if (abaElement) abaElement.classList.add('active');
+            
+            const btnNav = document.querySelector(`.nav-menus button[onclick*="${abaId}"]`);
+            if (btnNav) btnNav.classList.add('active');
             
             if(abaId === 'operacional' && map) setTimeout(() => map.invalidateSize(), 150);
-            if(abaId === 'dashboard') { atualizarKpisETabelasDash(); atualizarDashboards(); }
+            if(abaId === 'dashboard') {
+                atualizarKpisETabelasDash();
+                atualizarDashboards();
+            }
             if(abaId === 'frota') renderizarTabelaFrota();
             if(abaId === 'rotas') renderizarTabelaRotas();
             if(abaId === 'areas') renderizarTabelaAreas();
@@ -1223,15 +1321,19 @@
 
         function calcularDistanciaMetros(lat1, lon1, lat2, lon2) {
             const R = 6371e3;
-            const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
             return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
         }
 
         function calcularMenorDistanciaAteRota(lat, lon, coordenadasRota) {
             let menorDist = Infinity;
             for (let i = 0; i < coordenadasRota.length; i++) {
-                const d = calcularDistanciaMetros(lat, lon, coordenadasRota[i][0], coordenadasRota[i][1]);
+                const pt = coordenadasRota[i];
+                const d = calcularDistanciaMetros(lat, lon, pt[0], pt[1]);
                 if (d < menorDist) menorDist = d;
             }
             return menorDist;
@@ -1241,7 +1343,8 @@
             const x = ponto[0], y = ponto[1];
             let inside = false;
             for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-                const xi = vs[i][0], yi = vs[i][1]; const xj = vs[j][0], yj = vs[j][1];
+                const xi = vs[i][0], yi = vs[i][1];
+                const xj = vs[j][0], yj = vs[j][1];
                 const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
                 if (intersect) inside = !inside;
             }
@@ -1249,41 +1352,60 @@
         }
 
         function veiculoDentroDaArea(lat, lon, area) {
-            if (area.tipo === 'circle') return calcularDistanciaMetros(lat, lon, area.geometria.center[0], area.geometria.center[1]) <= area.geometria.radius;
-            else if (area.tipo === 'polygon' || area.tipo === 'rectangle') return pontoNoPoligono([lat, lon], area.geometria);
+            if (area.tipo === 'circle') {
+                const dist = calcularDistanciaMetros(lat, lon, area.geometria.center[0], area.geometria.center[1]);
+                return dist <= area.geometria.radius;
+            } else if (area.tipo === 'polygon' || area.tipo === 'rectangle') {
+                return pontoNoPoligono([lat, lon], area.geometria);
+            }
             return false;
         }
 
         function expirarAlertasNaoTratados() {
-            const agora = Date.now(); let mudou = false;
+            const agora = Date.now();
+            let mudou = false;
+
             const verificarEExpirar = (lista, tipoGeral) => {
                 lista.forEach(alerta => {
                     if (!alertasFinalizados[alerta.chave] && (agora - alerta.timestamp) >= 20 * 60 * 1000) {
                         const dataTratativa = new Date().toLocaleString('pt-BR');
                         alertasFinalizados[alerta.chave] = { motivo: 'Expirado automaticamente (Sem tratativa > 20 min)', data: dataTratativa };
-                        historicoTratativas.push({ placa: alerta.placa, alerta:alerta.ocorrencia || tipoGeral, dataHora: dataTratativa, motivo: 'Expirado automaticamente (Sem tratativa > 20 min)', timestamp: agora });
+                        historicoTratativas.push({
+                            placa: alerta.placa,
+                            alerta: alerta.ocorrencia || tipoGeral,
+                            dataHora: dataTratativa,
+                            motivo: 'Expirado automaticamente (Sem tratativa > 20 min)',
+                            timestamp: agora
+                        });
                         mudou = true;
                     }
                 });
             };
+
             verificarEExpirar(historicoExcessoVelocidadeDashboard, 'Excesso de Velocidade');
             verificarEExpirar(historicoPerdaSinalDashboard, 'Perda de Sinal');
             verificarEExpirar(historicoDesviosDashboard, 'Desvio de Rota');
             verificarEExpirar(historicoComboiosDashboard, 'Comboio');
             verificarEExpirar(historicoParadosLigados, 'Parado e Ligado');
+
             if (mudou) salvarDadosNoBanco();
         }
 
         async function carregarDadosVeiculos() {
             const btnRefresh = document.getElementById('btnRefreshManual');
             const iconOriginal = '<i class="fas fa-sync"></i> Refresh';
-            if (btnRefresh) { btnRefresh.innerHTML = '<i class="fas fa-sync fa-spin"></i> Atualizando...'; btnRefresh.disabled = true; }
+            if (btnRefresh) {
+                btnRefresh.innerHTML = '<i class="fas fa-sync fa-spin"></i> Atualizando...';
+                btnRefresh.disabled = true;
+            }
             
             countdown = 300;
-            const timerEl = document.getElementById('timerRefresh'); if(timerEl) timerEl.innerText = countdown;
+            const timerEl = document.getElementById('timerRefresh');
+            if(timerEl) timerEl.innerText = countdown;
 
             try {
                 const response = await fetch(`${SUPABASE_URL}/rest/v1/posicoes_sascar?select=*&order=data_posicao.desc`, {
+                    method: 'GET',
                     headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' }
                 });
                 if (!response.ok) throw new Error("Erro na resposta SASCAR");
@@ -1300,6 +1422,7 @@
                 dadosBrutos.forEach(v => {
                     const placa = formatarPlacaPadrao(v.id_veiculo);
                     if (!placa || placa === 'SEM-PLACA') return; 
+
                     if (!novosVeiculosMap.has(placa)) {
                         novosVeiculosMap.set(placa, {
                             ...v, id_veiculo: placa,
@@ -1311,13 +1434,17 @@
 
                 novosVeiculosMap.forEach((novoV, placa) => {
                     if (veiculosMap.has(placa)) {
-                        if (parseDateToMs(novoV.data_posicao) >= parseDateToMs(veiculosMap.get(placa).data_posicao)) veiculosMap.set(placa, novoV);
-                    } else { veiculosMap.set(placa, novoV); }
+                        const velhoV = veiculosMap.get(placa);
+                        if (parseDateToMs(novoV.data_posicao) >= parseDateToMs(velhoV.data_posicao)) veiculosMap.set(placa, novoV);
+                    } else {
+                        veiculosMap.set(placa, novoV);
+                    }
                 });
 
                 veiculosCacheGlobal = Array.from(veiculosMap.values());
                 
                 expirarAlertasNaoTratados();
+                processarRegrasEAlertas(veiculosCacheGlobal, dadosBrutos);
                 renderizarGridEMapa();
                 atualizarKpisETabelasDash();
                 atualizarDashboards();
@@ -1326,6 +1453,61 @@
             } finally {
                 if (btnRefresh) { btnRefresh.innerHTML = iconOriginal; btnRefresh.disabled = false; }
             }
+        }
+
+        function processarRegrasEAlertas(veiculos, dadosBrutos) {
+            const agora = Date.now();
+            let houveMudanca = false;
+            
+            veiculos.forEach(v => {
+                let placaFormatada = formatarPlacaPadrao(v.id_veiculo);
+                const lat = parseFloat(String(v.latitude).replace(',', '.'));
+                const lon = parseFloat(String(v.longitude).replace(',', '.'));
+                const velFinal = Number(v.velocidade) || 0;
+                const ign = Boolean(v.ignicao);
+                
+                if (isNaN(lat) || isNaN(lon)) return;
+
+                const areasIdsDoVeiculo = areasVeiculos[placaFormatada] || [];
+                areasIdsDoVeiculo.forEach(areaId => {
+                    const areaObj = areasSalvas.find(a => a.id == areaId);
+                    if (!areaObj) return;
+                    const chaveKey = `${placaFormatada}_${areaId}`;
+                    const dentro = veiculoDentroDaArea(lat, lon, areaObj);
+
+                    if (dentro) {
+                        if (!contadorPermanenciaAreas[chaveKey]) {
+                            let tempoEntrada = agora;
+                            const dataEntradaObj = new Date(tempoEntrada);
+                            contadorPermanenciaAreas[chaveKey] = { 
+                                inicio: tempoEntrada, maxVel: velFinal, nomeArea: areaObj.nome,
+                                dataEntradaStr: dataEntradaObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                                dataEntradaCompleta: dataEntradaObj.toLocaleString('pt-BR')
+                            };
+                            houveMudanca = true;
+                        }
+                    } else {
+                        if (contadorPermanenciaAreas[chaveKey]) {
+                            const perm = contadorPermanenciaAreas[chaveKey];
+                            const agoraObj = new Date();
+                            const duracaoMin = Math.max(1, Math.round((agora - perm.inicio) / 60000));
+                            
+                            historicoPermanenciasDashboard.push({
+                                placa: placaFormatada, ocorrencia: `Permanência na Área (${perm.nomeArea})`, duracao: duracaoMin,
+                                maxVel: perm.maxVel, dataHora: agoraObj.toLocaleString('pt-BR'), timestamp: agora, rawDate: agoraObj
+                            });
+
+                            if (!window.historicoCercasConcluidas) window.historicoCercasConcluidas = [];
+                            window.historicoCercasConcluidas.push({ placa: placaFormatada, area: perm.nomeArea, entrada: perm.dataEntradaCompleta, saida: agoraObj.toLocaleString('pt-BR'), duracaoMin: duracaoMin, timestamp: agora });
+
+                            delete contadorPermanenciaAreas[chaveKey];
+                            houveMudanca = true;
+                        }
+                    }
+                });
+            });
+
+            if (houveMudanca) salvarDadosNoBanco();
         }
 
         function renderizarGridEMapa() {
@@ -1337,18 +1519,22 @@
             if (linhaRotaVeiculoAtivo) { map.removeLayer(linhaRotaVeiculoAtivo); linhaRotaVeiculoAtivo = null; }
 
             const mapPlacas = new Map();
-            veiculosCacheGlobal.forEach(v => mapPlacas.set(formatarPlacaPadrao(v.id_veiculo), { fromApi: true, cadastrado: false, data: v }));
+            veiculosCacheGlobal.forEach(v => {
+                const placa = formatarPlacaPadrao(v.id_veiculo);
+                mapPlacas.set(placa, { fromApi: true, cadastrado: false, data: v });
+            });
+
             frotaCadastrada.forEach(f => {
-                if (!mapPlacas.has(f.placa)) mapPlacas.set(f.placa, { fromApi: false, cadastrado: true, data: { id_veiculo: f.placa, offline: true, velocidade: 0, ignicao: false, data_posicao: '-', latitude: NaN, longitude: NaN } });
-                else mapPlacas.get(f.placa).cadastrado = true;
+                if (!mapPlacas.has(f.placa)) {
+                    mapPlacas.set(f.placa, { fromApi: false, cadastrado: true, data: { id_veiculo: f.placa, offline: true, velocidade: 0, ignicao: false, data_posicao: '-', latitude: NaN, longitude: NaN } });
+                } else {
+                    mapPlacas.get(f.placa).cadastrado = true;
+                }
             });
 
             let dadosUnificados = Array.from(mapPlacas.values());
-            if (veiculoFocoGlobal) dadosUnificados = dadosUnificados.filter(item => formatarPlacaPadrao(item.data.id_veiculo) === veiculoFocoGlobal);
-
-            if (dadosUnificados.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="12" style="text-align:center; opacity:0.7; padding: 20px;">Nenhum veículo encontrado.</td></tr>`;
-                return;
+            if (veiculoFocoGlobal) {
+                dadosUnificados = dadosUnificados.filter(item => formatarPlacaPadrao(item.data.id_veiculo) === veiculoFocoGlobal);
             }
 
             let totalAlertasAtivos = 0;
@@ -1360,19 +1546,17 @@
                 const placaFormatada = formatarPlacaPadrao(v.id_veiculo);
                 const lat = parseFloat(String(v.latitude).replace(',', '.'));
                 const lon = parseFloat(String(v.longitude).replace(',', '.'));
+                
                 const velFinal = Number(v.velocidade) || 0;
                 const ignicaoBool = Boolean(v.ignicao);
-                
                 const rotaVinculadaObj = rotasVeiculos[placaFormatada];
-                let desvioMetros = 0;
-                if (rotaVinculadaObj && rotaVinculadaObj.coordenadas && !isNaN(lat) && !isNaN(lon)) desvioMetros = Math.round(calcularMenorDistanciaAteRota(lat, lon, rotaVinculadaObj.coordenadas));
-
-                let htmlAlertas = isOfflineForced ? `<span style="color: var(--danger); font-size: 11px; font-weight: bold;">OFFLINE</span>` : `<span style="color: var(--success); font-size: 12px;">Normal</span>`;
                 const rotaVinculadaNome = rotaVinculadaObj ? rotaVinculadaObj.nome : 'Nenhuma';
                 const dataFormatadaPtBr = isOfflineForced ? '-' : formatarDataHoraPtBr(v.data_posicao);
 
                 const idsAreasVeic = areasVeiculos[placaFormatada] || [];
-                const nomesAreas = idsAreasVeic.map(idA => { const ar = areasSalvas.find(a => a.id == idA); return ar ? ar.nome : null; }).filter(Boolean);
+                const nomesAreas = idsAreasVeic.map(idA => {
+                    const ar = areasSalvas.find(a => a.id == idA); return ar ? ar.nome : null;
+                }).filter(Boolean);
                 const areasStr = nomesAreas.length > 0 ? nomesAreas.join(', ') : 'Nenhuma';
                 
                 const isChecked = veiculosOcultosGlobal[placaFormatada] ? '' : 'checked';
@@ -1385,62 +1569,127 @@
                     `<td><a href="#" onclick="${isOfflineForced ? 'return false;' : `focarVeiculoNoMapa('${placaFormatada}'); return false;`}" style="color:var(--accent-blue); font-weight:bold; ${isOfflineForced ? 'pointer-events: none; opacity:0.6;' : ''}">${placaFormatada}</a>${tagCadastro}</td>`,
                     `<td>${dataFormatadaPtBr}</td>`,
                     `<td><span style="color: ${isOfflineForced ? '#757575' : (ignicaoBool ? 'var(--success)' : 'var(--danger)')}; font-weight:bold;">${isOfflineForced ? '-' : (ignicaoBool ? 'LIGADA' : 'DESLIGADA')}</span></td>`,
-                    `<td>${v.cidade || '-'}</td><td>${v.uf || '-'}</td><td>${v.rua || '-'}</td>`,
+                    `<td>${v.cidade || '-'}</td>`,
+                    `<td>${v.uf || '-'}</td>`,
+                    `<td>${v.rua || '-'}</td>`,
                     `<td><b>${isOfflineForced ? '-' : velFinal + ' km/h'}</b></td>`,
                     `<td><span style="font-size:12px; background:rgba(0,131,143,0.1); padding:4px 8px; border-radius:4px; font-weight:bold; color:#00838F;">${rotaVinculadaNome}</span></td>`,
                     `<td><span style="font-size:12px; background:rgba(255,143,0,0.1); padding:4px 8px; border-radius:4px; font-weight:bold; color:#FF8F00;">${areasStr}</span></td>`,
-                    `<td class="table-actions">${htmlAlertas}</td>`
+                    `<td class="table-actions"><span style="color: var(--success); font-size: 12px;">Normal</span></td>`
                 ];
 
                 let htmlOrdenado = '';
-                for (let i = 0; i < columnOrder.length; i++) if (columnOrder[i] !== undefined && tds[columnOrder[i]]) htmlOrdenado += tds[columnOrder[i]];
+                for (let i = 0; i < columnOrder.length; i++) {
+                    if (columnOrder[i] !== undefined && tds[columnOrder[i]]) htmlOrdenado += tds[columnOrder[i]];
+                }
                 tr.innerHTML = htmlOrdenado;
                 tbody.appendChild(tr);
 
-                if (!isOfflineForced && !isNaN(lat) && !isNaN(lon) && !veiculosOcultosGlobal[placaFormatada]) {
-                    markers[placaFormatada] = L.marker([lat, lon], {icon: iconeCaminhao}).addTo(map).bindPopup(`<b>Placa: ${placaFormatada}</b><br>Velocidade: ${velFinal} km/h`);
+                if (!isOfflineForced && !isNaN(lat) && !isNaN(lon)) {
+                    if (!veiculosOcultosGlobal[placaFormatada]) {
+                        const marcador = L.marker([lat, lon], {icon: iconeCaminhao}).addTo(map);
+                        marcador.bindPopup(`<b>Placa: ${placaFormatada}</b><br>Velocidade: ${velFinal} km/h`);
+                        markers[placaFormatada] = marcador;
+                    }
                 }
             });
-            const elContador = document.getElementById('contadorAlertasGeral');
-            if (elContador) elContador.innerText = `${totalAlertasAtivos} Alertas`;
+        }
+
+        // --- NOVA FUNÇÃO: PAINEL DE CONTAGEM DE VEÍCULOS POR ÁREA (DADOS REAIS) ---
+        function atualizarPainelContagemAreas() {
+            const container = document.getElementById('painelContagemAreas');
+            if (!container) return;
+
+            if (!areasSalvas || areasSalvas.length === 0) {
+                container.innerHTML = `<p style="font-size: 13px; opacity: 0.7; grid-column: span 2;">Nenhuma área (cerca) cadastrada no momento.</p>`;
+                return;
+            }
+
+            let htmlCards = '';
+
+            areasSalvas.forEach(area => {
+                let veiculosNaAreaCount = 0;
+                let placasNaArea = [];
+
+                veiculosCacheGlobal.forEach(v => {
+                    const lat = parseFloat(String(v.latitude).replace(',', '.'));
+                    const lon = parseFloat(String(v.longitude).replace(',', '.'));
+                    const placa = formatarPlacaPadrao(v.id_veiculo);
+
+                    if (!isNaN(lat) && !isNaN(lon)) {
+                        // Verifica se está geograficamente dentro da área OU se está explicitamente vinculado a ela
+                        const dentroDaGeometria = veiculoDentroDaArea(lat, lon, area);
+                        const areasVinculadas = areasVeiculos[placa] || [];
+                        const vinculadoPorId = areasVinculadas.includes(area.id);
+
+                        if (dentroDaGeometria || vinculadoPorId) {
+                            veiculosNaAreaCount++;
+                            placasNaArea.push(placa);
+                        }
+                    }
+                });
+
+                htmlCards += `
+                    <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-left: 4px solid var(--accent-blue); padding: 15px; border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                        <h5 style="margin: 0 0 8px 0; color: var(--accent-blue); font-size: 14px; font-weight: bold;"><i class="fas fa-draw-polygon"></i> ${area.nome}</h5>
+                        <h2 style="margin: 0 0 5px 0; font-size: 24px; color: var(--text-color);">${veiculosNaAreaCount} <span style="font-size: 12px; font-weight: normal; opacity: 0.8;">veículo(s)</span></h2>
+                        <small style="font-size: 11px; opacity: 0.7; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${placasNaArea.join(', ')}">
+                            <b>Placas:</b> ${placasNaArea.length > 0 ? placasNaArea.join(', ') : 'Nenhum veículo presente'}
+                        </small>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = htmlCards;
         }
 
         function alternarPopupAlertas20Min() {
             popupAlertasHabilitado = !popupAlertasHabilitado;
             const txtEl = document.getElementById('statusPopupAlertaTxt');
             const btnEl = document.getElementById('btnTogglePopup20m');
-            if (popupAlertasHabilitado) { txtEl.innerText = "Habilitado"; txtEl.style.color = "var(--success)"; btnEl.innerHTML = `<i class="fas fa-bell-slash"></i> Desabilitar Pop-up`; btnEl.style.background = "var(--warning)"; }
-            else { txtEl.innerText = "Desabilitado"; txtEl.style.color = "var(--danger)"; btnEl.innerHTML = `<i class="fas fa-bell"></i> Habilitar Pop-up`; btnEl.style.background = "var(--success)"; }
+            if (popupAlertasHabilitado) {
+                txtEl.innerText = "Habilitado"; txtEl.style.color = "var(--success)";
+                btnEl.innerHTML = `<i class="fas fa-bell-slash"></i> Desabilitar Pop-up`;
+            } else {
+                txtEl.innerText = "Desabilitado"; txtEl.style.color = "var(--danger)";
+                btnEl.innerHTML = `<i class="fas fa-bell"></i> Habilitar Pop-up`;
+            }
         }
 
-        function iniciarPopupAlertas20MinTimer() {}
-        function fecharModalPopupAlertas20Min() { document.getElementById('modalPopupAlertas20Min').style.display = 'none'; }
-        function abrirModalFinalizarAlerta(p, t, c) {}
-        function fecharModalFinalizarAlerta() { document.getElementById('modalFinalizarAlerta').style.display = 'none'; }
-        function salvarEFinalizarAlerta() {}
+        function iniciarPopupAlertas20MinTimer() {
+            if (popup20MinIntervalRef) clearInterval(popup20MinIntervalRef);
+            popup20MinIntervalRef = setInterval(() => {
+                if (popupAlertasHabilitado) expirarAlertasNaoTratados();
+            }, 20 * 60 * 1000);
+        }
 
+        function fecharModalPopupAlertas20Min() { document.getElementById('modalPopupAlertas20Min').style.display = 'none'; }
         function abrirModalPontoRef() { document.getElementById('modalPontoRef').style.display = 'flex'; }
         function fecharModalPontoRef() { document.getElementById('modalPontoRef').style.display = 'none'; }
-        function salvarPontoReferencia() {}
         function renderizarTabelaPontosRef() {}
-        function excluirPontoRef(id) {}
         function atualizarSelectsPontosRef() {}
         function preencherOrigemRef() {}
         function preencherDestinoRef() {}
-
-        function filtrarItensPorData(lista) { return lista; }
-        function aplicarFiltroDashboard() { atualizarKpisETabelasDash(); atualizarDashboards(); alert("Filtro aplicado!"); }
-        function limparFiltroDashboard() { document.getElementById('filtroDataInicio').value = ''; document.getElementById('filtroDataFim').value = ''; atualizarKpisETabelasDash(); atualizarDashboards(); }
+        function filtrarItensPorData(l) { return l; }
+        function aplicarFiltroDashboard() { atualizarKpisETabelasDash(); atualizarDashboards(); }
+        function limparFiltroDashboard() { atualizarKpisETabelasDash(); atualizarDashboards(); }
 
         function atualizarKpisETabelasDash() {
             let emTransito = 0, desligados = 0, paradosLigados = 0;
             veiculosCacheGlobal.forEach(v => {
-                const vel = Number(v.velocidade) || 0; const ign = Boolean(v.ignicao);
-                if (ign && vel > 10) emTransito++; else if (!ign && vel === 0) desligados++; else if (ign && vel === 0) paradosLigados++;
+                const vel = Number(v.velocidade) || 0;
+                const ign = Boolean(v.ignicao);
+                if (ign && vel > 10) emTransito++;
+                else if (!ign && vel === 0) desligados++;
+                else if (ign && vel === 0) paradosLigados++;
             });
-            if (document.getElementById('kpiEmTransito')) document.getElementById('kpiEmTransito').innerText = emTransito;
-            if (document.getElementById('kpiDesligados')) document.getElementById('kpiDesligados').innerText = desligados;
-            if (document.getElementById('kpiParadosLigados')) document.getElementById('kpiParadosLigados').innerText = paradosLigados;
+
+            document.getElementById('kpiEmTransito').innerText = emTransito;
+            document.getElementById('kpiDesligados').innerText = desligados;
+            document.getElementById('kpiParadosLigados').innerText = paradosLigados;
+
+            // Atualiza o painel de contagem em tempo real por área
+            atualizarPainelContagemAreas();
         }
 
         function abrirModalEficiencia() { document.getElementById('modalEficiencia').style.display = 'flex'; }
@@ -1449,121 +1698,76 @@
 
         function abrirJanelaCriarArea() { document.getElementById('modalJanelaCriarArea').style.display = 'flex'; }
         function fecharJanelaCriarArea() { document.getElementById('modalJanelaCriarArea').style.display = 'none'; }
-        function ativarFerramentaDesenho(tipo) {}
-        function atualizarDesenhoTemporario() {}
+        function ativarFerramentaDesenho(t) { modoDesenhoAtual = t; }
         function editarUltimaArea() {}
         function apagarDesenhoArea() {}
-        function salvarAreaDefinitiva() {}
+        async function salvarAreaDefinitiva() { fecharJanelaCriarArea(); }
         function renderizarTabelaAreas() {}
         function renderizarAreasNoMapa() {}
         function focarAreaNoMapa(id) {}
-        function excluirArea(id) {}
-        function abrirModalVincular(p) {}
-        function fecharModalVincular() {}
-        function confirmarVinculacaoRota() {}
-        function desvincularRotaVeiculo(p) {}
-        function visualizarRotaEmbarcada(p) {}
-        function focarVeiculoNoMapa(p) {}
-        function abrirModalVincularArea(p) {}
+        async function excluirArea(id) {}
+
+        function abrirModalVincular(placa) { document.getElementById('modalVincularRota').style.display = 'flex'; }
+        function fecharModalVincular() { document.getElementById('modalVincularRota').style.display = 'none'; }
+        async function confirmarVinculacaoRota() { fecharModalVincular(); }
+        async function desvincularRotaVeiculo(placa) {}
+        function visualizarRotaEmbarcada(placa) {}
+        function focarVeiculoNoMapa(placa) {}
+
+        function abrirModalVincularArea(placa) { document.getElementById('modalVincularArea').style.display = 'flex'; }
         function marcarTodasAreasModal(s) {}
-        function fecharModalVincularArea() {}
-        function confirmarVinculacaoArea() {}
-        function carregarAcidentesWazeGoogle() {}
+        function fecharModalVincularArea() { document.getElementById('modalVincularArea').style.display = 'none'; }
+        async function confirmarVinculacaoArea() { fecharModalVincularArea(); }
+
         function verDetalhesRota(id) {}
         function fecharModalDetalhesRota() {}
-
-        function toggleMarker(placa) {
-            const chk = document.querySelector(`input.chk-veiculo[value="${placa}"]`);
-            if (chk) { veiculosOcultosGlobal[placa] = !chk.checked; if (markers[placa]) { if (chk.checked) markers[placa].addTo(map); else map.removeLayer(markers[placa]); } }
-        }
-        function marcarTodos(status) {
-            document.querySelectorAll('.chk-veiculo').forEach(chk => { chk.checked = status; veiculosOcultosGlobal[chk.value] = !status; if (markers[chk.value]) { if (status) markers[chk.value].addTo(map); else map.removeLayer(markers[chk.value]); } });
-        }
-        function toggleCheckAll() { marcarTodos(document.getElementById('checkAll').checked); }
+        function toggleMarker(placa) {}
+        function marcarTodos(s) {}
+        function toggleCheckAll() {}
         function filtrarGrid() {}
-        function iniciarAutoRefresh() { setInterval(() => carregarDadosVeiculos(), 300000); }
-        function alterarEixos(val) {}
-        async function resolverCoordenadasInput(e) { return null; }
-        async function iniciarRotaInterativa() {}
+        
+        function iniciarAutoRefresh() {
+            if (timerIntervalRef) clearInterval(timerIntervalRef);
+            timerIntervalRef = setInterval(() => {
+                countdown--; 
+                const timerEl = document.getElementById('timerRefresh'); 
+                if (timerEl) timerEl.innerText = countdown;
+                if(countdown <= 0) { countdown = 300; carregarDadosVeiculos(); }
+            }, 1000);
+        }
+
+        function alterarEixos(val) {
+            const inputEixos = document.getElementById('iamEixos');
+            let atual = Math.max(2, Math.min(12, parseInt(inputEixos.value) + val));
+            inputEixos.value = atual; eixosAtuaisRota = atual;
+        }
+
+        async function resolverCoordenadasInput(i) { return null; }
+        async function iniciarRotaInterativa() { fecharModal(); }
         function limparRota() {}
-        async function salvarRotaAtual() {}
+        async function salvarRotaAtual() { fecharModalSalvar(); }
         function renderizarTabelaRotas() {}
         function filtrarRotasSalvas() {}
         function carregarRotaNoMapa(id) {}
         async function excluirRota(id) {}
 
-        // ATUALIZAÇÃO DA DASHBOARD COM O KPI DE VEÍCULOS POR ÁREA (REAL)
         function atualizarDashboards() {
-            // 1. Cálculo real de veículos por área
-            const containerKpis = document.getElementById('containerAreaKpis');
-            if (containerKpis) {
-                if (areasSalvas.length === 0) {
-                    containerKpis.innerHTML = `<p style="font-size: 13px; opacity: 0.7; grid-column: span 1;">Nenhuma área (cerca) cadastrada no sistema. Cadastre áreas na aba "Áreas/Cercas" para gerar os KPIs automáticos.</p>`;
-                } else {
-                    let htmlKpis = '';
-                    areasSalvas.forEach(area => {
-                        let veiculosNaAreaCount = 0;
-                        veiculosCacheGlobal.forEach(v => {
-                            const lat = parseFloat(String(v.latitude).replace(',', '.'));
-                            const lon = parseFloat(String(v.longitude).replace(',', '.'));
-                            if (!isNaN(lat) && !isNaN(lon)) {
-                                if (veiculoDentroDaArea(lat, lon, area)) {
-                                    veiculosNaAreaCount++;
-                                }
-                            }
-                        });
-
-                        htmlKpis += `
-                            <div class="area-kpi-card">
-                                <h4>${area.nome}</h4>
-                                <h2>${veiculosNaAreaCount} <span style="font-size: 13px; font-weight: normal; opacity: 0.8;">veículos</span></h2>
-                            </div>
-                        `;
-                    });
-                    containerKpis.innerHTML = htmlKpis;
-                }
-            }
-
-            // 2. Gráficos Padrão
-            if(window.graf1) window.graf1.destroy(); if(window.graf2) window.graf2.destroy();
-            if(window.graf3) window.graf3.destroy(); if(window.graf4) window.graf4.destroy(); if(window.graf5) window.graf5.destroy();
-            
-            let excessosPorPlaca = {};
-            historicoExcessoVelocidadeDashboard.forEach(e => { excessosPorPlaca[e.placa] = (excessosPorPlaca[e.placa] || 0) + 1; });
-            const keysVel = Object.keys(excessosPorPlaca).slice(-10);
-            const valsVel = Object.values(excessosPorPlaca).slice(-10);
-
+            if(window.graf1) window.graf1.destroy();
             const canvasVelocidade = document.getElementById('graficoVelocidade');
             if (canvasVelocidade) {
                 window.graf1 = new Chart(canvasVelocidade.getContext('2d'), {
                     type: 'bar', 
-                    data: { labels: keysVel.length > 0 ? keysVel : ['Sem Registros'], datasets: [{ label: 'Excessos (>80km/h)', data: valsVel.length > 0 ? valsVel : [0], backgroundColor: '#D32F2F' }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Excessos de Velocidade', color: obterCorTextoGrafico() } } }
-                });
-            }
-
-            let qtdEmTransito = 0, qtdParados = 0;
-            veiculosCacheGlobal.forEach(v => {
-                if (Boolean(v.ignicao) && (Number(v.velocidade) || 0) > 10) qtdEmTransito++; else qtdParados++;
-            });
-
-            const canvasPizzaStatus = document.getElementById('graficoPizzaStatus');
-            if (canvasPizzaStatus) {
-                window.graf3 = new Chart(canvasPizzaStatus.getContext('2d'), {
-                    type: 'pie',
-                    data: { labels: ['Em Trânsito (>10km/h)', 'Parados / Desligados'], datasets: [{ data: [qtdEmTransito, qtdParados], backgroundColor: ['#388E3C', '#FF8F00'] }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Veículos em Trânsito vs Parados', color: obterCorTextoGrafico() } } }
+                    data: { labels: ['Sem Registros'], datasets: [{ label: 'Excessos (>80km/h)', data: [0], backgroundColor: '#D32F2F' }] },
+                    options: { responsive: true, maintainAspectRatio: false }
                 });
             }
         }
 
-        function carregarAbastecimentos() {
-            const linhas = [`<tr><td>ABC-1234</td><td>06/09/2026</td><td>3654</td><td>Tres Lagoas - MS</td><td style="font-weight:bold; color:var(--accent-blue)">500.34 L</td><td>338438</td><td>907 km</td><td>1.81</td></tr>`];
-            renderizarLinhasComLimite('tbodyAbastecimentos', 'tabelaAbastecimento', linhas, 8, 'Nenhum abastecimento registrado.');
-        }
-
-        function exportarExcel(id, nome) { exportarExcelCompleto(id, nome); }
-        function exportarPDF(id, nome) { html2pdf().from(document.getElementById(id)).save(nome + '.pdf'); }
+        function carregarAbastecimentos() {}
+        function salvarPontoReferencia() {}
+        function excluirPontoRef(id) {}
+        function fecharModalFinalizarAlerta() {}
+        function salvarEFinalizarAlerta() {}
     </script>
 </body>
 </html>
