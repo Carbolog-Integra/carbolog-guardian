@@ -265,6 +265,15 @@
                     <div style="width: 50%;"><canvas id="graficoParado"></canvas></div>
                 </div>
                 
+                <div class="flex-row" style="margin-top: 30px;">
+                    <div style="width: 50%;"><canvas id="graficoPizzaStatus"></canvas></div>
+                    <div style="width: 50%;"><canvas id="graficoPizzaRotas"></canvas></div>
+                </div>
+
+                <div class="flex-row" style="margin-top: 30px;">
+                    <div style="width: 100%;"><canvas id="graficoCustoRotasEmbarcadas"></canvas></div>
+                </div>
+
                 <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 20px 0;">
                 
                 <h4 style="color: var(--accent-blue);"><i class="fas fa-history"></i> Registros Brutos (Alertas)</h4>
@@ -1187,7 +1196,6 @@
                 const velFinal = Number(v.velocidade) || 0;
                 const ign = Boolean(v.ignicao);
                 
-                // === LÓGICA PARADO E LIGADO ===
                 const chaveParado = `parado_${placaFormatada}`;
                 if (velFinal === 0 && ign) {
                     if (!statusParadoLigado[chaveParado]) {
@@ -1327,8 +1335,8 @@
                             window.historicoCercasConcluidas.push({
                                 placa: placaFormatada,
                                 area: perm.nomeArea,
-                                entrada: perm.dataEntradaStr,
-                                saida: dataSaidaStr,
+                                entrada: perm.dataEntradaCompleta,
+                                saida: agoraObj.toLocaleString('pt-BR'),
                                 duracaoMin: duracaoMin,
                                 timestamp: agora
                             });
@@ -1786,29 +1794,32 @@
                 }
             });
 
+            const agoraMs = Date.now();
             Object.keys(contadorPermanenciaAreas).forEach(key => {
                 const placa = key.split('_')[0];
                 const perm = contadorPermanenciaAreas[key];
                 if (perm) {
-                    const duracaoMin = Math.max(0, Math.round((Date.now() - perm.inicio) / 60000));
+                    const diffMin = Math.max(0, Math.round((agoraMs - perm.inicio) / 60000));
+                    const tempoPermanenciaHhMm = formatarMinutosParaHhMm(diffMin);
                     htmlAreas += `<tr>
                         <td><b>${placa}</b></td>
                         <td>${perm.nomeArea}</td>
-                        <td>${perm.dataEntradaStr}</td>
+                        <td>${perm.dataEntradaCompleta}</td>
                         <td><span style="color: var(--warning); font-weight: bold;">Em curso</span></td>
-                        <td><span style="color: var(--warning); font-weight:bold;">${duracaoMin} min</span></td>
+                        <td><span style="color: var(--warning); font-weight:bold;">${tempoPermanenciaHhMm}</span></td>
                     </tr>`;
                 }
             });
 
             const historicoCercas = window.historicoCercasConcluidas || [];
             historicoCercas.forEach(h => {
+                const tempoPermanenciaHhMm = formatarMinutosParaHhMm(h.duracaoMin);
                 htmlAreas += `<tr>
                     <td><b>${h.placa}</b></td>
                     <td>${h.area}</td>
                     <td>${h.entrada}</td>
                     <td>${h.saida}</td>
-                    <td>${h.duracaoMin} min</td>
+                    <td>${tempoPermanenciaHhMm}</td>
                 </tr>`;
             });
 
@@ -2203,6 +2214,9 @@
         function atualizarDashboards() {
             if(window.graf1) window.graf1.destroy();
             if(window.graf2) window.graf2.destroy();
+            if(window.graf3) window.graf3.destroy();
+            if(window.graf4) window.graf4.destroy();
+            if(window.graf5) window.graf5.destroy();
             
             let excessosPorPlaca = {};
             let paradosLigadosContagem = {};
@@ -2241,7 +2255,9 @@
             }
             
             const corTextoDinamica = obterCorTextoGrafico();
+            const fontPadraoGrafico = { size: 14, weight: 'bold' };
 
+            // Gráfico 1: Velocidade
             const canvasVelocidade = document.getElementById('graficoVelocidade');
             if (canvasVelocidade) {
                 window.graf1 = new Chart(canvasVelocidade.getContext('2d'), {
@@ -2252,17 +2268,19 @@
                     },
                     options: {
                         plugins: {
-                            legend: { labels: { color: corTextoDinamica } },
-                            title: { display: true, text: 'Excessos de Velocidade', color: corTextoDinamica }
+                            legend: { labels: { color: corTextoDinamica, font: fontPadraoGrafico } },
+                            title: { display: true, text: 'Excessos de Velocidade', color: corTextoDinamica, font: { size: 16, weight: 'bold' } },
+                            datalabels: { font: fontPadraoGrafico, color: corTextoDinamica }
                         },
                         scales: {
-                            x: { ticks: { color: corTextoDinamica }, grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' } },
-                            y: { ticks: { color: corTextoDinamica }, grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' }, beginAtZero: true }
+                            x: { ticks: { color: corTextoDinamica, font: fontPadraoGrafico }, grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' } },
+                            y: { ticks: { color: corTextoDinamica, font: fontPadraoGrafico }, grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' }, beginAtZero: true }
                         }
                     }
                 });
             }
 
+            // Gráfico 2: Parados e Ligados
             const labelsPar = Object.keys(paradosLigadosContagem);
             const valsTemposMinutos = labelsPar.map(p => paradosLigadosTempoMinutos[p]);
             const valsAlertas = labelsPar.map(p => paradosLigadosContagem[p]);
@@ -2295,44 +2313,160 @@
                     },
                     options: {
                         plugins: {
-                            legend: { labels: { color: corTextoDinamica } },
+                            legend: { labels: { color: corTextoDinamica, font: fontPadraoGrafico } },
                             datalabels: {
                                 formatter: function(value, context) {
                                     if (context.datasetIndex === 0) return formatarMinutosParaHhMm(value);
                                     return value;
                                 },
                                 color: corTextoDinamica,
-                                font: { weight: 'bold' }
+                                font: fontPadraoGrafico
                             },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        let label = context.dataset.label || '';
-                                        if (label) label += ': ';
-                                        if (context.datasetIndex === 0) label += formatarMinutosParaHhMm(context.parsed.y);
-                                        else label += context.parsed.y;
-                                        return label;
-                                    }
-                                }
-                            },
-                            title: { display: true, text: 'Tempo Total vs Qtd. de Alertas (Parado e Ligado)', color: corTextoDinamica }
+                            title: { display: true, text: 'Tempo Total vs Qtd. de Alertas (Parado e Ligado)', color: corTextoDinamica, font: { size: 16, weight: 'bold' } }
                         },
                         scales: {
-                            x: { ticks: { color: corTextoDinamica }, grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' } },
+                            x: { ticks: { color: corTextoDinamica, font: fontPadraoGrafico }, grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' } },
                             y: {
                                 type: 'linear', display: true, position: 'left',
-                                title: { display: true, text: 'Tempo (HH:MM)', color: corTextoDinamica },
+                                title: { display: true, text: 'Tempo (HH:MM)', color: corTextoDinamica, font: fontPadraoGrafico },
                                 beginAtZero: true,
-                                ticks: { color: corTextoDinamica, callback: function(value) { return formatarMinutosParaHhMm(value); } },
+                                ticks: { color: corTextoDinamica, font: fontPadraoGrafico, callback: function(value) { return formatarMinutosParaHhMm(value); } },
                                 grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' }
                             },
                             y1: {
                                 type: 'linear', display: true, position: 'right',
-                                title: { display: true, text: 'Qtd Alertas', color: corTextoDinamica },
+                                title: { display: true, text: 'Qtd Alertas', color: corTextoDinamica, font: fontPadraoGrafico },
                                 grid: { drawOnChartArea: false },
                                 beginAtZero: true,
-                                ticks: { color: corTextoDinamica }
+                                ticks: { color: corTextoDinamica, font: fontPadraoGrafico }
                             }
+                        }
+                    }
+                });
+            }
+
+            // Gráfico 3: Pizza - Veículos em Trânsito vs Parados
+            let qtdEmTransitoPizza = 0;
+            let qtdParadosPizza = 0;
+            veiculosCacheGlobal.forEach(v => {
+                const vel = Number(v.velocidade) || 0;
+                const ign = Boolean(v.ignicao);
+                if (ign && vel > 10) qtdEmTransitoPizza++;
+                else qtdParadosPizza++;
+            });
+
+            const canvasPizzaStatus = document.getElementById('graficoPizzaStatus');
+            if (canvasPizzaStatus) {
+                window.graf3 = new Chart(canvasPizzaStatus.getContext('2d'), {
+                    type: 'pie',
+                    data: {
+                        labels: ['Em Trânsito (>10km/h)', 'Parados / Desligados'],
+                        datasets: [{
+                            data: [qtdEmTransitoPizza, qtdParadosPizza],
+                            backgroundColor: ['#388E3C', '#FF8F00']
+                        }]
+                    },
+                    options: {
+                        plugins: {
+                            legend: { labels: { color: corTextoDinamica, font: fontPadraoGrafico } },
+                            title: { display: true, text: 'Veículos em Trânsito vs Parados', color: corTextoDinamica, font: { size: 16, weight: 'bold' } },
+                            datalabels: {
+                                color: '#FFFFFF',
+                                font: { size: 16, weight: 'bold' },
+                                formatter: (val) => val > 0 ? val : ''
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Gráfico 4: Pizza - Com Rota Vinculada vs Sem Rota Vinculada
+            let qtdComRota = 0;
+            let qtdSemRota = 0;
+            const uniquePlacas = new Set(veiculosCacheGlobal.map(v => {
+                let p = v.id_veiculo ? String(v.id_veiculo) : 'SEM-PLACA';
+                if (p.length === 7 && !isNaN(p)) p = p.substring(0,3) + '-' + p.substring(3);
+                return p;
+            }));
+
+            uniquePlacas.forEach(placa => {
+                if (rotasVeiculos[placa]) qtdComRota++;
+                else qtdSemRota++;
+            });
+
+            const canvasPizzaRotas = document.getElementById('graficoPizzaRotas');
+            if (canvasPizzaRotas) {
+                window.graf4 = new Chart(canvasPizzaRotas.getContext('2d'), {
+                    type: 'pie',
+                    data: {
+                        labels: ['Com Rota Vinculada', 'Sem Rota Vinculada'],
+                        datasets: [{
+                            data: [qtdComRota, qtdSemRota],
+                            backgroundColor: ['#008DDA', '#757575']
+                        }]
+                    },
+                    options: {
+                        plugins: {
+                            legend: { labels: { color: corTextoDinamica, font: fontPadraoGrafico } },
+                            title: { display: true, text: 'Veículos com Rota vs Sem Rota Vinculada', color: corTextoDinamica, font: { size: 16, weight: 'bold' } },
+                            datalabels: {
+                                color: '#FFFFFF',
+                                font: { size: 16, weight: 'bold' },
+                                formatter: (val) => val > 0 ? val : ''
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Gráfico 5: Barras - Custo Médio por Viagem vs Custo Total das Viagens (A partir das rotas embarcadas nos veículos)
+            let labelsPlacasEmbarcadas = [];
+            let dadosCustoMedio = [];
+            let dadosCustoTotal = [];
+
+            Object.keys(rotasVeiculos).forEach(placa => {
+                const r = rotasVeiculos[placa];
+                if (r && r.custo) {
+                    const custoTotalVal = parseFloat(r.custo);
+                    labelsPlacasEmbarcadas.push(placa);
+                    dadosCustoTotal.push(custoTotalVal);
+                    // Como cada veículo possui 1 rota embarcada ativa no momento, o custo médio por viagem individual dessa rota é igual ao custo total dela (ou pode ser demonstrado comparativamente)
+                    dadosCustoMedio.push(custoTotalVal);
+                }
+            });
+
+            const canvasCustoRotas = document.getElementById('graficoCustoRotasEmbarcadas');
+            if (canvasCustoRotas) {
+                window.graf5 = new Chart(canvasCustoRotas.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: labelsPlacasEmbarcadas.length > 0 ? labelsPlacasEmbarcadas : ['Sem Rotas Embarcadas'],
+                        datasets: [
+                            {
+                                label: 'Custo Total da Viagem (R$)',
+                                data: dadosCustoTotal.length > 0 ? dadosCustoTotal : [0],
+                                backgroundColor: '#0055A4'
+                            },
+                            {
+                                label: 'Custo Médio por Viagem (R$)',
+                                data: dadosCustoMedio.length > 0 ? dadosCustoMedio : [0],
+                                backgroundColor: '#008DDA'
+                            }
+                        ]
+                    },
+                    options: {
+                        plugins: {
+                            legend: { labels: { color: corTextoDinamica, font: fontPadraoGrafico } },
+                            title: { display: true, text: 'Custo Médio vs Custo Total (Veículos com Rota Embarcada)', color: corTextoDinamica, font: { size: 16, weight: 'bold' } },
+                            datalabels: {
+                                formatter: (val) => 'R$ ' + Number(val).toFixed(2),
+                                color: corTextoDinamica,
+                                font: fontPadraoGrafico
+                            }
+                        },
+                        scales: {
+                            x: { ticks: { color: corTextoDinamica, font: fontPadraoGrafico }, grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' } },
+                            y: { ticks: { color: corTextoDinamica, font: fontPadraoGrafico, callback: (val) => 'R$ ' + val }, grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' }, beginAtZero: true }
                         }
                     }
                 });
@@ -2362,10 +2496,10 @@
                     type: 'bar', 
                     data: { labels: ['ABC-1234'], datasets: [{ label: 'Abastecido', data: [500.34], backgroundColor: '#0055A4' }, { label: 'Consumido', data: [501.10], backgroundColor: '#388E3C' }] },
                     options: {
-                        plugins: { legend: { labels: { color: corTextoDinamica } } },
+                        plugins: { legend: { labels: { color: corTextoDinamica, font: { size: 14, weight: 'bold' } } } },
                         scales: {
-                            x: { ticks: { color: corTextoDinamica } },
-                            y: { ticks: { color: corTextoDinamica } }
+                            x: { ticks: { color: corTextoDinamica, font: { size: 14, weight: 'bold' } } },
+                            y: { ticks: { color: corTextoDinamica, font: { size: 14, weight: 'bold' } } }
                         }
                     }
                 });
