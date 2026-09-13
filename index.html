@@ -149,6 +149,13 @@
             max-height: 310px !important;
             width: 100% !important;
         }
+
+        .btn-expandir {
+            background: none; border: 1px solid var(--accent-blue); color: var(--accent-blue);
+            padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px;
+            display: inline-flex; align-items: center; gap: 6px; transition: 0.2s;
+        }
+        .btn-expandir:hover { background: var(--accent-blue); color: #FFF; }
     </style>
 </head>
 <body class="dark-mode">
@@ -304,19 +311,28 @@
 
                 <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 25px 0;">
                 
-                <h4 style="color: var(--accent-blue);"><i class="fas fa-history"></i> Registros Brutos (Alertas)</h4>
+                <div class="flex-row" style="justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <h4 style="color: var(--accent-blue); margin: 0;"><i class="fas fa-history"></i> Registros Brutos (Alertas)</h4>
+                    <button class="btn-expandir" onclick="alternarExpandirTabela('tabelaDash', this)"><i class="fas fa-expand-alt"></i> Expandir Tabela</button>
+                </div>
                 <table id="tabelaDash" style="margin-bottom: 25px;">
                     <thead><tr><th>Placa</th><th>Ocorrência</th><th>Duração (Min)</th><th>Máx. Vel. (km/h)</th><th>Data/Hora</th></tr></thead>
                     <tbody id="tbodyDash"></tbody>
                 </table>
 
-                <h4 style="color: var(--accent-blue);"><i class="fas fa-clipboard-check"></i> Histórico de Tratativas de Alertas</h4>
+                <div class="flex-row" style="justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <h4 style="color: var(--accent-blue); margin: 0;"><i class="fas fa-clipboard-check"></i> Histórico de Tratativas de Alertas</h4>
+                    <button class="btn-expandir" onclick="alternarExpandirTabela('tabelaTratativas', this)"><i class="fas fa-expand-alt"></i> Expandir Tabela</button>
+                </div>
                 <table id="tabelaTratativas" style="margin-bottom: 25px;">
                     <thead><tr><th>Placa</th><th>Alerta Tratado</th><th>Data/Hora Tratativa</th><th>Motivo / Observação</th></tr></thead>
                     <tbody id="tbodyTratativas"></tbody>
                 </table>
 
-                <h4 style="color: var(--accent-blue);"><i class="fas fa-route"></i> Veículos com Rota Embarcada</h4>
+                <div class="flex-row" style="justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <h4 style="color: var(--accent-blue); margin: 0;"><i class="fas fa-route"></i> Veículos com Rota Embarcada</h4>
+                    <button class="btn-expandir" onclick="alternarExpandirTabela('tabelaDashRotas', this)"><i class="fas fa-expand-alt"></i> Expandir Tabela</button>
+                </div>
                 <table id="tabelaDashRotas" style="margin-bottom: 25px;">
                     <thead>
                         <tr>
@@ -326,13 +342,17 @@
                             <th>Rota Embarcada</th>
                             <th>Custo de Pedágio</th>
                             <th>Custo de Combustível</th>
+                            <th>Média de Litros</th>
                             <th>Custo da Viagem</th>
                         </tr>
                     </thead>
                     <tbody id="tbodyDashRotas"></tbody>
                 </table>
 
-                <h4 style="color: var(--accent-blue);"><i class="fas fa-map-marked-alt"></i> Veículos em Áreas Geográficas (Cercas em Tempo Real e Histórico)</h4>
+                <div class="flex-row" style="justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <h4 style="color: var(--accent-blue); margin: 0;"><i class="fas fa-map-marked-alt"></i> Veículos em Áreas Geográficas (Cercas em Tempo Real e Histórico)</h4>
+                    <button class="btn-expandir" onclick="alternarExpandirTabela('tabelaDashAreas', this)"><i class="fas fa-expand-alt"></i> Expandir Tabela</button>
+                </div>
                 <table id="tabelaDashAreas">
                     <thead>
                         <tr>
@@ -354,11 +374,16 @@
                 <div class="flex-row" style="justify-content: space-between;">
                     <h3 style="color: var(--accent-blue);"><i class="fas fa-gas-pump"></i> Integração CTA x SASCAR</h3>
                     <div>
-                        <button class="btn" style="background: #1D6F42;" onclick="exportarExcel('tabelaAbastecimento', 'Abastecimentos')"><i class="fas fa-file-excel"></i> Excel</button>
+                        <button class="btn" style="background: #1D6F42;" onclick="exportarExcelCompleto('tabelaAbastecimento', 'Abastecimentos')"><i class="fas fa-file-excel"></i> Excel</button>
                         <button class="btn" style="background: var(--danger);" onclick="exportarPDF('exportAreaAbastecimento', 'Abastecimentos')"><i class="fas fa-file-pdf"></i> PDF</button>
                     </div>
                 </div>
                 <div style="width: 80%; margin: 0 auto 30px;"><canvas id="graficoConsumo"></canvas></div>
+                
+                <div class="flex-row" style="justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <h4 style="color: var(--accent-blue); margin: 0;">Registros de Abastecimento</h4>
+                    <button class="btn-expandir" onclick="alternarExpandirTabela('tabelaAbastecimento', this)"><i class="fas fa-expand-alt"></i> Expandir Tabela</button>
+                </div>
                 <table id="tabelaAbastecimento">
                     <thead>
                         <tr>
@@ -378,6 +403,10 @@
                     <h3 style="color: var(--accent-blue);"><i class="fas fa-route"></i> Gestão e Filtro de Rotas Salvas</h3>
                     <input type="text" id="filtroRotasInput" placeholder="Filtrar por nome ou origem/destino..." onkeyup="filtrarRotasSalvas()" style="padding: 10px; width: 350px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-color);">
                 </div>
+                
+                <div class="flex-row" style="justify-content: flex-end; align-items: center; margin-bottom: 0;">
+                    <button class="btn-expandir" onclick="alternarExpandirTabela('tabelaRotasSalvas', this)"><i class="fas fa-expand-alt"></i> Expandir Tabela</button>
+                </div>
                 <table id="tabelaRotasSalvas">
                     <thead>
                         <tr>
@@ -385,7 +414,7 @@
                             <th>Origem Inicial</th>
                             <th>Destino Inicial</th>
                             <th>Eixos</th>
-                            <th>Distância / Custo</th>
+                            <th>Distância / Custo / Litros</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
@@ -402,6 +431,10 @@
                     <button class="btn" style="background: #00838F;" onclick="abrirJanelaCriarArea()"><i class="fas fa-plus"></i> Desenhar Nova Área no Mapa</button>
                 </div>
                 <p style="font-size: 13px; opacity: 0.8;">Utilize a ferramenta de desenho no mapa ou cadastre áreas para monitorar a permanência dos veículos da frota.</p>
+                
+                <div class="flex-row" style="justify-content: flex-end; align-items: center; margin-bottom: 0;">
+                    <button class="btn-expandir" onclick="alternarExpandirTabela('tabelaAreasSalvas', this)"><i class="fas fa-expand-alt"></i> Expandir Tabela</button>
+                </div>
                 <table id="tabelaAreasSalvas">
                     <thead>
                         <tr>
@@ -424,6 +457,10 @@
                     <button class="btn" style="background: var(--success);" onclick="abrirModalPontoRef()"><i class="fas fa-plus"></i> Cadastrar Novo Ponto</button>
                 </div>
                 <p style="font-size: 13px; opacity: 0.8;">Cadastre pontos de referência por latitude/longitude ou pesquisa de cidades/empresas para utilizar na criação e edição de rotas.</p>
+                
+                <div class="flex-row" style="justify-content: flex-end; align-items: center; margin-bottom: 0;">
+                    <button class="btn-expandir" onclick="alternarExpandirTabela('tabelaPontosRef', this)"><i class="fas fa-expand-alt"></i> Expandir Tabela</button>
+                </div>
                 <table id="tabelaPontosRef">
                     <thead>
                         <tr>
@@ -537,6 +574,7 @@
                 <p><b>Distância Total:</b> <span id="detalheRotaDistancia"></span></p>
                 <p><b>Quantidade de Eixos:</b> <span id="detalheRotaEixos"></span></p>
                 <p><b>Custo Estimado de Combustível:</b> <span id="detalheRotaCombustivel" style="color: var(--success); font-weight: bold;"></span></p>
+                <p><b>Média de Litros Consumidos:</b> <span id="detalheRotaLitros" style="color: var(--warning); font-weight: bold;"></span></p>
                 <p><b>Custo Estimado de Pedágios:</b> <span id="detalheRotaPedagio" style="color: var(--danger); font-weight: bold;"></span></p>
                 <hr style="border:0; border-top:1px solid var(--border-color); margin: 8px 0;">
                 <p style="font-size: 16px;"><b>Custo Total da Viagem:</b> <span id="detalheRotaTotal" style="color: var(--accent-blue); font-weight: bold;"></span></p>
@@ -675,10 +713,13 @@
 
         let mapPlacasProximasGlobal = {};
 
+        let tabelasExpandidas = {};
+
         let columnOrder = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
         const SUPABASE_URL = 'https://oyrqywoctnyottwvqrji.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95cnF5d29jdG55b3R0d3ZxcmppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMjMyOTQsImV4cCI6MjEwMzc5OTI5NH0.VdqJLc_u1VXFrnOe59Bw7wLWV-GZLnx6_fjzBV_TU8w';
         const USUARIO_GLOBAL = 'global_sistema_frota';
+        const PRECO_DIESEL_SP = 6.43;
 
         async function carregarDadosDoBanco() {
             let dadosNuvem = null;
@@ -949,22 +990,99 @@
                 return;
             }
 
-            const idUnico = 'ponto_int_' + Date.now() + '_' + Math.random().toString(36.2);
+            const idUnico = 'ponto_int_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+            const listIdUnico = idUnico + '_lista';
+
             const div = document.createElement('div');
             div.className = 'flex-row ponto-intermediario-item';
             div.style.marginBottom = '5px';
             div.innerHTML = `
                 <div class="autocomplete-container" style="flex: 1;">
                     <input type="text" id="${idUnico}" class="input-livre" placeholder="Digite endereço ou parada..." style="width: 100%;">
-                    <ul id="${idUnico}_lista" class="autocomplete-list"></ul>
+                    <ul id="${listIdUnico}" class="autocomplete-list"></ul>
                 </div>
                 <button class="btn" style="background: var(--danger); padding: 8px 12px; margin-top:0;" onclick="this.parentElement.remove()"><i class="fas fa-trash"></i></button>
             `;
             container.appendChild(div);
 
             const inputEl = document.getElementById(idUnico);
-            const listaEl = document.getElementById(`${idUnico}_lista`);
-            configurarAutocompleteInput(null, `${idUnico}_lista`, 'intermediario', inputEl);
+            configurarAutocompleteInput(null, listIdUnico, 'intermediario', inputEl);
+        }
+
+        function alternarExpandirTabela(tableId, btnEl) {
+            tabelasExpandidas[tableId] = !tabelasExpandidas[tableId];
+            if (tabelasExpandidas[tableId]) {
+                btnEl.innerHTML = `<i class="fas fa-compress-alt"></i> Recolher Tabela`;
+                btnEl.style.background = 'var(--danger)';
+                btnEl.style.borderColor = 'var(--danger)';
+                btnEl.style.color = '#FFF';
+            } else {
+                btnEl.innerHTML = `<i class="fas fa-expand-alt"></i> Expandir Tabela`;
+                btnEl.style.background = 'none';
+                btnEl.style.borderColor = 'var(--accent-blue)';
+                btnEl.style.color = 'var(--accent-blue)';
+            }
+            atualizarKpisETabelasDash();
+            renderizarTabelaRotas();
+            renderizarTabelaAreas();
+            renderizarTabelaPontosRef();
+            carregarAbastecimentos();
+        }
+
+        function renderizarLinhasComLimite(tbodyId, tableId, linhasHtmls, colspanNum, mensagemVazia) {
+            const tbody = document.getElementById(tbodyId);
+            if (!tbody) return;
+
+            if (linhasHtmls.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="${colspanNum}" style="text-align:center; opacity:0.7;">${mensagemVazia}</td></tr>`;
+                return;
+            }
+
+            const expandido = tabelasExpandidas[tableId];
+            const linhasRenderizar = expandido ? linhasHtmls : linhasHtmls.slice(0, 10);
+            tbody.innerHTML = linhasRenderizar.join('');
+        }
+
+        function exportarExcelCompleto(tableId, nomeArquivo) {
+            const estadoAnterior = tabelasExpandidas[tableId];
+            tabelasExpandidas[tableId] = true;
+            
+            atualizarKpisETabelasDash();
+            renderizarTabelaRotas();
+            renderizarTabelaAreas();
+            renderizarTabelaPontosRef();
+            carregarAbastecimentos();
+
+            const tabelaEl = document.getElementById(tableId);
+            const workbook = XLSX.utils.table_to_book(tabelaEl, { sheet: "Dados" });
+            XLSX.writeFile(workbook, nomeArquivo + ".xlsx");
+
+            tabelasExpandidas[tableId] = estadoAnterior;
+            atualizarKpisETabelasDash();
+            renderizarTabelaRotas();
+            renderizarTabelaAreas();
+            renderizarTabelaPontosRef();
+            carregarAbastecimentos();
+        }
+
+        function exportarDashboardCompletoExcel() {
+            const wb = XLSX.utils.book_new();
+            const idsTabelas = ['tabelaDash', 'tabelaTratativas', 'tabelaDashRotas', 'tabelaDashAreas'];
+            const nomesAbas = ['Registros Brutos', 'Tratativas', 'Rotas Embarcadas', 'Areas Geograficas'];
+
+            idsTabelas.forEach((idTabela, index) => {
+                const estadoAnterior = tabelasExpandidas[idTabela];
+                tabelasExpandidas[idTabela] = true;
+                atualizarKpisETabelasDash();
+
+                const ws = XLSX.utils.table_to_book(document.getElementById(idTabela)).Sheets["Sheet1"] || XLSX.utils.table_to_sheet(document.getElementById(idTabela));
+                XLSX.utils.book_append_sheet(wb, ws, nomesAbas[index]);
+
+                tabelasExpandidas[idTabela] = estadoAnterior;
+                atualizarKpisETabelasDash();
+            });
+
+            XLSX.writeFile(wb, "Dashboard_Completa_Frota.xlsx");
         }
 
         function inicializarDragDropColunas() {
@@ -1727,15 +1845,8 @@
         }
 
         function renderizarTabelaPontosRef() {
-            const tbody = document.getElementById('tbodyPontosRef');
-            if (!tbody) return;
-            tbody.innerHTML = '';
-            if (pontosReferenciaSalvos.length === 0) { tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; opacity:0.7;">Nenhum ponto cadastrado.</td></tr>`; return; }
-            pontosReferenciaSalvos.forEach(p => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td><b>${p.nome}</b></td><td>${p.lat}</td><td>${p.lon}</td><td>${p.origem}</td><td class="table-actions"><button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--danger);" onclick="excluirPontoRef(${p.id})"><i class="fas fa-trash"></i></button></td>`;
-                tbody.appendChild(tr);
-            });
+            const linhas = pontosReferenciaSalvos.map(p => `<tr><td><b>${p.nome}</b></td><td>${p.lat}</td><td>${p.lon}</td><td>${p.origem}</td><td class="table-actions"><button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--danger);" onclick="excluirPontoRef(${p.id})"><i class="fas fa-trash"></i></button></td></tr>`);
+            renderizarLinhasComLimite('tbodyPontosRef', 'tabelaPontosRef', linhas, 5, 'Nenhum ponto cadastrado.');
         }
 
         async function excluirPontoRef(id) {
@@ -1819,9 +1930,10 @@
 
         function atualizarKpisETabelasDash() {
             let emTransito = 0, desligados = 0, paradosLigados = 0;
-            let htmlRotas = '', htmlAreas = '';
-            let htmlBrutos = '';
-            let htmlTratativas = '';
+            let linhasBrutos = [];
+            let linhasTratativas = [];
+            let linhasRotasEmbarcadas = [];
+            let linhasAreas = [];
 
             let todosBrutosUnidos = [
                 ...historicoDesviosDashboard, 
@@ -1834,24 +1946,14 @@
             let totalBrutosFiltrados = filtrarItensPorData(todosBrutosUnidos);
             totalBrutosFiltrados.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
-            if (totalBrutosFiltrados.length > 0) {
-                htmlBrutos = totalBrutosFiltrados.map(item => `<tr><td><b>${item.placa}</b></td><td>${item.ocorrencia}</td><td>${item.duracao} min</td><td>${item.maxVel || 0} km/h</td><td>${item.dataHora}</td></tr>`).join('');
-            } else {
-                htmlBrutos = `<tr><td colspan="5" style="text-align:center; opacity:0.7;">Nenhum registro bruto detectado no período selecionado.</td></tr>`;
-            }
-            const tbodyDash = document.getElementById('tbodyDash');
-            if (tbodyDash) tbodyDash.innerHTML = htmlBrutos;
+            linhasBrutos = totalBrutosFiltrados.map(item => `<tr><td><b>${item.placa}</b></td><td>${item.ocorrencia}</td><td>${item.duracao} min</td><td>${item.maxVel || 0} km/h</td><td>${item.dataHora}</td></tr>`);
+            renderizarLinhasComLimite('tbodyDash', 'tabelaDash', linhasBrutos, 5, 'Nenhum registro bruto detectado no período selecionado.');
 
             let tratativasFiltradas = filtrarItensPorData(historicoTratativas);
             tratativasFiltradas.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
             
-            if (tratativasFiltradas.length > 0) {
-                htmlTratativas = tratativasFiltradas.map(t => `<tr><td><b>${t.placa}</b></td><td>${t.alerta}</td><td>${t.dataHora}</td><td>${t.motivo}</td></tr>`).join('');
-            } else {
-                htmlTratativas = `<tr><td colspan="4" style="text-align:center; opacity:0.7;">Nenhuma tratativa registrada no período.</td></tr>`;
-            }
-            const tbodyTratativas = document.getElementById('tbodyTratativas');
-            if (tbodyTratativas) tbodyTratativas.innerHTML = htmlTratativas;
+            linhasTratativas = tratativasFiltradas.map(t => `<tr><td><b>${t.placa}</b></td><td>${t.alerta}</td><td>${t.dataHora}</td><td>${t.motivo}</td></tr>`);
+            renderizarLinhasComLimite('tbodyTratativas', 'tabelaTratativas', linhasTratativas, 4, 'Nenhuma tratativa registrada no período.');
 
             veiculosCacheGlobal.forEach(v => {
                 let p = v.id_veiculo ? String(v.id_veiculo) : 'SEM-PLACA';
@@ -1869,11 +1971,22 @@
 
                 if (rotasVeiculos[p]) {
                     const r = rotasVeiculos[p];
-                    const custoComb = (parseFloat(r.distancia) / 2.5 * 6.19);
+                    const custoComb = (parseFloat(r.distancia) / 2.5 * PRECO_DIESEL_SP);
                     const custoPedag = (parseFloat(r.custo) - custoComb);
-                    htmlRotas += `<tr><td><b>${p}</b></td><td>${dataFmt}</td><td>${loc}</td><td>${r.nome}</td><td style="color:var(--danger); font-weight:bold;">R$ ${custoPedag.toFixed(2)}</td><td style="color:var(--success); font-weight:bold;">R$ ${custoComb.toFixed(2)}</td><td style="color:var(--accent-blue); font-weight:bold;">R$ ${r.custo}</td></tr>`;
+                    const mediaLitros = (parseFloat(r.distancia) / 2.5).toFixed(1);
+                    linhasRotasEmbarcadas.push(`<tr>
+                        <td><b>${p}</b></td>
+                        <td>${dataFmt}</td>
+                        <td>${loc}</td>
+                        <td>${r.nome}</td>
+                        <td style="color:var(--danger); font-weight:bold;">R$ ${custoPedag.toFixed(2)}</td>
+                        <td style="color:var(--success); font-weight:bold;">R$ ${custoComb.toFixed(2)}</td>
+                        <td style="color:var(--warning); font-weight:bold;">${mediaLitros} L</td>
+                        <td style="color:var(--accent-blue); font-weight:bold;">R$ ${r.custo}</td>
+                    </tr>`);
                 }
             });
+            renderizarLinhasComLimite('tbodyDashRotas', 'tabelaDashRotas', linhasRotasEmbarcadas, 8, 'Nenhum veículo com rota embarcada.');
 
             const agoraMs = Date.now();
             Object.keys(contadorPermanenciaAreas).forEach(key => {
@@ -1882,39 +1995,36 @@
                 if (perm) {
                     const diffMin = Math.max(0, Math.round((agoraMs - perm.inicio) / 60000));
                     const tempoPermanenciaHhMm = formatarMinutosParaHhMm(diffMin);
-                    htmlAreas += `<tr>
+                    linhasAreas.push(`<tr>
                         <td><b>${placa}</b></td>
                         <td>${perm.nomeArea}</td>
                         <td>${perm.dataEntradaCompleta}</td>
                         <td><span style="color: var(--warning); font-weight: bold;">Em curso</span></td>
                         <td><span style="color: var(--warning); font-weight:bold;">${tempoPermanenciaHhMm}</span></td>
-                    </tr>`;
+                    </tr>`);
                 }
             });
 
             const historicoCercas = window.historicoCercasConcluidas || [];
             historicoCercas.forEach(h => {
                 const tempoPermanenciaHhMm = formatarMinutosParaHhMm(h.duracaoMin);
-                htmlAreas += `<tr>
+                linhasAreas.push(`<tr>
                     <td><b>${h.placa}</b></td>
                     <td>${h.area}</td>
                     <td>${h.entrada}</td>
                     <td>${h.saida}</td>
                     <td>${tempoPermanenciaHhMm}</td>
-                </tr>`;
+                </tr>`);
             });
+            renderizarLinhasComLimite('tbodyDashAreas', 'tabelaDashAreas', linhasAreas, 5, 'Nenhum registro de permanência em área.');
 
             const elEmTransito = document.getElementById('kpiEmTransito');
             const elDesligados = document.getElementById('kpiDesligados');
             const elParadosLigados = document.getElementById('kpiParadosLigados');
-            const elRotas = document.getElementById('tbodyDashRotas');
-            const elAreas = document.getElementById('tbodyDashAreas');
 
             if (elEmTransito) elEmTransito.innerText = emTransito;
             if (elDesligados) elDesligados.innerText = desligados;
             if (elParadosLigados) elParadosLigados.innerText = paradosLigados;
-            if (elRotas) elRotas.innerHTML = htmlRotas || '<tr><td colspan="7" style="text-align:center; opacity:0.7;">Nenhum veículo com rota embarcada.</td></tr>';
-            if (elAreas) elAreas.innerHTML = htmlAreas || '<tr><td colspan="5" style="text-align:center; opacity:0.7;">Nenhum registro de permanência em área.</td></tr>';
         }
 
         function abrirModalEficiencia() { 
@@ -2000,15 +2110,8 @@
         }
 
         function renderizarTabelaAreas() {
-            const tbody = document.getElementById('tbodyAreasSalvas');
-            if (!tbody) return;
-            tbody.innerHTML = '';
-            if (areasSalvas.length === 0) { tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; opacity:0.7;">Nenhuma área cadastrada.</td></tr>`; return; }
-            areasSalvas.forEach(a => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td><b>${a.nome}</b></td><td>${a.tipo.toUpperCase()}</td><td>Cadastrada</td><td class="table-actions"><button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--primary-blue);" onclick="focarAreaNoMapa(${a.id})"><i class="fas fa-eye"></i></button><button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--danger);" onclick="excluirArea(${a.id})"><i class="fas fa-trash"></i></button></td>`;
-                tbody.appendChild(tr);
-            });
+            const linhas = areasSalvas.map(a => `<tr><td><b>${a.nome}</b></td><td>${a.tipo.toUpperCase()}</td><td>Cadastrada</td><td class="table-actions"><button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--primary-blue);" onclick="focarAreaNoMapa(${a.id})"><i class="fas fa-eye"></i></button><button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--danger);" onclick="excluirArea(${a.id})"><i class="fas fa-trash"></i></button></td></tr>`);
+            renderizarLinhasComLimite('tbodyAreasSalvas', 'tabelaAreasSalvas', linhas, 4, 'Nenhuma área cadastrada.');
         }
 
         function renderizarAreasNoMapa() {
@@ -2132,8 +2235,9 @@
             document.getElementById('detalheRotaNome').innerText = rota.nome;
             document.getElementById('detalheRotaDistancia').innerText = rota.distancia + ' km';
             document.getElementById('detalheRotaEixos').innerText = rota.eixos + ' eixos';
-            document.getElementById('detalheRotaCombustivel').innerText = `R$ ${(rota.distancia / 2.5 * 6.19).toFixed(2)}`;
-            document.getElementById('detalheRotaPedagio').innerText = `R$ ${(rota.custo - (rota.distancia / 2.5 * 6.19)).toFixed(2)}`;
+            document.getElementById('detalheRotaCombustivel').innerText = `R$ ${(rota.distancia / 2.5 * PRECO_DIESEL_SP).toFixed(2)}`;
+            document.getElementById('detalheRotaLitros').innerText = `${(rota.distancia / 2.5).toFixed(1)} L`;
+            document.getElementById('detalheRotaPedagio').innerText = `R$ ${(rota.custo - (rota.distancia / 2.5 * PRECO_DIESEL_SP)).toFixed(2)}`;
             document.getElementById('detalheRotaTotal').innerText = `R$ ${rota.custo}`;
             document.getElementById('modalDetalhesRota').style.display = 'flex';
         }
@@ -2248,12 +2352,16 @@
             routingControl.on('routesfound', function(e) {
                 const route = e.routes[0];
                 const distanciaKm = (route.summary.totalDistance / 1000).toFixed(1);
-                const custoTotal = ((distanciaKm / 2.5) * 6.19 + (Math.max(1, Math.round(distanciaKm / 120)) * eixosAtuaisRota * 11.50)).toFixed(2);
+                const custoCombustivel = (distanciaKm / 2.5 * PRECO_DIESEL_SP);
+                const litrosConsumidos = (distanciaKm / 2.5).toFixed(1);
+                const custoTotal = (custoCombustivel + (Math.max(1, Math.round(distanciaKm / 120)) * eixosAtuaisRota * 11.50)).toFixed(2);
+                
                 dadosUltimaRotaCalculada = {
                     origemTxt: origCoord.nome, destinoTxt: destCoord.nome, eixos: eixosAtuaisRota,
-                    distancia: distanciaKm, custo: custoTotal, coordenadas: route.coordinates.map(c => [c.lat, c.lng])
+                    distancia: distanciaKm, custo: custoTotal, litros: litrosConsumidos, coordenadas: route.coordinates.map(c => [c.lat, c.lng])
                 };
                 document.getElementById('inputNomeRota').value = `${origCoord.nome.split(',')[0]} -> ${destCoord.nome.split(',')[0]}`;
+                document.getElementById('modal-route-stats').innerHTML = `<b>Distância:</b> ${distanciaKm} km | <b>Média de Litros:</b> ${litrosConsumidos} L | <b>Custo Total:</b> R$ ${custoTotal}`;
                 document.getElementById('modalSalvarRota').style.display = 'flex';
             });
         }
@@ -2277,16 +2385,23 @@
         }
 
         function renderizarTabelaRotas(filtro = '') {
-            const tbody = document.getElementById('tbodyRotasSalvas');
-            if (!tbody) return;
-            tbody.innerHTML = '';
             const filtradas = rotasSalvas.filter(r => r.nome.toLowerCase().includes(filtro.toLowerCase()));
-            if (filtradas.length === 0) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; opacity:0.7;">Nenhuma rota.</td></tr>`; return; }
-            filtradas.forEach(r => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td><b>${r.nome}</b></td><td>${r.origemTxt}</td><td>${r.destinoTxt}</td><td>${r.eixos}</td><td>${r.distancia} km (R$ ${r.custo})</td><td class="table-actions"><button class="btn" style="padding: 4px 8px; font-size: 11px; background: #00838F;" onclick="verDetalhesRota(${r.id})">Detalhes</button><button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--primary-blue);" onclick="carregarRotaNoMapa(${r.id})">Mapa</button><button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--danger);" onclick="excluirRota(${r.id})"><i class="fas fa-trash"></i></button></td>`;
-                tbody.appendChild(tr);
+            const linhas = filtradas.map(r => {
+                const litrosStr = r.litros ? `${r.litros} L` : `${(parseFloat(r.distancia)/2.5).toFixed(1)} L`;
+                return `<tr>
+                    <td><b>${r.nome}</b></td>
+                    <td>${r.origemTxt}</td>
+                    <td>${r.destinoTxt}</td>
+                    <td>${r.eixos}</td>
+                    <td>${r.distancia} km | <span style="color:var(--warning); font-weight:bold;">${litrosStr}</span> | R$ ${r.custo}</td>
+                    <td class="table-actions">
+                        <button class="btn" style="padding: 4px 8px; font-size: 11px; background: #00838F;" onclick="verDetalhesRota(${r.id})">Detalhes</button>
+                        <button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--primary-blue);" onclick="carregarRotaNoMapa(${r.id})">Mapa</button>
+                        <button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--danger);" onclick="excluirRota(${r.id})"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>`;
             });
+            renderizarLinhasComLimite('tbodyRotasSalvas', 'tabelaRotasSalvas', linhas, 6, 'Nenhuma rota cadastrada.');
         }
 
         function filtrarRotasSalvas() { 
@@ -2356,7 +2471,6 @@
             const corTextoDinamica = obterCorTextoGrafico();
             const fontPadraoGrafico = { size: 12, weight: 'bold' };
 
-            // Gráfico 1: Velocidade (limitado a 10 barras recentes)
             let keysVel = Object.keys(excessosPorPlaca);
             let valsVel = Object.values(excessosPorPlaca);
             if (keysVel.length > 10) {
@@ -2388,7 +2502,6 @@
                 });
             }
 
-            // Gráfico 2: Parados e Ligados (limitado a 10 barras)
             let labelsPar = Object.keys(paradosLigadosContagem);
             let valsTemposMinutos = labelsPar.map(p => paradosLigadosTempoMinutos[p]);
             let valsAlertas = labelsPar.map(p => paradosLigadosContagem[p]);
@@ -2466,7 +2579,6 @@
                 });
             }
 
-            // Gráfico 3: Pizza - Veículos em Trânsito vs Parados
             let qtdEmTransitoPizza = 0;
             let qtdParadosPizza = 0;
             veiculosCacheGlobal.forEach(v => {
@@ -2503,7 +2615,6 @@
                 });
             }
 
-            // Gráfico 4: Pizza - Com Rota Vinculada vs Sem Rota Vinculada
             let qtdComRota = 0;
             let qtdSemRota = 0;
             const uniquePlacas = new Set(veiculosCacheGlobal.map(v => {
@@ -2544,7 +2655,6 @@
                 });
             }
 
-            // Gráfico 5: Custo Médio por Viagem por Placa + 1 Barra Separada à Direita com o Total Geral da Frota
             let labelsPlacasEmbarcadas = [];
             let dadosCustoMedio = [];
             let somaTotalGeralViagens = 0;
@@ -2564,13 +2674,9 @@
                 dadosCustoMedio = dadosCustoMedio.slice(-9);
             }
 
-            // Adiciona a categoria independente "TOTAL GERAL" na última posição (lado direito)
             labelsPlacasEmbarcadas.push("TOTAL GERAL");
             
-            // Dataset de Custo Médio (mantém null para a coluna final de total geral)
             let dadosCustoMedioDataset = [...dadosCustoMedio, null];
-
-            // Dataset de Custo Total Geral (null nas placas e com o valor somado apenas na última coluna da direita)
             let dadosCustoTotalGeralDataset = new Array(labelsPlacasEmbarcadas.length).fill(null);
             dadosCustoTotalGeralDataset[dadosCustoTotalGeralDataset.length - 1] = somaTotalGeralViagens;
 
@@ -2606,8 +2712,16 @@
                             }
                         },
                         scales: {
-                            x: { ticks: { color: corTextoDinamica, font: fontPadraoGrafico }, grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' } },
-                            y: { ticks: { color: corTextoDinamica, font: fontPadraoGrafico, callback: (val) => 'R$ ' + val }, grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' }, beginAtZero: true }
+                            x: { 
+                                offset: true,
+                                ticks: { color: corTextoDinamica, font: fontPadraoGrafico }, 
+                                grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' } 
+                            },
+                            y: { 
+                                ticks: { color: corTextoDinamica, font: fontPadraoGrafico, callback: (val) => 'R$ ' + val }, 
+                                grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' }, 
+                                beginAtZero: true 
+                            }
                         }
                     }
                 });
@@ -2616,10 +2730,8 @@
 
         function carregarAbastecimentos() {
             const dados = [{placa: 'ABC-1234', data: '06/09/2026 07:58:52', bomba: '3654', local: 'Tres Lagoas - MS', volCTA: 500.34, odo: 338438, dist: 907, media: 1.81}];
-            const tbodyAbast = document.getElementById('tbodyAbastecimentos');
-            if (tbodyAbast) {
-                tbodyAbast.innerHTML = dados.map(d => `<tr><td>${d.placa}</td><td>${d.data}</td><td>${d.bomba}</td><td>${d.local}</td><td style="font-weight:bold; color:var(--accent-blue)">${d.volCTA} L</td><td>${d.odo}</td><td>${d.dist} km</td><td>${d.media}</td></tr>`).join('');
-            }
+            const linhas = dados.map(d => `<tr><td>${d.placa}</td><td>${d.data}</td><td>${d.bomba}</td><td>${d.local}</td><td style="font-weight:bold; color:var(--accent-blue)">${d.volCTA} L</td><td>${d.odo}</td><td>${d.dist} km</td><td>${d.media}</td></tr>`);
+            renderizarLinhasComLimite('tbodyAbastecimentos', 'tabelaAbastecimento', linhas, 8, 'Nenhum abastecimento registrado.');
             
             const corTextoDinamica = obterCorTextoGrafico();
             const canvasConsumo = document.getElementById('graficoConsumo');
@@ -2630,7 +2742,7 @@
                     options: {
                         plugins: { legend: { labels: { color: corTextoDinamica, font: { size: 14, weight: 'bold' } } } },
                         scales: {
-                            x: { ticks: { color: corTextoDinamica, font: { size: 14, weight: 'bold' } } },
+                            x: { offset: true, ticks: { color: corTextoDinamica, font: { size: 14, weight: 'bold' } } },
                             y: { ticks: { color: corTextoDinamica, font: { size: 14, weight: 'bold' } } }
                         }
                     }
@@ -2638,7 +2750,7 @@
             }
         }
 
-        function exportarExcel(tableId, nome) { XLSX.writeFile(XLSX.utils.table_to_book(document.getElementById(tableId)), nome + ".xlsx"); }
+        function exportarExcel(tableId, nome) { exportarExcelCompleto(tableId, nome); }
         function exportarPDF(elementId, nome) { html2pdf().from(document.getElementById(elementId)).save(nome + '.pdf'); }
     </script>
 </body>
