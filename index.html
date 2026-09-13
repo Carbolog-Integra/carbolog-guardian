@@ -696,6 +696,7 @@
         let historicoDesviosDashboard = [];
         let historicoComboiosDashboard = [];
         let historicoExcessoVelocidadeDashboard = [];
+        let historicoPerdaSinalDashboard = [];
         let historicoParadosLigados = [];
         let statusParadoLigado = {}; 
         let historicoTratativas = [];
@@ -755,6 +756,7 @@
                 if (reg.hist_comboios) historicoComboiosDashboard = reg.hist_comboios;
                 
                 if (reg.hist_excesso_vel) historicoExcessoVelocidadeDashboard = reg.hist_excesso_vel;
+                if (reg.hist_perda_sinal) historicoPerdaSinalDashboard = reg.hist_perda_sinal;
                 if (reg.hist_parados) historicoParadosLigados = reg.hist_parados;
                 if (reg.status_parado) statusParadoLigado = reg.status_parado;
                 
@@ -785,6 +787,7 @@
                 hist_desvios: historicoDesviosDashboard,
                 hist_comboios: historicoComboiosDashboard,
                 hist_excesso_vel: historicoExcessoVelocidadeDashboard,
+                hist_perda_sinal: historicoPerdaSinalDashboard,
                 hist_parados: historicoParadosLigados,
                 status_parado: statusParadoLigado,
                 hist_tratativas: historicoTratativas
@@ -1279,6 +1282,7 @@
             };
 
             verificarEExpirar(historicoExcessoVelocidadeDashboard, 'Excesso de Velocidade');
+            verificarEExpirar(historicoPerdaSinalDashboard, 'Perda de Sinal');
             verificarEExpirar(historicoDesviosDashboard, 'Desvio de Rota');
             verificarEExpirar(historicoComboiosDashboard, 'Comboio');
             verificarEExpirar(historicoParadosLigados, 'Parado e Ligado');
@@ -1380,6 +1384,28 @@
                 const velFinal = Number(v.velocidade) || 0;
                 const ign = Boolean(v.ignicao);
                 
+                // Regra de Perda de Sinal (> 20 minutos sem comunicação)
+                const tempoMsCom = parseDateToMs(v.data_posicao);
+                const diffMinutosCom = tempoMsCom > 0 ? (agora - tempoMsCom) / 60000 : 0;
+                const chaveSinal = `sinal_${placaFormatada}`;
+
+                if (diffMinutosCom > 20) {
+                    const jaExisteSinal = historicoPerdaSinalDashboard.some(e => e.placa === placaFormatada && (agora - e.timestamp) < 300000);
+                    if (!jaExisteSinal && !alertasFinalizados[chaveSinal]) {
+                        historicoPerdaSinalDashboard.push({
+                            chave: chaveSinal,
+                            placa: placaFormatada,
+                            ocorrencia: `Perda de Sinal (${Math.round(diffMinutosCom)} min sem com.)`,
+                            duracao: Math.round(diffMinutosCom),
+                            maxVel: velFinal,
+                            dataHora: new Date().toLocaleString('pt-BR'),
+                            timestamp: agora,
+                            rawDate: new Date()
+                        });
+                        houveMudanca = true;
+                    }
+                }
+
                 const chaveParado = `parado_${placaFormatada}`;
                 if (velFinal === 0 && ign) {
                     if (!statusParadoLigado[chaveParado]) {
@@ -1618,9 +1644,13 @@
                 }
 
                 const chaveVel = `vel_${placaFormatada}`;
+                const chaveSinal = `sinal_${placaFormatada}`;
                 const chaveDesvio = `desvio_${placaFormatada}_${rotaVinculadaObj ? rotaVinculadaObj.id : 'nenhuma'}`;
                 const chaveComboio = `comboio_${placaFormatada}`;
                 const chaveParado = `parado_${placaFormatada}`;
+
+                const tempoMsCom = parseDateToMs(v.data_posicao);
+                const diffMinutosCom = tempoMsCom > 0 ? (Date.now() - tempoMsCom) / 60000 : 0;
 
                 let duracaoParadoMin = 0;
                 if (statusParadoLigado[chaveParado]) {
@@ -1628,6 +1658,10 @@
                 }
 
                 let htmlAlertas = '';
+                if (diffMinutosCom > 20 && !alertasFinalizados[chaveSinal]) {
+                    totalAlertasAtivos++;
+                    htmlAlertas += `<span class="badge-alerta bg-danger" onclick="abrirModalFinalizarAlerta('${placaFormatada}', 'Perda de Sinal (${Math.round(diffMinutosCom)} min)', '${chaveSinal}')">PERDA DE SINAL</span>`;
+                }
                 if (velFinal > 80 && !alertasFinalizados[chaveVel]) {
                     totalAlertasAtivos++;
                     htmlAlertas += `<span class="badge-alerta bg-danger" onclick="abrirModalFinalizarAlerta('${placaFormatada}', 'Excesso de Velocidade (${velFinal} km/h)', '${chaveVel}')">EXCESSO VEL.</span>`;
@@ -1941,6 +1975,7 @@
                 ...historicoPermanenciasDashboard, 
                 ...historicoComboiosDashboard,
                 ...historicoExcessoVelocidadeDashboard,
+                ...historicoPerdaSinalDashboard,
                 ...historicoParadosLigados
             ];
             
@@ -2459,7 +2494,7 @@
             });
 
             const agora = Date.now();
-            if (agora >= inicio && agora <= fim) {
+            if (agora >= inicio && agoran <= fim) {
                 Object.keys(statusParadoLigado).forEach(chave => {
                     const placa = chave.replace('parado_', '');
                     const duracaoMin = Math.round((agora - statusParadoLigado[chave]) / 60000);
