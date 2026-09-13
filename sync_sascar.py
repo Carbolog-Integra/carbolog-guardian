@@ -17,7 +17,7 @@ def sincronizar_telemetria_sascar():
     
     try:
         # Exemplo de requisição SOAP/API que popula dados_sascar com os veiculos
-        client = zeep.Client('https://api.sascar.com.br/ws/veiculos?wsdl') # URL de exemplo do webservice
+        client = zeep.Client('https://sasintegra.sascar.com.br/SasIntegra/SasIntegraWSService?wsdl') # URL de exemplo do webservice
         # resultado = client.service.obterPosicoes(usuario=SASCAR_USER, senha=SASCAR_PASS)
         # dados_sascar = resultado
     except Exception as e:
