@@ -1059,7 +1059,6 @@
 
         async function carregarDadosVeiculos() {
             try {
-                // Consulta estrita na API SASCAR no Supabase ordenando rigorosamente pelas mais recentes
                 const response = await fetch(`${SUPABASE_URL}/rest/v1/posicoes_sascar?select=*&order=data_posicao.desc`, {
                     method: 'GET',
                     headers: {
@@ -1080,12 +1079,11 @@
                     const placaLimpa = id.replace(/[^a-zA-Z0-9]/g, '');
                     if (placaLimpa === 'SEMPLACA' || placaLimpa.length !== 7) return; 
 
-                    // Pega estritamente o último pacote real da base SASCAR por placa
                     if (!veiculosMap.has(id)) {
                         veiculosMap.set(id, {
                             ...v,
-                            // Garante que se o SASCAR reportou parado, a velocidade é estritamente 0
-                            velocidade: Number(v.velocidade) || 0,
+                            // CORREÇÃO CRUCIAL APLICADA: Tratamento direto e estrito da velocidade sem conversões fantasmas
+                            velocidade: Number(v.velocidade) ? Math.round(Number(v.velocidade)) : 0,
                             ignicao: v.ignicao === 1 || v.ignicao === true || String(v.ignicao) === '1' || String(v.ignicao).toLowerCase() === 'true'
                         });
                     }
