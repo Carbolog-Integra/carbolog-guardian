@@ -1162,6 +1162,7 @@
             verificarEExpirar(historicoExcessoVelocidadeDashboard, 'Excesso de Velocidade');
             verificarEExpirar(historicoDesviosDashboard, 'Desvio de Rota');
             verificarEExpirar(historicoComboiosDashboard, 'Comboio');
+            verificarEExpirar(historicoParadosLigados, 'Parado e Ligado');
 
             if (mudou) {
                 salvarDadosNoBanco();
@@ -1265,22 +1266,28 @@
                     if (!statusParadoLigado[chaveParado]) {
                         statusParadoLigado[chaveParado] = agora;
                         houveMudanca = true;
+                    } else {
+                        const inicio = statusParadoLigado[chaveParado];
+                        const duracaoMin = Math.round((agora - inicio) / 60000);
+                        if (duracaoMin >= 10) {
+                            const jaExisteParado = historicoParadosLigados.some(p => p.chave === chaveParado && (agora - p.timestamp) < 300000);
+                            if (!jaExisteParado && !alertasFinalizados[chaveParado]) {
+                                historicoParadosLigados.push({
+                                    chave: chaveParado,
+                                    placa: placaFormatada,
+                                    ocorrencia: `Parado e Ligado (${duracaoMin} min)`,
+                                    duracao: duracaoMin,
+                                    maxVel: 0,
+                                    dataHora: new Date(inicio).toLocaleString('pt-BR'),
+                                    timestamp: inicio,
+                                    rawDate: new Date(inicio)
+                                });
+                                houveMudanca = true;
+                            }
+                        }
                     }
                 } else {
                     if (statusParadoLigado[chaveParado]) {
-                        const inicio = statusParadoLigado[chaveParado];
-                        const duracaoMin = Math.round((agora - inicio) / 60000);
-                        if (duracaoMin > 0) { 
-                            historicoParadosLigados.push({
-                                placa: placaFormatada,
-                                ocorrencia: 'Parado e Ligado',
-                                duracao: duracaoMin,
-                                maxVel: 0,
-                                dataHora: new Date(inicio).toLocaleString('pt-BR'),
-                                timestamp: inicio,
-                                rawDate: new Date(inicio)
-                            });
-                        }
                         delete statusParadoLigado[chaveParado];
                         houveMudanca = true;
                     }
@@ -1494,6 +1501,12 @@
                 const chaveVel = `vel_${placaFormatada}`;
                 const chaveDesvio = `desvio_${placaFormatada}_${rotaVinculadaObj ? rotaVinculadaObj.id : 'nenhuma'}`;
                 const chaveComboio = `comboio_${placaFormatada}`;
+                const chaveParado = `parado_${placaFormatada}`;
+
+                let duracaoParadoMin = 0;
+                if (statusParadoLigado[chaveParado]) {
+                    duracaoParadoMin = Math.round((Date.now() - statusParadoLigado[chaveParado]) / 60000);
+                }
 
                 let htmlAlertas = '';
                 if (velFinal > 80 && !alertasFinalizados[chaveVel]) {
@@ -1507,6 +1520,10 @@
                 if (mapPlacasProximas[placaFormatada] && mapPlacasProximas[placaFormatada].length > 0 && !alertasFinalizados[chaveComboio]) {
                     totalAlertasAtivos++;
                     htmlAlertas += `<span class="badge-alerta bg-warning" onclick="abrirModalFinalizarAlerta('${placaFormatada}', 'Possível Comboio', '${chaveComboio}')">COMBOIO</span>`;
+                }
+                if (duracaoParadoMin >= 10 && !alertasFinalizados[chaveParado]) {
+                    totalAlertasAtivos++;
+                    htmlAlertas += `<span class="badge-alerta bg-warning" onclick="abrirModalFinalizarAlerta('${placaFormatada}', 'Parado e Ligado (${duracaoParadoMin} min)', '${chaveParado}')">PARADO LIGADO</span>`;
                 }
                 if (htmlAlertas === '') htmlAlertas = `<span style="color: var(--success); font-size: 12px;">Normal</span>`;
 
@@ -2329,7 +2346,7 @@
                 Object.keys(statusParadoLigado).forEach(chave => {
                     const placa = chave.replace('parado_', '');
                     const duracaoMin = Math.round((agora - statusParadoLigado[chave]) / 60000);
-                    if (duracaoMin > 0) {
+                    if (duracaoMin >= 10) {
                         paradosLigadosContagem[placa] = (paradosLigadosContagem[placa] || 0) + 1;
                         paradosLigadosTempoMinutos[placa] = (paradosLigadosTempoMinutos[placa] || 0) + duracaoMin;
                     }
@@ -2550,11 +2567,10 @@
             // Adiciona a categoria independente "TOTAL GERAL" na última posição (lado direito)
             labelsPlacasEmbarcadas.push("TOTAL GERAL");
             
-            // Para o dataset de Custo Médio, as placas exibem seus custos e a barra do "TOTAL GERAL" exibe o valor acumulado geral
-            let dadosCustoMedioDataset = [...dadosCustoMedio];
-            dadosCustoMedioDataset[dadosCustoMedioDataset.length - 1] = somaTotalGeralViagens;
+            // Dataset de Custo Médio (mantém null para a coluna final de total geral)
+            let dadosCustoMedioDataset = [...dadosCustoMedio, null];
 
-            // Para o dataset de Custo Total Geral, zeramos nas placas e mantemos apenas na última coluna da direita
+            // Dataset de Custo Total Geral (null nas placas e com o valor somado apenas na última coluna da direita)
             let dadosCustoTotalGeralDataset = new Array(labelsPlacasEmbarcadas.length).fill(null);
             dadosCustoTotalGeralDataset[dadosCustoTotalGeralDataset.length - 1] = somaTotalGeralViagens;
 
@@ -2596,15 +2612,6 @@
                     }
                 });
             }
-        }
-
-        function exportarDashboardCompletoExcel() {
-            const wb = XLSX.utils.book_new();
-            ['tabelaDash', 'tabelaTratativas', 'tabelaDashRotas', 'tabelaDashAreas'].forEach((id, idx) => {
-                const tab = document.getElementById(id);
-                if (tab) XLSX.utils.book_append_sheet(wb, XLSX.utils.table_to_sheet(tab), ["Brutos", "Tratativas", "Rotas", "Areas"][idx]);
-            });
-            XLSX.writeFile(wb, "Dashboard_Completa_Frota.xlsx");
         }
 
         function carregarAbastecimentos() {
