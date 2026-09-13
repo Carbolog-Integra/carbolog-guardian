@@ -340,6 +340,7 @@
                             <th>Data/Hora Última Pos.</th>
                             <th>Localização</th>
                             <th>Rota Embarcada</th>
+                            <th>Distância (km)</th>
                             <th>Custo de Pedágio</th>
                             <th>Custo de Combustível</th>
                             <th>Média de Litros</th>
@@ -717,7 +718,7 @@
 
         let columnOrder = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
         const SUPABASE_URL = 'https://oyrqywoctnyottwvqrji.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95cnF5d29jdG55b3R0d3ZxcmppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMjMyOTQsImV4cCI6MjEwMzc5OTI5NH0.VdqJLc_u1VXFrnOe59Bw7wLWV-GZLnx6_fjzBV_TU8w';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95cnF5d29jdG55b3R0d3ZxcmppIiwicm9sZSI6ImFub24iOjE3ODgyMjMyOTQsImV4cCI6MjEwMzc5OTI5NH0.VdqJLc_u1VXFrnOe59Bw7wLWV-GZLnx6_fjzBV_TU8w';
         const USUARIO_GLOBAL = 'global_sistema_frota';
         const PRECO_DIESEL_SP = 6.43;
 
@@ -1979,6 +1980,7 @@
                         <td>${dataFmt}</td>
                         <td>${loc}</td>
                         <td>${r.nome}</td>
+                        <td style="font-weight:bold;">${r.distancia} km</td>
                         <td style="color:var(--danger); font-weight:bold;">R$ ${custoPedag.toFixed(2)}</td>
                         <td style="color:var(--success); font-weight:bold;">R$ ${custoComb.toFixed(2)}</td>
                         <td style="color:var(--warning); font-weight:bold;">${mediaLitros} L</td>
@@ -1986,7 +1988,7 @@
                     </tr>`);
                 }
             });
-            renderizarLinhasComLimite('tbodyDashRotas', 'tabelaDashRotas', linhasRotasEmbarcadas, 8, 'Nenhum veículo com rota embarcada.');
+            renderizarLinhasComLimite('tbodyDashRotas', 'tabelaDashRotas', linhasRotasEmbarcadas, 9, 'Nenhum veículo com rota embarcada.');
 
             const agoraMs = Date.now();
             Object.keys(contadorPermanenciaAreas).forEach(key => {
@@ -2690,12 +2692,14 @@
                             {
                                 label: 'Custo Médio por Viagem (R$)',
                                 data: dadosCustoMedioDataset,
-                                backgroundColor: '#008DDA'
+                                backgroundColor: '#008DDA',
+                                barThickness: 35
                             },
                             {
                                 label: 'Custo Total Geral (R$)',
                                 data: dadosCustoTotalGeralDataset,
-                                backgroundColor: '#0055A4'
+                                backgroundColor: '#0055A4',
+                                barThickness: 35
                             }
                         ]
                     },
@@ -2714,7 +2718,7 @@
                         scales: {
                             x: { 
                                 offset: true,
-                                ticks: { color: corTextoDinamica, font: fontPadraoGrafico }, 
+                                ticks: { color: corTextoDinamica, font: fontPadraoGrafico, align: 'center' }, 
                                 grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' } 
                             },
                             y: { 
