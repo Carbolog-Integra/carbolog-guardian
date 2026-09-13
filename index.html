@@ -718,7 +718,7 @@
 
         let columnOrder = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
         const SUPABASE_URL = 'https://oyrqywoctnyottwvqrji.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95cnF5d29jdG55b3R0d3ZxcmppIiwicm9sZSI6ImFub24iOjE3ODgyMjMyOTQsImV4cCI6MjEwMzc5OTI5NH0.VdqJLc_u1VXFrnOe59Bw7wLWV-GZLnx6_fjzBV_TU8w';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95cnF5d29jdG55b3R0d3ZxcmppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMjMyOTQsImV4cCI6MjEwMzc5OTI5NH0.VdqJLc_u1VXFrnOe59Bw7wLWV-GZLnx6_fjzBV_TU8w';
         const USUARIO_GLOBAL = 'global_sistema_frota';
         const PRECO_DIESEL_SP = 6.43;
 
@@ -1308,7 +1308,7 @@
                 dadosBrutos.forEach(v => {
                     const id = v.id_veiculo ? String(v.id_veiculo).trim() : 'SEM-PLACA';
                     const placaLimpa = id.replace(/[^a-zA-Z0-9]/g, '');
-                    if (placaLimpa === 'SEMPLACA' || placaLimpa.length < 5) return; 
+                    if (placaLimpa === 'SEMPLACA' || placaLimpa.length !== 7) return; 
 
                     if (!veiculosMap.has(id)) {
                         veiculosMap.set(id, {
@@ -2692,14 +2692,12 @@
                             {
                                 label: 'Custo Médio por Viagem (R$)',
                                 data: dadosCustoMedioDataset,
-                                backgroundColor: '#008DDA',
-                                barThickness: 35
+                                backgroundColor: '#008DDA'
                             },
                             {
                                 label: 'Custo Total Geral (R$)',
                                 data: dadosCustoTotalGeralDataset,
-                                backgroundColor: '#0055A4',
-                                barThickness: 35
+                                backgroundColor: '#0055A4'
                             }
                         ]
                     },
@@ -2718,7 +2716,7 @@
                         scales: {
                             x: { 
                                 offset: true,
-                                ticks: { color: corTextoDinamica, font: fontPadraoGrafico, align: 'center' }, 
+                                ticks: { color: corTextoDinamica, font: fontPadraoGrafico }, 
                                 grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' } 
                             },
                             y: { 
