@@ -67,7 +67,7 @@
         .btn:disabled { opacity: 0.7; cursor: not-allowed; }
 
         .navbar { background: var(--bg-dark); color: #FFFFFF; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); }
-        .nav-menus button { background: none; border: none; color: #FFFFFF; font-size: 16px; margin: 0 10px; cursor: pointer; padding-bottom: 5px; }
+        .nav-menus button { background: none; border: none; color: #FFFFFF; font-size: 15px; margin: 0 8px; cursor: pointer; padding-bottom: 5px; }
         .nav-menus button.active { border-bottom: 3px solid #FFFFFF; font-weight: bold; }
         
         .app-container { display: none; }
@@ -85,7 +85,7 @@
         th { background-color: var(--primary-blue); color: #FFFFFF; }
         th input { width: 90%; padding: 5px; margin-top: 5px; font-size: 12px; color: #000; box-sizing: border-box;}
         tr:hover { background-color: rgba(0, 141, 218, 0.05); }
-        .table-actions a { color: var(--accent-blue); font-size: 18px; margin-right: 10px; text-decoration: none; cursor: pointer; }
+        .table-actions a, .table-actions button { margin-right: 5px; }
         .fa-waze { color: #33ccff; }
         .fa-map-marker-alt { color: #ea4335; }
 
@@ -128,28 +128,9 @@
         .dragging { opacity: 0.5; background-color: rgba(0, 141, 218, 0.5) !important; }
         .drag-over { border-left: 3px solid #FF8F00 !important; }
 
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-            margin-top: 20px;
-        }
-        .chart-box {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 390px;
-            box-sizing: border-box;
-        }
-        .chart-box canvas {
-            max-height: 310px !important;
-            width: 100% !important;
-        }
+        .dashboard-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 20px; }
+        .chart-box { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 390px; box-sizing: border-box; }
+        .chart-box canvas { max-height: 310px !important; width: 100% !important; }
 
         .btn-expandir {
             background: none; border: 1px solid var(--accent-blue); color: var(--accent-blue);
@@ -157,6 +138,8 @@
             display: inline-flex; align-items: center; gap: 6px; transition: 0.2s;
         }
         .btn-expandir:hover { background: var(--accent-blue); color: #FFF; }
+        
+        .tag-cadastrado { font-size: 10px; background: #008DDA; color: white; padding: 2px 6px; border-radius: 10px; margin-left: 5px; }
     </style>
 </head>
 <body class="dark-mode">
@@ -183,11 +166,12 @@
             <div class="logo"><h3><i class="fas fa-satellite-dish"></i> Torre de Controle</h3></div>
             <div class="nav-menus">
                 <button class="active" onclick="mudarAba('operacional')">Grid Operacional</button>
+                <button onclick="mudarAba('frota')">Gestão de Frota</button>
                 <button onclick="mudarAba('dashboard')">Dashboard</button>
-                <button onclick="mudarAba('abastecimentos')">Gestão de Abastecimentos</button>
-                <button onclick="mudarAba('rotas')">Rotas Criadas</button>
-                <button onclick="mudarAba('areas')">Áreas Geográficas</button>
-                <button onclick="mudarAba('pontosRef')">Pontos de Referência</button>
+                <button onclick="mudarAba('abastecimentos')">Abastecimentos</button>
+                <button onclick="mudarAba('rotas')">Rotas Salvas</button>
+                <button onclick="mudarAba('areas')">Áreas/Cercas</button>
+                <button onclick="mudarAba('pontosRef')">Pontos Ref.</button>
             </div>
             <div style="display: flex; align-items: center; gap: 10px;">
                 <button class="btn" style="background: #555; padding: 6px 12px; font-size: 13px;" onclick="alternarTema()">
@@ -245,6 +229,46 @@
                         <tbody id="tbodyOperacional"></tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+
+        <!-- ABA: GESTÃO DE FROTA -->
+        <div id="frota" class="tab-content">
+            <div class="card">
+                <div class="flex-row" style="justify-content: space-between;">
+                    <h3 style="color: var(--accent-blue);"><i class="fas fa-truck-loading"></i> Gestão de Frota (Cadastro Master)</h3>
+                </div>
+                <p style="font-size: 13px; opacity: 0.8;">Os veículos cadastrados aqui <b>nunca sumirão do grid operacional</b>. Caso a API não envie dados recentes para um veículo cadastrado, ele aparecerá no grid como "Sem Comunicação" (Offline).</p>
+                
+                <div class="flex-row" style="margin-top: 15px; align-items: flex-end; background: rgba(0,0,0,0.03); padding: 15px; border-radius: 8px;">
+                    <div>
+                        <label style="font-size: 12px; font-weight: bold;">Placa do Veículo:</label><br>
+                        <input type="text" id="inputFrotaPlaca" class="input-livre" placeholder="ABC-1234" style="margin-top: 3px; width: 150px; text-transform: uppercase;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-size: 12px; font-weight: bold;">Descrição / Modelo (Opcional):</label><br>
+                        <input type="text" id="inputFrotaDescricao" class="input-livre" placeholder="Ex: Caminhão Trucado - Frota Própria" style="margin-top: 3px; width: 100%;">
+                    </div>
+                    <div>
+                        <button class="btn" style="background: var(--success); margin-top: 0; padding: 11px 18px;" onclick="cadastrarVeiculoFrota()"><i class="fas fa-save"></i> Adicionar Veículo</button>
+                    </div>
+                </div>
+
+                <div class="flex-row" style="justify-content: space-between; align-items: center; margin-top: 25px;">
+                    <h4 style="color: var(--accent-blue); margin: 0;">Veículos Cadastrados na Base</h4>
+                    <button class="btn-expandir" onclick="alternarExpandirTabela('tabelaFrotaMaster', this)"><i class="fas fa-expand-alt"></i> Expandir Tabela</button>
+                </div>
+                <table id="tabelaFrotaMaster" style="margin-top: 10px;">
+                    <thead>
+                        <tr>
+                            <th>Placa</th>
+                            <th>Descrição / Detalhes</th>
+                            <th>Data de Cadastro</th>
+                            <th style="width: 100px;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyFrotaMaster"></tbody>
+                </table>
             </div>
         </div>
 
@@ -372,6 +396,7 @@
             </div>
         </div>
 
+        <!-- OUTRAS ABAS (ABASTECIMENTOS, ROTAS, AREAS, PONTOS)... -->
         <!-- ABA 3: ABASTECIMENTOS -->
         <div id="abastecimentos" class="tab-content">
             <div class="card" id="exportAreaAbastecimento">
@@ -481,7 +506,8 @@
         </div>
     </div>
 
-    <!-- MODAIS -->
+    <!-- MODAIS (INCLUI ALERTAS, PONTOS, ETC) -->
+    <!-- (Mantido igual ao anterior para manter toda a funcionalidade visual intacta) -->
     <div id="modalPopupAlertas20Min" class="modal">
         <div class="modal-content" style="max-width: 750px;">
             <div class="modal-header">
@@ -708,10 +734,12 @@
         let mapDesenhoAreaInstance = null;
         let mapPontoRefInstance = null;
         let markers = {};
+        
+        let frotaCadastrada = []; // NOVA VARIÁVEL DA FROTA
         let rotasVeiculos = {}; 
         let areasVeiculos = {}; 
         let veiculosCacheGlobal = []; 
-        let veiculosOcultosGlobal = {}; // NOVO: Armazena o estado do checkbox dos veículos (ocultos)
+        let veiculosOcultosGlobal = {}; 
         let veiculoFocoGlobal = null; 
         let linhaRotaVeiculoAtivo = null; 
 
@@ -741,7 +769,6 @@
         let modoDesenhoAtual = null; 
         let pontosPoligonoTemp = [];
         let marcadorCentroRetangulo = null;
-        let desenhoTemporarioLayer = null;
         let dadosGeometriaAtual = null;
         let alertaSelecionadoParaFinalizar = null;
         let placaAtualAlertaModal = null;
@@ -752,9 +779,7 @@
         
         let popupAlertasHabilitado = true;
         let popup20MinIntervalRef = null;
-
         let mapPlacasProximasGlobal = {};
-
         let tabelasExpandidas = {};
 
         let columnOrder = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
@@ -762,6 +787,14 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95cnF5d29jdG55b3R0d3ZxcmppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMjMyOTQsImV4cCI6MjEwMzc5OTI5NH0.VdqJLc_u1VXFrnOe59Bw7wLWV-GZLnx6_fjzBV_TU8w';
         const USUARIO_GLOBAL = 'global_sistema_frota';
         const PRECO_DIESEL_SP = 6.43;
+
+        // FUNÇÃO AUXILIAR DE FORMATAÇÃO DE PLACA (Garante precisão em todas as partes)
+        function formatarPlacaPadrao(p) {
+            if(!p || p === 'SEM-PLACA') return 'SEM-PLACA';
+            p = String(p).replace(/[^a-zA-Z0-9]/g, '').toUpperCase(); // Remove traços e limpa
+            if (p.length === 7) return p.substring(0, 3) + '-' + p.substring(3);
+            return p; // Se tiver um tamanho diferente, devolve como está
+        }
 
         async function carregarDadosDoBanco() {
             let dadosNuvem = null;
@@ -784,6 +817,7 @@
             const reg = dadosNuvem || dadosLocais;
             if (reg) {
                 if (reg.ordem_colunas) columnOrder = reg.ordem_colunas;
+                if (reg.frota_cadastrada) frotaCadastrada = reg.frota_cadastrada;
                 if (reg.rotas_salvas && reg.rotas_salvas.length > 0) rotasSalvas = reg.rotas_salvas;
                 if (reg.rotas_veiculos) rotasVeiculos = reg.rotas_veiculos;
                 if (reg.areas_salvas && reg.areas_salvas.length > 0) areasSalvas = reg.areas_salvas;
@@ -794,12 +828,10 @@
                 if (reg.hist_permanencias) historicoPermanenciasDashboard = reg.hist_permanencias;
                 if (reg.hist_desvios) historicoDesviosDashboard = reg.hist_desvios;
                 if (reg.hist_comboios) historicoComboiosDashboard = reg.hist_comboios;
-                
                 if (reg.hist_excesso_vel) historicoExcessoVelocidadeDashboard = reg.hist_excesso_vel;
                 if (reg.hist_perda_sinal) historicoPerdaSinalDashboard = reg.hist_perda_sinal;
                 if (reg.hist_parados) historicoParadosLigados = reg.hist_parados;
                 if (reg.status_parado) statusParadoLigado = reg.status_parado;
-                
                 if (reg.hist_tratativas) historicoTratativas = reg.hist_tratativas;
             }
 
@@ -816,6 +848,7 @@
             const payload = {
                 usuario: USUARIO_GLOBAL,
                 ordem_colunas: columnOrder,
+                frota_cadastrada: frotaCadastrada,
                 rotas_salvas: rotasSalvas,
                 rotas_veiculos: rotasVeiculos,
                 areas_salvas: areasSalvas,
@@ -861,6 +894,7 @@
                 carregarDadosDoBanco().then(() => {
                     const abaAtivaSalva = localStorage.getItem('abaAtiva') || 'operacional';
                     mudarAba(abaAtivaSalva);
+                    renderizarTabelaFrota(); 
 
                     setTimeout(() => {
                         if (map) map.invalidateSize();
@@ -885,13 +919,66 @@
             location.reload();
         }
 
+        // ---------- FUNÇÕES DA GESTÃO DE FROTA ----------
+        async function cadastrarVeiculoFrota() {
+            const placaBruta = document.getElementById('inputFrotaPlaca').value;
+            const desc = document.getElementById('inputFrotaDescricao').value.trim();
+            const placa = formatarPlacaPadrao(placaBruta);
+            
+            if (!placa || placa.length < 7) {
+                alert("Por favor, insira uma placa válida."); return;
+            }
+            if (frotaCadastrada.some(f => f.placa === placa)) {
+                alert("Veículo já está cadastrado na base!"); return;
+            }
+
+            frotaCadastrada.push({
+                placa: placa,
+                descricao: desc || 'Sem descrição',
+                dataCadastro: new Date().toLocaleString('pt-BR')
+            });
+
+            document.getElementById('inputFrotaPlaca').value = '';
+            document.getElementById('inputFrotaDescricao').value = '';
+            
+            await salvarDadosNoBanco();
+            renderizarTabelaFrota();
+            renderizarGridEMapa(); 
+            alert("Veículo adicionado com sucesso! Ele já aparecerá no Grid Operacional.");
+        }
+
+        function renderizarTabelaFrota() {
+            const linhas = frotaCadastrada.map(f => `
+                <tr>
+                    <td><b>${f.placa}</b></td>
+                    <td>${f.descricao}</td>
+                    <td>${f.dataCadastro}</td>
+                    <td>
+                        <button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--danger);" onclick="removerVeiculoFrota('${f.placa}')">
+                            <i class="fas fa-trash"></i> Remover
+                        </button>
+                    </td>
+                </tr>
+            `);
+            renderizarLinhasComLimite('tbodyFrotaMaster', 'tabelaFrotaMaster', linhas, 4, 'Nenhum veículo cadastrado na base. A API do SASCAR descobrirá os veículos ativamente no grid.');
+        }
+
+        async function removerVeiculoFrota(placa) {
+            if (!confirm(`Deseja remover o veículo ${placa} do cadastro master? Ele sumirá do grid caso não esteja reportando posição no momento.`)) return;
+            frotaCadastrada = frotaCadastrada.filter(f => f.placa !== placa);
+            await salvarDadosNoBanco();
+            renderizarTabelaFrota();
+            renderizarGridEMapa();
+        }
+        // ------------------------------------------------
+
         let dadosUltimaRotaCalculada = null;
         let eixosAtuaisRota = 6;
         let placaAtualVinculando = null;
         let placaAtualVinculandoArea = null;
 
         function formatarDataHoraPtBr(dataStr) {
-            if (!dataStr) return '-';
+            if (!dataStr || dataStr === '-') return '-';
             try {
                 const dataObj = new Date(dataStr);
                 if (isNaN(dataObj.getTime())) return dataStr;
@@ -903,7 +990,7 @@
         }
         
         function parseDateToMs(dateStr) {
-            if (!dateStr) return 0;
+            if (!dateStr || dateStr === '-') return 0;
             const d = new Date(dateStr);
             if (!isNaN(d.getTime())) return d.getTime();
 
@@ -921,22 +1008,14 @@
             return `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`;
         }
 
-        function obterCorTextoGrafico() {
-            return document.body.classList.contains('dark-mode') ? '#FFFFFF' : '#333333';
-        }
+        function obterCorTextoGrafico() { return document.body.classList.contains('dark-mode') ? '#FFFFFF' : '#333333'; }
 
         function reordenarCabecalhoVisualmente() {
             const trHead = document.querySelector('#gridOperacional thead tr');
             if (!trHead) return;
             const ths = Array.from(trHead.children);
             const novosThs = new Array(columnOrder.length);
-            
-            ths.forEach((th, idx) => {
-                if (columnOrder[idx] !== undefined) {
-                    novosThs[columnOrder[idx]] = th;
-                }
-            });
-            
+            ths.forEach((th, idx) => { if (columnOrder[idx] !== undefined) novosThs[columnOrder[idx]] = th; });
             trHead.innerHTML = '';
             novosThs.forEach(th => { if(th) trHead.appendChild(th); });
         }
@@ -1030,10 +1109,7 @@
         function adicionarCampoPontoIntermediario() {
             const container = document.getElementById('containerPontosIntermediarios');
             const itensAtuais = container.querySelectorAll('.ponto-intermediario-item');
-            if (itensAtuais.length >= 10) {
-                alert("Limite máximo de 10 pontos intermediários atingido por rota.");
-                return;
-            }
+            if (itensAtuais.length >= 10) { alert("Limite máximo de 10 pontos intermediários atingido por rota."); return; }
 
             const idUnico = 'ponto_int_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
             const listIdUnico = idUnico + '_lista';
@@ -1071,6 +1147,7 @@
             renderizarTabelaRotas();
             renderizarTabelaAreas();
             renderizarTabelaPontosRef();
+            renderizarTabelaFrota();
             carregarAbastecimentos();
         }
 
@@ -1096,6 +1173,7 @@
             renderizarTabelaRotas();
             renderizarTabelaAreas();
             renderizarTabelaPontosRef();
+            renderizarTabelaFrota();
             carregarAbastecimentos();
 
             const tabelaEl = document.getElementById(tableId);
@@ -1107,6 +1185,7 @@
             renderizarTabelaRotas();
             renderizarTabelaAreas();
             renderizarTabelaPontosRef();
+            renderizarTabelaFrota();
             carregarAbastecimentos();
         }
 
@@ -1119,21 +1198,17 @@
                 const estadoAnterior = tabelasExpandidas[idTabela];
                 tabelasExpandidas[idTabela] = true;
                 atualizarKpisETabelasDash();
-
                 const ws = XLSX.utils.table_to_book(document.getElementById(idTabela)).Sheets["Sheet1"] || XLSX.utils.table_to_sheet(document.getElementById(idTabela));
                 XLSX.utils.book_append_sheet(wb, ws, nomesAbas[index]);
-
                 tabelasExpandidas[idTabela] = estadoAnterior;
                 atualizarKpisETabelasDash();
             });
-
             XLSX.writeFile(wb, "Dashboard_Completa_Frota.xlsx");
         }
 
         function inicializarDragDropColunas() {
             const ths = document.querySelectorAll('#gridOperacional th');
             let draggedColIndex = null;
-
             ths.forEach(th => {
                 th.setAttribute('draggable', 'true');
                 th.addEventListener('dragstart', (e) => {
@@ -1141,17 +1216,12 @@
                     e.dataTransfer.effectAllowed = 'move';
                     th.classList.add('dragging');
                 });
-
                 th.addEventListener('dragover', (e) => {
                     e.preventDefault();
                     e.dataTransfer.dropEffect = 'move';
                     th.classList.add('drag-over');
                 });
-
-                th.addEventListener('dragleave', () => {
-                    th.classList.remove('drag-over');
-                });
-
+                th.addEventListener('dragleave', () => { th.classList.remove('drag-over'); });
                 th.addEventListener('drop', (e) => {
                     e.preventDefault();
                     th.classList.remove('drag-over');
@@ -1161,11 +1231,8 @@
                         const trHead = th.parentNode;
                         const originalThs = Array.from(trHead.children);
                         
-                        if (draggedColIndex < targetColIndex) {
-                            trHead.insertBefore(originalThs[draggedColIndex], originalThs[targetColIndex].nextSibling);
-                        } else {
-                            trHead.insertBefore(originalThs[draggedColIndex], originalThs[targetColIndex]);
-                        }
+                        if (draggedColIndex < targetColIndex) { trHead.insertBefore(originalThs[draggedColIndex], originalThs[targetColIndex].nextSibling); } 
+                        else { trHead.insertBefore(originalThs[draggedColIndex], originalThs[targetColIndex]); }
                         
                         const novosThs = Array.from(trHead.children);
                         const allInitialThs = Array.from(document.querySelectorAll('#gridOperacional th'));
@@ -1175,7 +1242,6 @@
                         renderizarGridEMapa();
                     }
                 });
-
                 th.addEventListener('dragend', () => {
                     th.classList.remove('dragging');
                     ths.forEach(t => t.classList.remove('drag-over'));
@@ -1209,6 +1275,7 @@
             }
             
             await carregarDadosDoBanco();
+            renderizarTabelaFrota();
             renderizarTabelaRotas();
             renderizarTabelaAreas();
             renderizarTabelaPontosRef();
@@ -1254,6 +1321,7 @@
                 atualizarKpisETabelasDash();
                 atualizarDashboards();
             }
+            if(abaId === 'frota') renderizarTabelaFrota();
             if(abaId === 'rotas') renderizarTabelaRotas();
             if(abaId === 'areas') renderizarTabelaAreas();
             if(abaId === 'pontosRef') renderizarTabelaPontosRef();
@@ -1348,11 +1416,7 @@
             try {
                 const response = await fetch(`${SUPABASE_URL}/rest/v1/posicoes_sascar?select=*&order=data_posicao.desc`, {
                     method: 'GET',
-                    headers: {
-                        'apikey': SUPABASE_KEY,
-                        'Authorization': `Bearer ${SUPABASE_KEY}`,
-                        'Content-Type': 'application/json'
-                    }
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' }
                 });
                 if (!response.ok) throw new Error("Erro na resposta SASCAR");
                 
@@ -1361,35 +1425,29 @@
 
                 dadosBrutos.sort((a, b) => parseDateToMs(b.data_posicao) - parseDateToMs(a.data_posicao));
 
-                // Carrega os veículos atuais no Map
                 const veiculosMap = new Map();
-                veiculosCacheGlobal.forEach(v => veiculosMap.set(v.id_veiculo, v));
+                veiculosCacheGlobal.forEach(v => veiculosMap.set(formatarPlacaPadrao(v.id_veiculo), v));
 
-                // Processa a nova chamada (pegando a posição mais recente de cada)
                 const novosVeiculosMap = new Map();
                 dadosBrutos.forEach(v => {
-                    const id = v.id_veiculo ? String(v.id_veiculo).trim() : 'SEM-PLACA';
-                    const placaLimpa = id.replace(/[^a-zA-Z0-9]/g, '');
-                    if (placaLimpa === 'SEMPLACA' || placaLimpa.length !== 7) return; 
+                    const placa = formatarPlacaPadrao(v.id_veiculo);
+                    if (!placa || placa === 'SEM-PLACA') return; 
 
-                    if (!novosVeiculosMap.has(id)) {
-                        novosVeiculosMap.set(id, {
-                            ...v,
+                    if (!novosVeiculosMap.has(placa)) {
+                        novosVeiculosMap.set(placa, {
+                            ...v, id_veiculo: placa,
                             velocidade: Number(v.velocidade) ? Math.round(Number(v.velocidade)) : 0,
                             ignicao: v.ignicao === 1 || v.ignicao === true || String(v.ignicao) === '1' || String(v.ignicao).toLowerCase() === 'true'
                         });
                     }
                 });
 
-                // Faz o Merge (mantém os que sumiram, atualiza os que moveram)
-                novosVeiculosMap.forEach((novoV, id) => {
-                    if (veiculosMap.has(id)) {
-                        const velhoV = veiculosMap.get(id);
-                        if (parseDateToMs(novoV.data_posicao) >= parseDateToMs(velhoV.data_posicao)) {
-                            veiculosMap.set(id, novoV);
-                        }
+                novosVeiculosMap.forEach((novoV, placa) => {
+                    if (veiculosMap.has(placa)) {
+                        const velhoV = veiculosMap.get(placa);
+                        if (parseDateToMs(novoV.data_posicao) >= parseDateToMs(velhoV.data_posicao)) veiculosMap.set(placa, novoV);
                     } else {
-                        veiculosMap.set(id, novoV);
+                        veiculosMap.set(placa, novoV);
                     }
                 });
 
@@ -1403,10 +1461,7 @@
             } catch (e) {
                 console.error("Falha ao atualizar posições:", e);
             } finally {
-                if (btnRefresh) {
-                    btnRefresh.innerHTML = iconOriginal;
-                    btnRefresh.disabled = false;
-                }
+                if (btnRefresh) { btnRefresh.innerHTML = iconOriginal; btnRefresh.disabled = false; }
             }
         }
 
@@ -1427,24 +1482,16 @@
                     if (!isNaN(lat1) && !isNaN(lon1) && !isNaN(lat2) && !isNaN(lon2) && vel1 > 10 && vel2 > 10) {
                         const distancia = calcularDistanciaMetros(lat1, lon1, lat2, lon2);
                         if (distancia <= 300) {
-                            let p1 = v1.id_veiculo ? String(v1.id_veiculo) : 'SEM-PLACA';
-                            if (p1.length === 7 && !isNaN(p1)) p1 = p1.substring(0,3) + '-' + p1.substring(3);
-                            let p2 = v2.id_veiculo ? String(v2.id_veiculo) : 'SEM-PLACA';
-                            if (p2.length === 7 && !isNaN(p2)) p2 = p2.substring(0,3) + '-' + p2.substring(3);
+                            let p1 = formatarPlacaPadrao(v1.id_veiculo);
+                            let p2 = formatarPlacaPadrao(v2.id_veiculo);
 
                             const chaveComboioHist = `comboio_${p1}_${p2}`;
                             const jaExisteComboio = historicoComboiosDashboard.some(c => c.chave === chaveComboioHist && (agora - c.timestamp) < 600000);
                             
                             if (!jaExisteComboio) {
                                 historicoComboiosDashboard.push({
-                                    chave: chaveComboioHist,
-                                    placa: `${p1} & ${p2}`,
-                                    ocorrencia: `Comboio Próximo (${Math.round(distancia)}m)`,
-                                    duracao: 1,
-                                    maxVel: Math.max(vel1, vel2),
-                                    dataHora: new Date().toLocaleString('pt-BR'),
-                                    timestamp: agora,
-                                    rawDate: new Date()
+                                    chave: chaveComboioHist, placa: `${p1} & ${p2}`, ocorrencia: `Comboio Próximo (${Math.round(distancia)}m)`,
+                                    duracao: 1, maxVel: Math.max(vel1, vel2), dataHora: new Date().toLocaleString('pt-BR'), timestamp: agora, rawDate: new Date()
                                 });
                                 houveMudanca = true;
                             }
@@ -1454,8 +1501,7 @@
             }
 
             veiculos.forEach(v => {
-                let placaRaw = v.id_veiculo ? String(v.id_veiculo) : 'SEM-PLACA';
-                let placaFormatada = (placaRaw !== 'SEM-PLACA' && placaRaw.length === 7 && !isNaN(placaRaw)) ? placaRaw.substring(0, 3) + '-' + placaRaw.substring(3) : placaRaw;
+                let placaFormatada = formatarPlacaPadrao(v.id_veiculo);
                 
                 const lat = parseFloat(String(v.latitude).replace(',', '.'));
                 const lon = parseFloat(String(v.longitude).replace(',', '.'));
@@ -1470,14 +1516,8 @@
                     const jaExisteSinal = historicoPerdaSinalDashboard.some(e => e.placa === placaFormatada && (agora - e.timestamp) < 300000);
                     if (!jaExisteSinal && !alertasFinalizados[chaveSinal]) {
                         historicoPerdaSinalDashboard.push({
-                            chave: chaveSinal,
-                            placa: placaFormatada,
-                            ocorrencia: `Perda de Sinal (${Math.round(diffMinutosCom)} min sem com.)`,
-                            duracao: Math.round(diffMinutosCom),
-                            maxVel: velFinal,
-                            dataHora: new Date().toLocaleString('pt-BR'),
-                            timestamp: agora,
-                            rawDate: new Date()
+                            chave: chaveSinal, placa: placaFormatada, ocorrencia: `Perda de Sinal (${Math.round(diffMinutosCom)} min sem com.)`,
+                            duracao: Math.round(diffMinutosCom), maxVel: velFinal, dataHora: new Date().toLocaleString('pt-BR'), timestamp: agora, rawDate: new Date()
                         });
                         houveMudanca = true;
                     }
@@ -1495,14 +1535,8 @@
                             const jaExisteParado = historicoParadosLigados.some(p => p.chave === chaveParado && (agora - p.timestamp) < 300000);
                             if (!jaExisteParado && !alertasFinalizados[chaveParado]) {
                                 historicoParadosLigados.push({
-                                    chave: chaveParado,
-                                    placa: placaFormatada,
-                                    ocorrencia: `Parado e Ligado (${duracaoMin} min)`,
-                                    duracao: duracaoMin,
-                                    maxVel: 0,
-                                    dataHora: new Date(inicio).toLocaleString('pt-BR'),
-                                    timestamp: inicio,
-                                    rawDate: new Date(inicio)
+                                    chave: chaveParado, placa: placaFormatada, ocorrencia: `Parado e Ligado (${duracaoMin} min)`,
+                                    duracao: duracaoMin, maxVel: 0, dataHora: new Date(inicio).toLocaleString('pt-BR'), timestamp: inicio, rawDate: new Date(inicio)
                                 });
                                 houveMudanca = true;
                             }
@@ -1520,14 +1554,8 @@
                     const jaExisteVel = historicoExcessoVelocidadeDashboard.some(e => e.placa === placaFormatada && (agora - e.timestamp) < 300000);
                     if (!jaExisteVel && !alertasFinalizados[chaveVel]) {
                         historicoExcessoVelocidadeDashboard.push({
-                            chave: chaveVel,
-                            placa: placaFormatada,
-                            ocorrencia: `Excesso de Velocidade (${velFinal} km/h)`,
-                            duracao: 1,
-                            maxVel: velFinal,
-                            dataHora: new Date().toLocaleString('pt-BR'),
-                            timestamp: agora,
-                            rawDate: new Date()
+                            chave: chaveVel, placa: placaFormatada, ocorrencia: `Excesso de Velocidade (${velFinal} km/h)`,
+                            duracao: 1, maxVel: velFinal, dataHora: new Date().toLocaleString('pt-BR'), timestamp: agora, rawDate: new Date()
                         });
                         houveMudanca = true;
                     }
@@ -1544,15 +1572,8 @@
                         const jaExiste = historicoDesviosDashboard.some(d => d.placa === placaFormatada && (agora - d.timestamp) < 300000);
                         if (!jaExiste && !alertasFinalizados[chaveDesvio]) {
                             historicoDesviosDashboard.push({
-                                chave: chaveDesvio,
-                                placa: placaFormatada,
-                                ocorrencia: `Desvio de Rota (${rotaObj.nome})`,
-                                duracao: 1,
-                                maxVel: velFinal,
-                                metrosDesvio: metrosArredondados,
-                                dataHora: new Date().toLocaleString('pt-BR'),
-                                timestamp: agora,
-                                rawDate: new Date()
+                                chave: chaveDesvio, placa: placaFormatada, ocorrencia: `Desvio de Rota (${rotaObj.nome})`,
+                                duracao: 1, maxVel: velFinal, metrosDesvio: metrosArredondados, dataHora: new Date().toLocaleString('pt-BR'), timestamp: agora, rawDate: new Date()
                             });
                             houveMudanca = true;
                         }
@@ -1563,7 +1584,6 @@
                 areasIdsDoVeiculo.forEach(areaId => {
                     const areaObj = areasSalvas.find(a => a.id == areaId);
                     if (!areaObj) return;
-
                     const chaveKey = `${placaFormatada}_${areaId}`;
                     const dentro = veiculoDentroDaArea(lat, lon, areaObj);
 
@@ -1571,11 +1591,7 @@
                         if (!contadorPermanenciaAreas[chaveKey]) {
                             let tempoEntrada = agora;
                             if (dadosBrutos) {
-                                let histVeic = dadosBrutos.filter(d => {
-                                    let pRaw = d.id_veiculo ? String(d.id_veiculo) : 'SEM-PLACA';
-                                    let pFmt = (pRaw !== 'SEM-PLACA' && pRaw.length === 7 && !isNaN(pRaw)) ? pRaw.substring(0, 3) + '-' + pRaw.substring(3) : pRaw;
-                                    return pFmt === placaFormatada;
-                                });
+                                let histVeic = dadosBrutos.filter(d => formatarPlacaPadrao(d.id_veiculo) === placaFormatada);
                                 let foundAny = false;
                                 for (let k = 0; k < histVeic.length; k++) {
                                     const hLat = parseFloat(String(histVeic[k].latitude).replace(',', '.'));
@@ -1584,55 +1600,33 @@
                                         let ms = parseDateToMs(histVeic[k].data_posicao);
                                         if(ms > 0) tempoEntrada = ms;
                                         foundAny = true;
-                                    } else {
-                                        if (foundAny) break;
-                                    }
+                                    } else { if (foundAny) break; }
                                 }
                             }
 
                             const dataEntradaObj = new Date(tempoEntrada);
                             contadorPermanenciaAreas[chaveKey] = { 
-                                inicio: tempoEntrada, 
-                                maxVel: velFinal, 
-                                nomeArea: areaObj.nome,
+                                inicio: tempoEntrada, maxVel: velFinal, nomeArea: areaObj.nome,
                                 dataEntradaStr: dataEntradaObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
                                 dataEntradaCompleta: dataEntradaObj.toLocaleString('pt-BR')
                             };
                             houveMudanca = true;
                         } else {
-                            if (velFinal > contadorPermanenciaAreas[chaveKey].maxVel) {
-                                contadorPermanenciaAreas[chaveKey].maxVel = velFinal;
-                                houveMudanca = true;
-                            }
+                            if (velFinal > contadorPermanenciaAreas[chaveKey].maxVel) { contadorPermanenciaAreas[chaveKey].maxVel = velFinal; houveMudanca = true; }
                         }
                     } else {
                         if (contadorPermanenciaAreas[chaveKey]) {
                             const perm = contadorPermanenciaAreas[chaveKey];
                             const agoraObj = new Date();
                             const duracaoMin = Math.max(1, Math.round((agora - perm.inicio) / 60000));
-                            const dataSaidaStr = agoraObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                             
                             historicoPermanenciasDashboard.push({
-                                placa: placaFormatada,
-                                ocorrencia: `Permanência na Área (${perm.nomeArea})`,
-                                duracao: duracaoMin,
-                                maxVel: perm.maxVel,
-                                dataHora: agoraObj.toLocaleString('pt-BR'),
-                                timestamp: agora,
-                                rawDate: agoraObj
+                                placa: placaFormatada, ocorrencia: `Permanência na Área (${perm.nomeArea})`, duracao: duracaoMin,
+                                maxVel: perm.maxVel, dataHora: agoraObj.toLocaleString('pt-BR'), timestamp: agora, rawDate: agoraObj
                             });
 
-                            if (!window.historicoCercasConcluidas) {
-                                window.historicoCercasConcluidas = [];
-                            }
-                            window.historicoCercasConcluidas.push({
-                                placa: placaFormatada,
-                                area: perm.nomeArea,
-                                entrada: perm.dataEntradaCompleta,
-                                saida: agoraObj.toLocaleString('pt-BR'),
-                                duracaoMin: duracaoMin,
-                                timestamp: agora
-                            });
+                            if (!window.historicoCercasConcluidas) window.historicoCercasConcluidas = [];
+                            window.historicoCercasConcluidas.push({ placa: placaFormatada, area: perm.nomeArea, entrada: perm.dataEntradaCompleta, saida: agoraObj.toLocaleString('pt-BR'), duracaoMin: duracaoMin, timestamp: agora });
 
                             delete contadorPermanenciaAreas[chaveKey];
                             houveMudanca = true;
@@ -1641,9 +1635,7 @@
                 });
             });
 
-            if (houveMudanca) {
-                salvarDadosNoBanco();
-            }
+            if (houveMudanca) salvarDadosNoBanco();
         }
 
         function renderizarGridEMapa() {
@@ -1654,24 +1646,39 @@
             markers = {};
             if (linhaRotaVeiculoAtivo) { map.removeLayer(linhaRotaVeiculoAtivo); linhaRotaVeiculoAtivo = null; }
 
-            let dadosFiltrados = veiculosCacheGlobal;
+            // 1. Cria lista unificada
+            const mapPlacas = new Map();
+
+            // Adiciona da API
+            veiculosCacheGlobal.forEach(v => {
+                const placa = formatarPlacaPadrao(v.id_veiculo);
+                mapPlacas.set(placa, { fromApi: true, cadastrado: false, data: v });
+            });
+
+            // Adiciona/Atualiza com Frota Cadastrada Master
+            frotaCadastrada.forEach(f => {
+                if (!mapPlacas.has(f.placa)) {
+                    mapPlacas.set(f.placa, { fromApi: false, cadastrado: true, data: { id_veiculo: f.placa, offline: true, velocidade: 0, ignicao: false, data_posicao: '-', latitude: NaN, longitude: NaN } });
+                } else {
+                    mapPlacas.get(f.placa).cadastrado = true;
+                }
+            });
+
+            let dadosUnificados = Array.from(mapPlacas.values());
+
             if (veiculoFocoGlobal) {
-                dadosFiltrados = veiculosCacheGlobal.filter(v => {
-                    let p = v.id_veiculo ? String(v.id_veiculo) : 'SEM-PLACA';
-                    if (p.length === 7 && !isNaN(p)) p = p.substring(0,3) + '-' + p.substring(3);
-                    return p === veiculoFocoGlobal;
-                });
+                dadosUnificados = dadosUnificados.filter(item => formatarPlacaPadrao(item.data.id_veiculo) === veiculoFocoGlobal);
             }
 
-            if (dadosFiltrados.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="12" style="text-align:center; opacity:0.7; padding: 20px;">Nenhum veículo encontrado na API do SASCAR.</td></tr>`;
+            if (dadosUnificados.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="12" style="text-align:center; opacity:0.7; padding: 20px;">Nenhum veículo encontrado na API e nenhum veículo cadastrado.</td></tr>`;
                 return;
             }
 
             const mapPlacasProximas = {};
-            for (let i = 0; i < dadosFiltrados.length; i++) {
-                for (let j = i + 1; j < dadosFiltrados.length; j++) {
-                    const v1 = dadosFiltrados[i], v2 = dadosFiltrados[j];
+            for (let i = 0; i < dadosUnificados.length; i++) {
+                for (let j = i + 1; j < dadosUnificados.length; j++) {
+                    const v1 = dadosUnificados[i].data, v2 = dadosUnificados[j].data;
                     const lat1 = parseFloat(String(v1.latitude).replace(',', '.'));
                     const lon1 = parseFloat(String(v1.longitude).replace(',', '.'));
                     const lat2 = parseFloat(String(v2.latitude).replace(',', '.'));
@@ -1682,11 +1689,8 @@
                     if (!isNaN(lat1) && !isNaN(lon1) && !isNaN(lat2) && !isNaN(lon2) && vel1 > 10 && vel2 > 10) {
                         const distancia = calcularDistanciaMetros(lat1, lon1, lat2, lon2);
                         if (distancia <= 300) {
-                            let p1 = v1.id_veiculo ? String(v1.id_veiculo) : 'SEM-PLACA';
-                            if (p1.length === 7 && !isNaN(p1)) p1 = p1.substring(0,3) + '-' + p1.substring(3);
-                            let p2 = v2.id_veiculo ? String(v2.id_veiculo) : 'SEM-PLACA';
-                            if (p2.length === 7 && !isNaN(p2)) p2 = p2.substring(0,3) + '-' + p2.substring(3);
-
+                            let p1 = formatarPlacaPadrao(v1.id_veiculo);
+                            let p2 = formatarPlacaPadrao(v2.id_veiculo);
                             if (!mapPlacasProximas[p1]) mapPlacasProximas[p1] = [];
                             if (!mapPlacasProximas[p2]) mapPlacasProximas[p2] = [];
                             mapPlacasProximas[p1].push(p2);
@@ -1698,17 +1702,16 @@
             mapPlacasProximasGlobal = mapPlacasProximas;
 
             let totalAlertasAtivos = 0;
-            const iconeCaminhao = L.divIcon({
-                html: '<i class="fas fa-truck custom-truck-icon"></i>', className: '', iconSize: [24, 24], iconAnchor: [12, 12]
-            });
+            const iconeCaminhao = L.divIcon({ html: '<i class="fas fa-truck custom-truck-icon"></i>', className: '', iconSize: [24, 24], iconAnchor: [12, 12] });
 
-            dadosFiltrados.forEach((v, index) => {
-                const tr = document.createElement('tr');
+            dadosUnificados.forEach((item, index) => {
+                const v = item.data;
+                const isOfflineForced = v.offline === true;
+                const placaFormatada = formatarPlacaPadrao(v.id_veiculo);
+
                 const lat = parseFloat(String(v.latitude).replace(',', '.'));
                 const lon = parseFloat(String(v.longitude).replace(',', '.'));
-                let placaRaw = v.id_veiculo ? String(v.id_veiculo) : 'SEM-PLACA';
-                let placaFormatada = (placaRaw !== 'SEM-PLACA' && placaRaw.length === 7 && !isNaN(placaRaw)) ? placaRaw.substring(0, 3) + '-' + placaRaw.substring(3) : placaRaw;
-
+                
                 const linkGoogle = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
                 const linkWaze = `https://waze.com/ul?ll=${lat},${lon}&navigate=yes`;
                 const ignicaoBool = Boolean(v.ignicao);
@@ -1730,75 +1733,69 @@
                 const diffMinutosCom = tempoMsCom > 0 ? (Date.now() - tempoMsCom) / 60000 : 0;
 
                 let duracaoParadoMin = 0;
-                if (statusParadoLigado[chaveParado]) {
-                    duracaoParadoMin = Math.round((Date.now() - statusParadoLigado[chaveParado]) / 60000);
-                }
+                if (statusParadoLigado[chaveParado]) duracaoParadoMin = Math.round((Date.now() - statusParadoLigado[chaveParado]) / 60000);
 
                 let htmlAlertas = '';
-                if (diffMinutosCom > 20 && !alertasFinalizados[chaveSinal]) {
-                    totalAlertasAtivos++;
-                    htmlAlertas += `<span class="badge-alerta bg-danger" onclick="abrirModalFinalizarAlerta('${placaFormatada}', 'Perda de Sinal (${Math.round(diffMinutosCom)} min)', '${chaveSinal}')">PERDA DE SINAL</span>`;
+                if (isOfflineForced) {
+                    htmlAlertas = `<span style="color: var(--danger); font-size: 11px; font-weight: bold;">SEM COMUNICAÇÃO (OFFLINE)</span>`;
+                } else {
+                    if (diffMinutosCom > 20 && !alertasFinalizados[chaveSinal]) {
+                        totalAlertasAtivos++; htmlAlertas += `<span class="badge-alerta bg-danger" onclick="abrirModalFinalizarAlerta('${placaFormatada}', 'Perda de Sinal (${Math.round(diffMinutosCom)} min)', '${chaveSinal}')">PERDA DE SINAL</span>`;
+                    }
+                    if (velFinal > 80 && !alertasFinalizados[chaveVel]) {
+                        totalAlertasAtivos++; htmlAlertas += `<span class="badge-alerta bg-danger" onclick="abrirModalFinalizarAlerta('${placaFormatada}', 'Excesso de Velocidade (${velFinal} km/h)', '${chaveVel}')">EXCESSO VEL.</span>`;
+                    }
+                    if (rotaVinculadaObj && desvioMetros > 250 && !alertasFinalizados[chaveDesvio]) {
+                        totalAlertasAtivos++; htmlAlertas += `<span class="badge-alerta bg-danger" onclick="abrirModalFinalizarAlerta('${placaFormatada}', 'Desvio de Rota (${desvioMetros}m)', '${chaveDesvio}')">DESVIO ROTA</span>`;
+                    }
+                    if (mapPlacasProximas[placaFormatada] && mapPlacasProximas[placaFormatada].length > 0 && !alertasFinalizados[chaveComboio]) {
+                        totalAlertasAtivos++; htmlAlertas += `<span class="badge-alerta bg-warning" onclick="abrirModalFinalizarAlerta('${placaFormatada}', 'Possível Comboio', '${chaveComboio}')">COMBOIO</span>`;
+                    }
+                    if (duracaoParadoMin >= 10 && !alertasFinalizados[chaveParado]) {
+                        totalAlertasAtivos++; htmlAlertas += `<span class="badge-alerta bg-warning" onclick="abrirModalFinalizarAlerta('${placaFormatada}', 'Parado e Ligado (${duracaoParadoMin} min)', '${chaveParado}')">PARADO LIGADO</span>`;
+                    }
+                    if (htmlAlertas === '') htmlAlertas = `<span style="color: var(--success); font-size: 12px;">Normal</span>`;
                 }
-                if (velFinal > 80 && !alertasFinalizados[chaveVel]) {
-                    totalAlertasAtivos++;
-                    htmlAlertas += `<span class="badge-alerta bg-danger" onclick="abrirModalFinalizarAlerta('${placaFormatada}', 'Excesso de Velocidade (${velFinal} km/h)', '${chaveVel}')">EXCESSO VEL.</span>`;
-                }
-                if (rotaVinculadaObj && desvioMetros > 250 && !alertasFinalizados[chaveDesvio]) {
-                    totalAlertasAtivos++;
-                    htmlAlertas += `<span class="badge-alerta bg-danger" onclick="abrirModalFinalizarAlerta('${placaFormatada}', 'Desvio de Rota (${desvioMetros}m)', '${chaveDesvio}')">DESVIO ROTA</span>`;
-                }
-                if (mapPlacasProximas[placaFormatada] && mapPlacasProximas[placaFormatada].length > 0 && !alertasFinalizados[chaveComboio]) {
-                    totalAlertasAtivos++;
-                    htmlAlertas += `<span class="badge-alerta bg-warning" onclick="abrirModalFinalizarAlerta('${placaFormatada}', 'Possível Comboio', '${chaveComboio}')">COMBOIO</span>`;
-                }
-                if (duracaoParadoMin >= 10 && !alertasFinalizados[chaveParado]) {
-                    totalAlertasAtivos++;
-                    htmlAlertas += `<span class="badge-alerta bg-warning" onclick="abrirModalFinalizarAlerta('${placaFormatada}', 'Parado e Ligado (${duracaoParadoMin} min)', '${chaveParado}')">PARADO LIGADO</span>`;
-                }
-                if (htmlAlertas === '') htmlAlertas = `<span style="color: var(--success); font-size: 12px;">Normal</span>`;
 
                 const rotaVinculadaNome = rotaVinculadaObj ? rotaVinculadaObj.nome : 'Nenhuma';
-                const dataFormatadaPtBr = formatarDataHoraPtBr(v.data_posicao);
+                const dataFormatadaPtBr = isOfflineForced ? '-' : formatarDataHoraPtBr(v.data_posicao);
 
                 const idsAreasVeic = areasVeiculos[placaFormatada] || [];
                 const nomesAreas = idsAreasVeic.map(idA => {
-                    const ar = areasSalvas.find(a => a.id == idA);
-                    return ar ? ar.nome : null;
+                    const ar = areasSalvas.find(a => a.id == idA); return ar ? ar.nome : null;
                 }).filter(Boolean);
                 const areasStr = nomesAreas.length > 0 ? nomesAreas.join(', ') : 'Nenhuma';
                 
-                // Puxa o estado atual se o veículo foi oculto manualmente ou não
                 const isChecked = veiculosOcultosGlobal[placaFormatada] ? '' : 'checked';
+                const tagCadastro = item.cadastrado ? `<span class="tag-cadastrado">Master</span>` : '';
 
+                const tr = document.createElement('tr');
                 const tds = [
                     `<td><b>${index + 1}</b></td>`,
                     `<td><input type="checkbox" class="chk-veiculo" value="${placaFormatada}" ${isChecked} onchange="toggleMarker('${placaFormatada}')"></td>`,
-                    `<td><a href="#" onclick="focarVeiculoNoMapa('${placaFormatada}'); return false;" style="color:var(--accent-blue); font-weight:bold;">${placaFormatada}</a></td>`,
+                    `<td><a href="#" onclick="${isOfflineForced ? 'return false;' : `focarVeiculoNoMapa('${placaFormatada}'); return false;`}" style="color:var(--accent-blue); font-weight:bold; ${isOfflineForced ? 'pointer-events: none; opacity:0.6;' : ''}">${placaFormatada}</a>${tagCadastro}</td>`,
                     `<td>${dataFormatadaPtBr}</td>`,
-                    `<td><span style="color: ${ignicaoBool ? 'var(--success)' : 'var(--danger)'}; font-weight:bold;">${ignicaoBool ? 'LIGADA' : 'DESLIGADA'}</span></td>`,
+                    `<td><span style="color: ${isOfflineForced ? '#757575' : (ignicaoBool ? 'var(--success)' : 'var(--danger)')}; font-weight:bold;">${isOfflineForced ? '-' : (ignicaoBool ? 'LIGADA' : 'DESLIGADA')}</span></td>`,
                     `<td>${v.cidade || '-'}</td>`,
                     `<td>${v.uf || '-'}</td>`,
                     `<td>${v.rua || '-'}</td>`,
-                    `<td><b>${velFinal} km/h</b></td>`,
+                    `<td><b>${isOfflineForced ? '-' : velFinal + ' km/h'}</b></td>`,
                     `<td><span style="font-size:12px; background:rgba(0,131,143,0.1); padding:4px 8px; border-radius:4px; font-weight:bold; color:#00838F;">${rotaVinculadaNome}</span></td>`,
                     `<td><span style="font-size:12px; background:rgba(255,143,0,0.1); padding:4px 8px; border-radius:4px; font-weight:bold; color:#FF8F00;">${areasStr}</span></td>`,
                     `<td class="table-actions">
                         ${htmlAlertas}
-                        <a href="${linkGoogle}" target="_blank" title="Google Maps" style="margin-left: 10px;"><i class="fas fa-map-marker-alt"></i></a>
-                        <a href="${linkWaze}" target="_blank" title="Waze"><i class="fab fa-waze"></i></a>
+                        ${!isOfflineForced ? `<a href="${linkGoogle}" target="_blank" title="Google Maps" style="margin-left: 10px;"><i class="fas fa-map-marker-alt"></i></a><a href="${linkWaze}" target="_blank" title="Waze"><i class="fab fa-waze"></i></a>` : ''}
                     </td>`
                 ];
 
                 let htmlOrdenado = '';
                 for (let i = 0; i < columnOrder.length; i++) {
-                    if (columnOrder[i] !== undefined && tds[columnOrder[i]]) {
-                        htmlOrdenado += tds[columnOrder[i]];
-                    }
+                    if (columnOrder[i] !== undefined && tds[columnOrder[i]]) htmlOrdenado += tds[columnOrder[i]];
                 }
                 tr.innerHTML = htmlOrdenado;
                 tbody.appendChild(tr);
 
-                if (!isNaN(lat) && !isNaN(lon)) {
+                if (!isOfflineForced && !isNaN(lat) && !isNaN(lon)) {
                     const exibirNoMapa = !veiculosOcultosGlobal[placaFormatada];
                     if (exibirNoMapa) {
                         const marcador = L.marker([lat, lon], {icon: iconeCaminhao}).addTo(map);
@@ -1842,17 +1839,13 @@
             const btnEl = document.getElementById('btnTogglePopup20m');
             
             if (popupAlertasHabilitado) {
-                txtEl.innerText = "Habilitado";
-                txtEl.style.color = "var(--success)";
-                btnEl.innerHTML = `<i class="fas fa-bell-slash"></i> Desabilitar Pop-up`;
-                btnEl.style.background = "var(--warning)";
+                txtEl.innerText = "Habilitado"; txtEl.style.color = "var(--success)";
+                btnEl.innerHTML = `<i class="fas fa-bell-slash"></i> Desabilitar Pop-up`; btnEl.style.background = "var(--warning)";
                 iniciarPopupAlertas20MinTimer();
                 alert("Pop-up automático a cada 20 minutos habilitado com sucesso!");
             } else {
-                txtEl.innerText = "Desabilitado";
-                txtEl.style.color = "var(--danger)";
-                btnEl.innerHTML = `<i class="fas fa-bell"></i> Habilitar Pop-up`;
-                btnEl.style.background = "var(--success)";
+                txtEl.innerText = "Desabilitado"; txtEl.style.color = "var(--danger)";
+                btnEl.innerHTML = `<i class="fas fa-bell"></i> Habilitar Pop-up`; btnEl.style.background = "var(--success)";
                 if (popup20MinIntervalRef) clearInterval(popup20MinIntervalRef);
                 alert("Pop-up automático a cada 20 minutos desabilitado.");
             }
@@ -1861,9 +1854,7 @@
         function iniciarPopupAlertas20MinTimer() {
             if (popup20MinIntervalRef) clearInterval(popup20MinIntervalRef);
             popup20MinIntervalRef = setInterval(() => {
-                if (popupAlertasHabilitado) {
-                    verificarEAbrirPopupAlertasPendentes();
-                }
+                if (popupAlertasHabilitado) verificarEAbrirPopupAlertasPendentes();
             }, 20 * 60 * 1000);
         }
 
@@ -1874,8 +1865,7 @@
             let alertasPendentes = [];
             
             veiculosCacheGlobal.forEach(v => {
-                let placaRaw = v.id_veiculo ? String(v.id_veiculo) : 'SEM-PLACA';
-                let placaFormatada = (placaRaw !== 'SEM-PLACA' && placaRaw.length === 7 && !isNaN(placaRaw)) ? placaRaw.substring(0, 3) + '-' + placaRaw.substring(3) : placaRaw;
+                let placaFormatada = formatarPlacaPadrao(v.id_veiculo);
                 
                 const velFinal = Number(v.velocidade) || 0;
                 const ign = Boolean(v.ignicao);
@@ -1887,9 +1877,7 @@
                 if (rotaVinculadaObj && rotaVinculadaObj.coordenadas) {
                     const lat = parseFloat(String(v.latitude).replace(',', '.'));
                     const lon = parseFloat(String(v.longitude).replace(',', '.'));
-                    if (!isNaN(lat) && !isNaN(lon)) {
-                        desvioMetros = Math.round(calcularMenorDistanciaAteRota(lat, lon, rotaVinculadaObj.coordenadas));
-                    }
+                    if (!isNaN(lat) && !isNaN(lon)) { desvioMetros = Math.round(calcularMenorDistanciaAteRota(lat, lon, rotaVinculadaObj.coordenadas)); }
                 }
 
                 const chaveVel = `vel_${placaFormatada}`;
@@ -1898,9 +1886,7 @@
                 const chaveParado = `parado_${placaFormatada}`;
 
                 let duracaoParadoMin = 0;
-                if (statusParadoLigado[chaveParado]) {
-                    duracaoParadoMin = Math.round((Date.now() - statusParadoLigado[chaveParado]) / 60000);
-                }
+                if (statusParadoLigado[chaveParado]) duracaoParadoMin = Math.round((Date.now() - statusParadoLigado[chaveParado]) / 60000);
 
                 if (diffMinutosCom > 20 && !alertasFinalizados[chaveSinal]) {
                     alertasPendentes.push({ placa: placaFormatada, tipo: `Perda de Sinal (${Math.round(diffMinutosCom)} min)`, data: formatarDataHoraPtBr(v.data_posicao), chave: chaveSinal });
@@ -1925,14 +1911,11 @@
                         <td><button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--success);" onclick="fecharModalPopupAlertas20Min(); abrirModalFinalizarAlerta('${a.placa}', '${a.tipo}', '${a.chave}')">Tratar Alerta</button></td>
                     </tr>
                 `).join('');
-                
                 document.getElementById('modalPopupAlertas20Min').style.display = 'flex';
             }
         }
 
-        function fecharModalPopupAlertas20Min() {
-            document.getElementById('modalPopupAlertas20Min').style.display = 'none';
-        }
+        function fecharModalPopupAlertas20Min() { document.getElementById('modalPopupAlertas20Min').style.display = 'none'; }
 
         function abrirModalFinalizarAlerta(placa, tipoAlerta, chaveAlerta) {
             alertaSelecionadoParaFinalizar = chaveAlerta;
@@ -1950,20 +1933,10 @@
             if (tipoAlerta.includes('Comboio') && mapPlacasProximasGlobal[placa]) {
                 containerComboio.style.display = 'block';
                 let htmlTabela = '';
-                
-                const veicPrincipal = veiculosCacheGlobal.find(v => {
-                    let p = v.id_veiculo ? String(v.id_veiculo) : '';
-                    if (p.length === 7 && !isNaN(p)) p = p.substring(0,3) + '-' + p.substring(3);
-                    return p === placa;
-                });
+                const veicPrincipal = veiculosCacheGlobal.find(v => formatarPlacaPadrao(v.id_veiculo) === placa);
                 
                 mapPlacasProximasGlobal[placa].forEach(placaProxima => {
-                    const veic = veiculosCacheGlobal.find(v => {
-                        let p = v.id_veiculo ? String(v.id_veiculo) : '';
-                        if (p.length === 7 && !isNaN(p)) p = p.substring(0,3) + '-' + p.substring(3);
-                        return p === placaProxima;
-                    });
-                    
+                    const veic = veiculosCacheGlobal.find(v => formatarPlacaPadrao(v.id_veiculo) === placaProxima);
                     if (veic && veicPrincipal) {
                         const loc = (veic.cidade || '-') + (veic.uf ? ' - ' + veic.uf : '');
                         const vel = Number(veic.velocidade) || 0;
@@ -1978,7 +1951,6 @@
                             const distM = calcularDistanciaMetros(lat1, lon1, lat2, lon2);
                             distTexto = Math.round(distM) + ' m';
                         }
-                        
                         htmlTabela += `<tr><td><b>${placaProxima}</b></td><td>${loc}</td><td>${vel} km/h</td><td><b>${distTexto}</b></td></tr>`;
                     }
                 });
@@ -1987,14 +1959,10 @@
                 containerComboio.style.display = 'none';
                 tbodyComboio.innerHTML = '';
             }
-
             document.getElementById('modalFinalizarAlerta').style.display = 'flex';
         }
 
-        function fecharModalFinalizarAlerta() {
-            document.getElementById('modalFinalizarAlerta').style.display = 'none';
-            alertaSelecionadoParaFinalizar = null;
-        }
+        function fecharModalFinalizarAlerta() { document.getElementById('modalFinalizarAlerta').style.display = 'none'; alertaSelecionadoParaFinalizar = null; }
 
         async function salvarEFinalizarAlerta() {
             const motivo = document.getElementById('inputMotivoTratativa').value.trim();
@@ -2005,13 +1973,9 @@
                 alertasFinalizados[alertaSelecionadoParaFinalizar] = { motivo: motivo, data: dataTratativa };
 
                 historicoTratativas.push({
-                    placa: placaAtualAlertaModal,
-                    alerta: tipoAlertaAtualModal,
-                    dataHora: dataTratativa,
-                    motivo: motivo,
-                    timestamp: Date.now()
+                    placa: placaAtualAlertaModal, alerta: tipoAlertaAtualModal,
+                    dataHora: dataTratativa, motivo: motivo, timestamp: Date.now()
                 });
-                
                 await salvarDadosNoBanco();
             }
             fecharModalFinalizarAlerta();
@@ -2021,17 +1985,14 @@
         }
 
         function abrirModalPontoRef() {
-            document.getElementById('refNome').value = '';
-            document.getElementById('refBuscaGoogle').value = '';
-            document.getElementById('refLat').value = '';
-            document.getElementById('refLon').value = '';
+            document.getElementById('refNome').value = ''; document.getElementById('refBuscaGoogle').value = '';
+            document.getElementById('refLat').value = ''; document.getElementById('refLon').value = '';
             document.getElementById('modalPontoRef').style.display = 'flex';
             setTimeout(() => {
                 if (!mapPontoRefInstance) {
                     const mapaNormalPonto = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
                     const mapaSatelitePonto = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
                     const rotulosPonto = L.layerGroup([mapaSatelitePonto, L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 })]);
-
                     mapPontoRefInstance = L.map('mapPontoRef', { center: [-23.5505, -46.6333], zoom: 8, layers: [rotulosPonto] });
                     camadaPontoRefTemp.addTo(mapPontoRefInstance);
                     L.control.layers({"Satélite (Com Nomes/Vias)": rotulosPonto, "Normal": mapaNormalPonto}).addTo(mapPontoRefInstance);
@@ -2048,8 +2009,7 @@
             const lon = parseFloat(document.getElementById('refLon').value);
             const origemBusca = document.getElementById('refBuscaGoogle').value.trim() ? 'Google/OSM' : 'Manual';
             if (!nome || isNaN(lat) || isNaN(lon)) { alert("Preencha o nome e valide as coordenadas."); return; }
-            const novoPonto = { id: Date.now(), nome, lat, lon, origem: origemBusca };
-            pontosReferenciaSalvos.push(novoPonto);
+            pontosReferenciaSalvos.push({ id: Date.now(), nome, lat, lon, origem: origemBusca });
             await salvarDadosNoBanco();
             fecharModalPontoRef();
             renderizarTabelaPontosRef();
@@ -2069,8 +2029,7 @@
         }
 
         function atualizarSelectsPontosRef() {
-            const selOrigem = document.getElementById('selectOrigemRef');
-            const selDestino = document.getElementById('selectDestinoRef');
+            const selOrigem = document.getElementById('selectOrigemRef'); const selDestino = document.getElementById('selectDestinoRef');
             let optionsHtml = `<option value="">-- Selecionar Ponto Salvo --</option>`;
             pontosReferenciaSalvos.forEach(p => { optionsHtml += `<option value="${p.lat},${p.lon}">${p.nome} (${p.lat}, ${p.lon})</option>`; });
             if (selOrigem) selOrigem.innerHTML = optionsHtml;
@@ -2082,11 +2041,7 @@
             const inputOrigem = document.getElementById('iamOrigem');
             if (val) {
                 const p = pontosReferenciaSalvos.find(item => `${item.lat},${item.lon}` === val);
-                if (p) {
-                    inputOrigem.value = p.nome;
-                    inputOrigem.dataset.lat = p.lat;
-                    inputOrigem.dataset.lon = p.lon;
-                }
+                if (p) { inputOrigem.value = p.nome; inputOrigem.dataset.lat = p.lat; inputOrigem.dataset.lon = p.lon; }
             }
         }
 
@@ -2095,23 +2050,16 @@
             const inputDestino = document.getElementById('iamDestino');
             if (val) {
                 const p = pontosReferenciaSalvos.find(item => `${item.lat},${item.lon}` === val);
-                if (p) {
-                    inputDestino.value = p.nome;
-                    inputDestino.dataset.lat = p.lat;
-                    inputDestino.dataset.lon = p.lon;
-                }
+                if (p) { inputDestino.value = p.nome; inputDestino.dataset.lat = p.lat; inputDestino.dataset.lon = p.lon; }
             }
         }
 
         function filtrarItensPorData(lista) {
             const dtInicioVal = document.getElementById('filtroDataInicio').value;
             const dtFimVal = document.getElementById('filtroDataFim').value;
-            
             if (!dtInicioVal && !dtFimVal) return lista;
-
             const inicio = dtInicioVal ? new Date(dtInicioVal).getTime() : 0;
             const fim = dtFimVal ? new Date(dtFimVal).getTime() : Infinity;
-
             return lista.filter(item => {
                 let tempoItem = item.timestamp || (item.rawDate ? new Date(item.rawDate).getTime() : parseDateToMs(item.dataHora));
                 if (isNaN(tempoItem) || tempoItem === 0) return true;
@@ -2122,38 +2070,23 @@
         function aplicarFiltroDashboard() {
             const dtInicioVal = document.getElementById('filtroDataInicio').value;
             const dtFimVal = document.getElementById('filtroDataFim').value;
-            
-            if (!dtInicioVal || !dtFimVal) {
-                alert("Atenção: Preencha a Data/Hora Inicial e a Data/Hora Final para aplicar o filtro corretamente.");
-                return;
-            }
-
-            atualizarKpisETabelasDash();
-            atualizarDashboards();
+            if (!dtInicioVal || !dtFimVal) { alert("Atenção: Preencha a Data/Hora Inicial e a Data/Hora Final para aplicar o filtro corretamente."); return; }
+            atualizarKpisETabelasDash(); atualizarDashboards();
             alert("Filtro de período aplicado com sucesso!");
         }
 
         function limparFiltroDashboard() {
-            document.getElementById('filtroDataInicio').value = '';
-            document.getElementById('filtroDataFim').value = '';
-            atualizarKpisETabelasDash();
-            atualizarDashboards();
+            document.getElementById('filtroDataInicio').value = ''; document.getElementById('filtroDataFim').value = '';
+            atualizarKpisETabelasDash(); atualizarDashboards();
         }
 
         function atualizarKpisETabelasDash() {
             let emTransito = 0, desligados = 0, paradosLigados = 0;
-            let linhasBrutos = [];
-            let linhasTratativas = [];
-            let linhasRotasEmbarcadas = [];
-            let linhasAreas = [];
+            let linhasBrutos = []; let linhasTratativas = []; let linhasRotasEmbarcadas = []; let linhasAreas = [];
 
             let todosBrutosUnidos = [
-                ...historicoDesviosDashboard, 
-                ...historicoPermanenciasDashboard, 
-                ...historicoComboiosDashboard,
-                ...historicoExcessoVelocidadeDashboard,
-                ...historicoPerdaSinalDashboard,
-                ...historicoParadosLigados
+                ...historicoDesviosDashboard, ...historicoPermanenciasDashboard, ...historicoComboiosDashboard,
+                ...historicoExcessoVelocidadeDashboard, ...historicoPerdaSinalDashboard, ...historicoParadosLigados
             ];
             
             let totalBrutosFiltrados = filtrarItensPorData(todosBrutosUnidos);
@@ -2164,14 +2097,11 @@
 
             let tratativasFiltradas = filtrarItensPorData(historicoTratativas);
             tratativasFiltradas.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-            
             linhasTratativas = tratativasFiltradas.map(t => `<tr><td><b>${t.placa}</b></td><td>${t.alerta}</td><td>${t.dataHora}</td><td>${t.motivo}</td></tr>`);
             renderizarLinhasComLimite('tbodyTratativas', 'tabelaTratativas', linhasTratativas, 4, 'Nenhuma tratativa registrada no período.');
 
             veiculosCacheGlobal.forEach(v => {
-                let p = v.id_veiculo ? String(v.id_veiculo) : 'SEM-PLACA';
-                if (p.length === 7 && !isNaN(p)) p = p.substring(0,3) + '-' + p.substring(3);
-                
+                let p = formatarPlacaPadrao(v.id_veiculo);
                 const vel = Number(v.velocidade) || 0;
                 const ign = Boolean(v.ignicao);
                 
@@ -2188,14 +2118,9 @@
                     const custoPedag = (parseFloat(r.custo) - custoComb);
                     const mediaLitros = (parseFloat(r.distancia) / 2.5).toFixed(1);
                     linhasRotasEmbarcadas.push(`<tr>
-                        <td><b>${p}</b></td>
-                        <td>${dataFmt}</td>
-                        <td>${loc}</td>
-                        <td>${r.nome}</td>
-                        <td style="font-weight:bold;">${r.distancia} km</td>
-                        <td style="color:var(--danger); font-weight:bold;">R$ ${custoPedag.toFixed(2)}</td>
-                        <td style="color:var(--success); font-weight:bold;">R$ ${custoComb.toFixed(2)}</td>
-                        <td style="color:var(--warning); font-weight:bold;">${mediaLitros} L</td>
+                        <td><b>${p}</b></td><td>${dataFmt}</td><td>${loc}</td><td>${r.nome}</td>
+                        <td style="font-weight:bold;">${r.distancia} km</td><td style="color:var(--danger); font-weight:bold;">R$ ${custoPedag.toFixed(2)}</td>
+                        <td style="color:var(--success); font-weight:bold;">R$ ${custoComb.toFixed(2)}</td><td style="color:var(--warning); font-weight:bold;">${mediaLitros} L</td>
                         <td style="color:var(--accent-blue); font-weight:bold;">R$ ${r.custo}</td>
                     </tr>`);
                 }
@@ -2209,33 +2134,18 @@
                 if (perm) {
                     const diffMin = Math.max(0, Math.round((agoraMs - perm.inicio) / 60000));
                     const tempoPermanenciaHhMm = formatarMinutosParaHhMm(diffMin);
-                    linhasAreas.push(`<tr>
-                        <td><b>${placa}</b></td>
-                        <td>${perm.nomeArea}</td>
-                        <td>${perm.dataEntradaCompleta}</td>
-                        <td><span style="color: var(--warning); font-weight: bold;">Em curso</span></td>
-                        <td><span style="color: var(--warning); font-weight:bold;">${tempoPermanenciaHhMm}</span></td>
-                    </tr>`);
+                    linhasAreas.push(`<tr><td><b>${placa}</b></td><td>${perm.nomeArea}</td><td>${perm.dataEntradaCompleta}</td><td><span style="color: var(--warning); font-weight: bold;">Em curso</span></td><td><span style="color: var(--warning); font-weight:bold;">${tempoPermanenciaHhMm}</span></td></tr>`);
                 }
             });
 
             const historicoCercas = window.historicoCercasConcluidas || [];
             historicoCercas.forEach(h => {
                 const tempoPermanenciaHhMm = formatarMinutosParaHhMm(h.duracaoMin);
-                linhasAreas.push(`<tr>
-                    <td><b>${h.placa}</b></td>
-                    <td>${h.area}</td>
-                    <td>${h.entrada}</td>
-                    <td>${h.saida}</td>
-                    <td>${tempoPermanenciaHhMm}</td>
-                </tr>`);
+                linhasAreas.push(`<tr><td><b>${h.placa}</b></td><td>${h.area}</td><td>${h.entrada}</td><td>${h.saida}</td><td>${tempoPermanenciaHhMm}</td></tr>`);
             });
             renderizarLinhasComLimite('tbodyDashAreas', 'tabelaDashAreas', linhasAreas, 5, 'Nenhum registro de permanência em área.');
 
-            const elEmTransito = document.getElementById('kpiEmTransito');
-            const elDesligados = document.getElementById('kpiDesligados');
-            const elParadosLigados = document.getElementById('kpiParadosLigados');
-
+            const elEmTransito = document.getElementById('kpiEmTransito'); const elDesligados = document.getElementById('kpiDesligados'); const elParadosLigados = document.getElementById('kpiParadosLigados');
             if (elEmTransito) elEmTransito.innerText = emTransito;
             if (elDesligados) elDesligados.innerText = desligados;
             if (elParadosLigados) elParadosLigados.innerText = paradosLigados;
@@ -2243,8 +2153,7 @@
 
         function abrirModalEficiencia() { 
             atualizarSelectsPontosRef(); 
-            const inpOrigem = document.getElementById('iamOrigem');
-            const inpDestino = document.getElementById('iamDestino');
+            const inpOrigem = document.getElementById('iamOrigem'); const inpDestino = document.getElementById('iamDestino');
             if(inpOrigem && !inpOrigem.dataset.lat) { inpOrigem.dataset.lat = -23.9618; inpOrigem.dataset.lon = -46.3919; }
             if(inpDestino && !inpDestino.dataset.lat) { inpDestino.dataset.lat = -22.6431; inpDestino.dataset.lon = -47.1978; }
             document.getElementById('containerPontosIntermediarios').innerHTML = '';
@@ -2263,21 +2172,17 @@
 
                     mapDesenhoAreaInstance = L.map('mapDesenhoArea', { center: [-23.5505, -46.6333], zoom: 8, layers: [rotulosArea] });
                     camadaDesenhoTemp.addTo(mapDesenhoAreaInstance);
-                    
                     L.control.layers({"Satélite (Com Vias)": rotulosArea, "Normal": mapaNormalArea}).addTo(mapDesenhoAreaInstance);
 
                     mapDesenhoAreaInstance.on('click', function(e) {
                         if (modoDesenhoAtual === 'polygon') {
-                            pontosPoligonoTemp.push([e.latlng.lat, e.latlng.lng]);
-                            atualizarDesenhoTemporario();
+                            pontosPoligonoTemp.push([e.latlng.lat, e.latlng.lng]); atualizarDesenhoTemporario();
                         } else if (modoDesenhoAtual === 'rectangle') {
                             if (!marcadorCentroRetangulo) { marcadorCentroRetangulo = [e.latlng.lat, e.latlng.lng]; } 
                             else {
-                                const lat1 = marcadorCentroRetangulo[0], lon1 = marcadorCentroRetangulo[1];
-                                const lat2 = e.latlng.lat, lon2 = e.latlng.lng;
+                                const lat1 = marcadorCentroRetangulo[0], lon1 = marcadorCentroRetangulo[1]; const lat2 = e.latlng.lat, lon2 = e.latlng.lng;
                                 dadosGeometriaAtual = { tipo: 'rectangle', geometria: [[lat1, lon1], [lat1, lon2], [lat2, lon2], [lat2, lon1]] };
-                                atualizarDesenhoTemporario();
-                                marcadorCentroRetangulo = null;
+                                atualizarDesenhoTemporario(); marcadorCentroRetangulo = null;
                             }
                         } else if (modoDesenhoAtual === 'circle') {
                             dadosGeometriaAtual = { tipo: 'circle', geometria: { center: [e.latlng.lat, e.latlng.lng], radius: 5000 } };
@@ -2317,10 +2222,7 @@
             if (!nomeArea || !dadosGeometriaAtual) { alert("Preencha o nome e desenhe a área."); return; }
             areasSalvas.push({ id: Date.now(), nome: nomeArea, ...dadosGeometriaAtual });
             await salvarDadosNoBanco();
-            fecharJanelaCriarArea();
-            renderizarTabelaAreas();
-            renderizarAreasNoMapa();
-            mudarAba('areas');
+            fecharJanelaCriarArea(); renderizarTabelaAreas(); renderizarAreasNoMapa(); mudarAba('areas');
         }
 
         function renderizarTabelaAreas() {
@@ -2349,14 +2251,11 @@
         async function excluirArea(id) {
             if (!confirm("Deseja excluir esta área?")) return;
             areasSalvas = areasSalvas.filter(a => a.id != id);
-            await salvarDadosNoBanco();
-            renderizarTabelaAreas();
-            renderizarAreasNoMapa();
+            await salvarDadosNoBanco(); renderizarTabelaAreas(); renderizarAreasNoMapa();
         }
 
         function abrirModalVincular(placa) {
-            placaAtualVinculando = placa;
-            document.getElementById('veiculoSelecionadoModal').innerText = placa;
+            placaAtualVinculando = placa; document.getElementById('veiculoSelecionadoModal').innerText = placa;
             const select = document.getElementById('selectRotaVinculo');
             select.innerHTML = rotasSalvas.length === 0 ? `<option value="">Nenhuma rota criada</option>` : rotasSalvas.map(r => `<option value="${r.id}">${r.nome} (${r.distancia} km)</option>`).join('');
             document.getElementById('modalVincularRota').style.display = 'flex';
@@ -2370,17 +2269,14 @@
             if (!rotaEscolhida) return;
             rotasVeiculos[placaAtualVinculando] = rotaEscolhida;
             await salvarDadosNoBanco();
-            fecharModalVincular();
-            renderizarGridEMapa();
+            fecharModalVincular(); renderizarGridEMapa();
         }
 
         async function desvincularRotaVeiculo(placa) {
             if (!confirm("Deseja desvincular a rota?")) return;
-            delete rotasVeiculos[placa];
-            await salvarDadosNoBanco();
+            delete rotasVeiculos[placa]; await salvarDadosNoBanco();
             if (linhaRotaVeiculoAtivo) { map.removeLayer(linhaRotaVeiculoAtivo); linhaRotaVeiculoAtivo = null; }
-            renderizarGridEMapa();
-            map.closePopup();
+            renderizarGridEMapa(); map.closePopup();
         }
 
         function visualizarRotaEmbarcada(placa) {
@@ -2388,31 +2284,21 @@
             if (!rotaObj || !rotaObj.coordenadas) return;
 
             const chk = document.querySelector(`input.chk-veiculo[value="${placa}"]`);
-            if (chk && !chk.checked) {
-                chk.checked = true;
-                veiculosOcultosGlobal[placa] = false;
-            }
+            if (chk && !chk.checked) { chk.checked = true; veiculosOcultosGlobal[placa] = false; }
             
-            veiculoFocoGlobal = placa;
-            renderizarGridEMapa();
-
+            veiculoFocoGlobal = placa; renderizarGridEMapa();
             if (linhaRotaVeiculoAtivo) map.removeLayer(linhaRotaVeiculoAtivo);
             linhaRotaVeiculoAtivo = L.polyline(rotaObj.coordenadas, {color: '#008DDA', weight: 6, opacity: 0.9}).addTo(map);
 
             let bounds = linhaRotaVeiculoAtivo.getBounds();
-            if (markers[placa]) {
-                bounds.extend(markers[placa].getLatLng());
-            }
+            if (markers[placa]) bounds.extend(markers[placa].getLatLng());
             map.fitBounds(bounds, { padding: [50, 50] });
 
-            if (markers[placa]) {
-                markers[placa].openPopup();
-            }
+            if (markers[placa]) markers[placa].openPopup();
         }
 
         function focarVeiculoNoMapa(placa) {
-            veiculoFocoGlobal = (veiculoFocoGlobal === placa) ? null : placa;
-            renderizarGridEMapa();
+            veiculoFocoGlobal = (veiculoFocoGlobal === placa) ? null : placa; renderizarGridEMapa();
             if (veiculoFocoGlobal && markers[veiculoFocoGlobal]) {
                 map.setView(markers[veiculoFocoGlobal].getLatLng(), 13);
                 markers[placa].openPopup();
@@ -2420,39 +2306,28 @@
         }
 
         function abrirModalVincularArea(placa) {
-            placaAtualVinculandoArea = placa;
-            document.getElementById('veiculoSelecionadoAreaModal').innerText = placa;
+            placaAtualVinculandoArea = placa; document.getElementById('veiculoSelecionadoAreaModal').innerText = placa;
             const container = document.getElementById('listaCheckboxAreas');
             const vinculadasAtuais = areasVeiculos[placa] || [];
             container.innerHTML = areasSalvas.length === 0 ? `<p style="font-size:12px; opacity:0.7;">Nenhuma área criada.</p>` : areasSalvas.map(a => `<label style="display:block; margin-bottom:5px; font-size:13px;"><input type="checkbox" value="${a.id}" ${vinculadasAtuais.includes(a.id) ? 'checked' : ''}> ${a.nome}</label>`).join('');
             document.getElementById('modalVincularArea').style.display = 'flex';
         }
 
-        function marcarTodasAreasModal(status) {
-            document.querySelectorAll('#listaCheckboxAreas input[type="checkbox"]').forEach(chk => {
-                chk.checked = status;
-            });
-        }
-
+        function marcarTodasAreasModal(status) { document.querySelectorAll('#listaCheckboxAreas input[type="checkbox"]').forEach(chk => { chk.checked = status; }); }
         function fecharModalVincularArea() { document.getElementById('modalVincularArea').style.display = 'none'; }
 
         async function confirmarVinculacaoArea() {
             const selecionadas = Array.from(document.querySelectorAll('#listaCheckboxAreas input[type="checkbox"]:checked')).map(chk => parseInt(chk.value));
             areasVeiculos[placaAtualVinculandoArea] = selecionadas;
-            await salvarDadosNoBanco();
-            fecharModalVincularArea();
-            renderizarGridEMapa();
+            await salvarDadosNoBanco(); fecharModalVincularArea(); renderizarGridEMapa();
         }
 
         async function carregarAcidentesWazeGoogle() {
-            camadaTransitoGrupo.clearLayers();
-            L.polyline([[-23.5505, -46.6333], [-22.9068, -43.1729]], {color: 'green', weight: 6}).addTo(camadaTransitoGrupo);
-            alert("Tráfego real atualizado!");
+            camadaTransitoGrupo.clearLayers(); L.polyline([[-23.5505, -46.6333], [-22.9068, -43.1729]], {color: 'green', weight: 6}).addTo(camadaTransitoGrupo); alert("Tráfego real atualizado!");
         }
 
         function verDetalhesRota(id) {
-            const rota = rotasSalvas.find(r => r.id === id);
-            if (!rota) return;
+            const rota = rotasSalvas.find(r => r.id === id); if (!rota) return;
             document.getElementById('detalheRotaNome').innerText = rota.nome;
             document.getElementById('detalheRotaDistancia').innerText = rota.distancia + ' km';
             document.getElementById('detalheRotaEixos').innerText = rota.eixos + ' eixos';
@@ -2469,37 +2344,27 @@
             const chk = document.querySelector(`input.chk-veiculo[value="${placa}"]`);
             if (chk) {
                 veiculosOcultosGlobal[placa] = !chk.checked;
-                if (markers[placa]) { 
-                    if (chk.checked) markers[placa].addTo(map); 
-                    else map.removeLayer(markers[placa]); 
-                }
+                if (markers[placa]) { if (chk.checked) markers[placa].addTo(map); else map.removeLayer(markers[placa]); }
             }
         }
 
         function marcarTodos(status) {
             document.querySelectorAll('.chk-veiculo').forEach(chk => {
-                chk.checked = status;
-                veiculosOcultosGlobal[chk.value] = !status;
+                chk.checked = status; veiculosOcultosGlobal[chk.value] = !status;
                 if (markers[chk.value]) { if (status) markers[chk.value].addTo(map); else map.removeLayer(markers[chk.value]); }
             });
-            const checkAll = document.getElementById('checkAll');
-            if (checkAll) checkAll.checked = status;
+            const checkAll = document.getElementById('checkAll'); if (checkAll) checkAll.checked = status;
         }
 
-        function toggleCheckAll() { 
-            const checkAll = document.getElementById('checkAll');
-            if (checkAll) marcarTodos(checkAll.checked); 
-        }
+        function toggleCheckAll() { const checkAll = document.getElementById('checkAll'); if (checkAll) marcarTodos(checkAll.checked); }
 
         function filtrarGrid() {
             document.querySelectorAll('#tbodyOperacional tr').forEach(linha => {
-                let visivel = true;
-                const colunas = linha.querySelectorAll('td');
+                let visivel = true; const colunas = linha.querySelectorAll('td');
                 document.querySelectorAll('.filtro-coluna').forEach(input => {
                     const termo = input.value.toUpperCase();
                     if (termo) {
-                        const th = input.closest('th');
-                        const idx = Array.from(th.parentNode.children).indexOf(th);
+                        const th = input.closest('th'); const idx = Array.from(th.parentNode.children).indexOf(th);
                         if (colunas[idx] && colunas[idx].innerText.toUpperCase().indexOf(termo) === -1) visivel = false;
                     }
                 });
@@ -2510,28 +2375,20 @@
         function iniciarAutoRefresh() {
             if (timerIntervalRef) clearInterval(timerIntervalRef);
             timerIntervalRef = setInterval(() => {
-                countdown--;
-                const timerEl = document.getElementById('timerRefresh');
-                if (timerEl) timerEl.innerText = countdown;
-                if(countdown <= 0) {
-                    countdown = 300;
-                    carregarDadosVeiculos();
-                }
+                countdown--; const timerEl = document.getElementById('timerRefresh'); if (timerEl) timerEl.innerText = countdown;
+                if(countdown <= 0) { countdown = 300; carregarDadosVeiculos(); }
             }, 1000);
         }
 
         function alterarEixos(valor) {
             const inputEixos = document.getElementById('iamEixos');
             let atual = Math.max(2, Math.min(12, parseInt(inputEixos.value) + valor));
-            inputEixos.value = atual;
-            eixosAtuaisRota = atual;
+            inputEixos.value = atual; eixosAtuaisRota = atual;
         }
 
         async function resolverCoordenadasInput(inputEl) {
             const val = inputEl.value.trim();
-            if (inputEl.dataset.lat && inputEl.dataset.lon) {
-                return { lat: parseFloat(inputEl.dataset.lat), lon: parseFloat(inputEl.dataset.lon), nome: val };
-            }
+            if (inputEl.dataset.lat && inputEl.dataset.lon) return { lat: parseFloat(inputEl.dataset.lat), lon: parseFloat(inputEl.dataset.lon), nome: val };
             const pontoSalvo = pontosReferenciaSalvos.find(p => p.nome.toLowerCase() === val.toLowerCase());
             if (pontoSalvo) return { lat: pontoSalvo.lat, lon: pontoSalvo.lon, nome: pontoSalvo.nome };
             try {
@@ -2544,12 +2401,8 @@
 
         async function iniciarRotaInterativa() {
             eixosAtuaisRota = parseInt(document.getElementById('iamEixos').value) || 6;
-            
-            const origInput = document.getElementById('iamOrigem');
-            const destInput = document.getElementById('iamDestino');
-            
-            const origCoord = await resolverCoordenadasInput(origInput);
-            const destCoord = await resolverCoordenadasInput(destInput);
+            const origInput = document.getElementById('iamOrigem'); const destInput = document.getElementById('iamDestino');
+            const origCoord = await resolverCoordenadasInput(origInput); const destCoord = await resolverCoordenadasInput(destInput);
             
             if (!origCoord || !destCoord) { alert("Origem ou destino não encontrados. Selecione uma sugestão da busca."); return; }
 
@@ -2558,19 +2411,14 @@
 
             for (let i = 0; i < inputsIntermediarios.length; i++) {
                 const ptCoord = await resolverCoordenadasInput(inputsIntermediarios[i]);
-                if (ptCoord) {
-                    waypointsArray.push(L.latLng(ptCoord.lat, ptCoord.lon));
-                }
+                if (ptCoord) waypointsArray.push(L.latLng(ptCoord.lat, ptCoord.lon));
             }
 
             waypointsArray.push(L.latLng(destCoord.lat, destCoord.lon));
-
-            fecharModal();
-            limparRota();
+            fecharModal(); limparRota();
 
             routingControl = L.Routing.control({
-                waypoints: waypointsArray,
-                routeWhileDragging: true, language: 'pt-BR', show: false,
+                waypoints: waypointsArray, routeWhileDragging: true, language: 'pt-BR', show: false,
                 lineOptions: { styles: [{color: '#00838F', opacity: 0.9, weight: 6}] }
             }).addTo(map);
 
@@ -2602,11 +2450,7 @@
             const nomeRota = document.getElementById('inputNomeRota').value.trim();
             if (!nomeRota) { alert("Digite um nome."); return; }
             rotasSalvas.push({ id: Date.now(), nome: nomeRota, ...dadosUltimaRotaCalculada });
-            await salvarDadosNoBanco();
-            renderizarTabelaRotas();
-            fecharModalSalvar();
-            limparRota();
-            mudarAba('rotas');
+            await salvarDadosNoBanco(); renderizarTabelaRotas(); fecharModalSalvar(); limparRota(); mudarAba('rotas');
         }
 
         function renderizarTabelaRotas(filtro = '') {
@@ -2614,10 +2458,7 @@
             const linhas = filtradas.map(r => {
                 const litrosStr = r.litros ? `${r.litros} L` : `${(parseFloat(r.distancia)/2.5).toFixed(1)} L`;
                 return `<tr>
-                    <td><b>${r.nome}</b></td>
-                    <td>${r.origemTxt}</td>
-                    <td>${r.destinoTxt}</td>
-                    <td>${r.eixos}</td>
+                    <td><b>${r.nome}</b></td><td>${r.origemTxt}</td><td>${r.destinoTxt}</td><td>${r.eixos}</td>
                     <td>${r.distancia} km | <span style="color:var(--warning); font-weight:bold;">${litrosStr}</span> | R$ ${r.custo}</td>
                     <td class="table-actions">
                         <button class="btn" style="padding: 4px 8px; font-size: 11px; background: #00838F;" onclick="verDetalhesRota(${r.id})">Detalhes</button>
@@ -2629,113 +2470,60 @@
             renderizarLinhasComLimite('tbodyRotasSalvas', 'tabelaRotasSalvas', linhas, 6, 'Nenhuma rota cadastrada.');
         }
 
-        function filtrarRotasSalvas() { 
-            const input = document.getElementById('filtroRotasInput');
-            if(input) renderizarTabelaRotas(input.value); 
-        }
+        function filtrarRotasSalvas() { const input = document.getElementById('filtroRotasInput'); if(input) renderizarTabelaRotas(input.value); }
 
         function carregarRotaNoMapa(id) {
-            const rota = rotasSalvas.find(r => r.id === id);
-            if (!rota) return;
-            mudarAba('operacional');
-            limparRota();
+            const rota = rotasSalvas.find(r => r.id === id); if (!rota) return;
+            mudarAba('operacional'); limparRota();
             linhaRotaEstatica = L.polyline(rota.coordenadas, {color: '#FF8F00', weight: 6, opacity: 0.9}).addTo(map);
             map.fitBounds(linhaRotaEstatica.getBounds());
         }
 
         async function excluirRota(id) {
             if (!confirm("Excluir rota?")) return;
-            rotasSalvas = rotasSalvas.filter(r => r.id !== id);
-            await salvarDadosNoBanco();
-            renderizarTabelaRotas();
+            rotasSalvas = rotasSalvas.filter(r => r.id !== id); await salvarDadosNoBanco(); renderizarTabelaRotas();
         }
 
         function atualizarDashboards() {
-            if(window.graf1) window.graf1.destroy();
-            if(window.graf2) window.graf2.destroy();
-            if(window.graf3) window.graf3.destroy();
-            if(window.graf4) window.graf4.destroy();
-            if(window.graf5) window.graf5.destroy();
+            if(window.graf1) window.graf1.destroy(); if(window.graf2) window.graf2.destroy();
+            if(window.graf3) window.graf3.destroy(); if(window.graf4) window.graf4.destroy(); if(window.graf5) window.graf5.destroy();
             
-            let excessosPorPlaca = {};
-            let paradosLigadosContagem = {};
-            let paradosLigadosTempoMinutos = {};
+            let excessosPorPlaca = {}; let paradosLigadosContagem = {}; let paradosLigadosTempoMinutos = {};
 
-            const dtInicioVal = document.getElementById('filtroDataInicio').value;
-            const dtFimVal = document.getElementById('filtroDataFim').value;
-            const inicio = dtInicioVal ? new Date(dtInicioVal).getTime() : 0;
-            const fim = dtFimVal ? new Date(dtFimVal).getTime() : Infinity;
+            const dtInicioVal = document.getElementById('filtroDataInicio').value; const dtFimVal = document.getElementById('filtroDataFim').value;
+            const inicio = dtInicioVal ? new Date(dtInicioVal).getTime() : 0; const fim = dtFimVal ? new Date(dtFimVal).getTime() : Infinity;
 
-            const filtrarData = (item) => {
-                const t = item.timestamp || parseDateToMs(item.dataHora);
-                if (isNaN(t) || t === 0) return true;
-                return t >= inicio && t <= fim;
-            };
+            const filtrarData = (item) => { const t = item.timestamp || parseDateToMs(item.dataHora); if (isNaN(t) || t === 0) return true; return t >= inicio && t <= fim; };
 
-            historicoExcessoVelocidadeDashboard.filter(filtrarData).forEach(e => {
-                excessosPorPlaca[e.placa] = (excessosPorPlaca[e.placa] || 0) + 1;
-            });
-
+            historicoExcessoVelocidadeDashboard.filter(filtrarData).forEach(e => { excessosPorPlaca[e.placa] = (excessosPorPlaca[e.placa] || 0) + 1; });
             historicoParadosLigados.filter(filtrarData).forEach(p => {
-                paradosLigadosContagem[p.placa] = (paradosLigadosContagem[p.placa] || 0) + 1;
-                paradosLigadosTempoMinutos[p.placa] = (paradosLigadosTempoMinutos[p.placa] || 0) + p.duracao;
+                paradosLigadosContagem[p.placa] = (paradosLigadosContagem[p.placa] || 0) + 1; paradosLigadosTempoMinutos[p.placa] = (paradosLigadosTempoMinutos[p.placa] || 0) + p.duracao;
             });
 
             const agora = Date.now();
             if (agora >= inicio && agora <= fim) {
                 Object.keys(statusParadoLigado).forEach(chave => {
-                    const placa = chave.replace('parado_', '');
-                    const duracaoMin = Math.round((agora - statusParadoLigado[chave]) / 60000);
-                    if (duracaoMin >= 10) {
-                        paradosLigadosContagem[placa] = (paradosLigadosContagem[placa] || 0) + 1;
-                        paradosLigadosTempoMinutos[placa] = (paradosLigadosTempoMinutos[placa] || 0) + duracaoMin;
-                    }
+                    const placa = chave.replace('parado_', ''); const duracaoMin = Math.round((agora - statusParadoLigado[chave]) / 60000);
+                    if (duracaoMin >= 10) { paradosLigadosContagem[placa] = (paradosLigadosContagem[placa] || 0) + 1; paradosLigadosTempoMinutos[placa] = (paradosLigadosTempoMinutos[placa] || 0) + duracaoMin; }
                 });
             }
             
-            const corTextoDinamica = obterCorTextoGrafico();
-            const fontPadraoGrafico = { size: 12, weight: 'bold' };
+            const corTextoDinamica = obterCorTextoGrafico(); const fontPadraoGrafico = { size: 12, weight: 'bold' };
 
-            let keysVel = Object.keys(excessosPorPlaca);
-            let valsVel = Object.values(excessosPorPlaca);
-            if (keysVel.length > 10) {
-                keysVel = keysVel.slice(-10);
-                valsVel = valsVel.slice(-10);
-            }
+            let keysVel = Object.keys(excessosPorPlaca); let valsVel = Object.values(excessosPorPlaca);
+            if (keysVel.length > 10) { keysVel = keysVel.slice(-10); valsVel = valsVel.slice(-10); }
 
             const canvasVelocidade = document.getElementById('graficoVelocidade');
             if (canvasVelocidade) {
                 window.graf1 = new Chart(canvasVelocidade.getContext('2d'), {
                     type: 'bar', 
-                    data: { 
-                        labels: keysVel.length > 0 ? keysVel : ['Sem Registros'], 
-                        datasets: [{ label: 'Excessos (>80km/h)', data: valsVel.length > 0 ? valsVel : [0], backgroundColor: '#D32F2F' }] 
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { labels: { color: corTextoDinamica, font: fontPadraoGrafico } },
-                            title: { display: true, text: 'Excessos de Velocidade (Máx. 10 Barras)', color: corTextoDinamica, font: { size: 14, weight: 'bold' } },
-                            datalabels: { font: fontPadraoGrafico, color: corTextoDinamica }
-                        },
-                        scales: {
-                            x: { ticks: { color: corTextoDinamica, font: fontPadraoGrafico }, grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' } },
-                            y: { ticks: { color: corTextoDinamica, font: fontPadraoGrafico }, grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' }, beginAtZero: true }
-                        }
-                    }
+                    data: { labels: keysVel.length > 0 ? keysVel : ['Sem Registros'], datasets: [{ label: 'Excessos (>80km/h)', data: valsVel.length > 0 ? valsVel : [0], backgroundColor: '#D32F2F' }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: corTextoDinamica, font: fontPadraoGrafico } }, title: { display: true, text: 'Excessos de Velocidade (Máx. 10 Barras)', color: corTextoDinamica, font: { size: 14, weight: 'bold' } }, datalabels: { font: fontPadraoGrafico, color: corTextoDinamica } }, scales: { x: { ticks: { color: corTextoDinamica, font: fontPadraoGrafico }, grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' } }, y: { ticks: { color: corTextoDinamica, font: fontPadraoGrafico }, grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' }, beginAtZero: true } } }
                 });
             }
 
-            let labelsPar = Object.keys(paradosLigadosContagem);
-            let valsTemposMinutos = labelsPar.map(p => paradosLigadosTempoMinutos[p]);
-            let valsAlertas = labelsPar.map(p => paradosLigadosContagem[p]);
-
-            if (labelsPar.length > 10) {
-                labelsPar = labelsPar.slice(-10);
-                valsTemposMinutos = valsTemposMinutos.slice(-10);
-                valsAlertas = valsAlertas.slice(-10);
-            }
+            let labelsPar = Object.keys(paradosLigadosContagem); let valsTemposMinutos = labelsPar.map(p => paradosLigadosTempoMinutos[p]); let valsAlertas = labelsPar.map(p => paradosLigadosContagem[p]);
+            if (labelsPar.length > 10) { labelsPar = labelsPar.slice(-10); valsTemposMinutos = valsTemposMinutos.slice(-10); valsAlertas = valsAlertas.slice(-10); }
 
             const canvasParado = document.getElementById('graficoParado');
             if (canvasParado) {
@@ -2744,166 +2532,54 @@
                     data: {
                         labels: labelsPar.length > 0 ? labelsPar : ['Sem Registros'],
                         datasets: [
-                            {
-                                type: 'bar',
-                                label: 'Tempo Parado e Ligado (HH:MM)',
-                                data: valsTemposMinutos.length > 0 ? valsTemposMinutos : [0],
-                                backgroundColor: '#FF8F00',
-                                yAxisID: 'y'
-                            },
-                            {
-                                type: 'line',
-                                label: 'Qtd. Alertas Gerados',
-                                data: valsAlertas.length > 0 ? valsAlertas : [0],
-                                borderColor: '#D32F2F',
-                                backgroundColor: '#D32F2F',
-                                borderWidth: 2,
-                                fill: false,
-                                yAxisID: 'y1'
-                            }
+                            { type: 'bar', label: 'Tempo Parado e Ligado (HH:MM)', data: valsTemposMinutos.length > 0 ? valsTemposMinutos : [0], backgroundColor: '#FF8F00', yAxisID: 'y' },
+                            { type: 'line', label: 'Qtd. Alertas Gerados', data: valsAlertas.length > 0 ? valsAlertas : [0], borderColor: '#D32F2F', backgroundColor: '#D32F2F', borderWidth: 2, fill: false, yAxisID: 'y1' }
                         ]
                     },
                     options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
+                        responsive: true, maintainAspectRatio: false,
                         plugins: {
                             legend: { labels: { color: corTextoDinamica, font: fontPadraoGrafico } },
-                            datalabels: {
-                                formatter: function(value, context) {
-                                    if (context.datasetIndex === 0) return formatarMinutosParaHhMm(value);
-                                    return value;
-                                },
-                                color: corTextoDinamica,
-                                font: function(context) {
-                                    if (context.datasetIndex === 1) {
-                                        return { size: 14, weight: 'bold' };
-                                    }
-                                    return fontPadraoGrafico;
-                                }
-                            },
+                            datalabels: { formatter: function(value, context) { if (context.datasetIndex === 0) return formatarMinutosParaHhMm(value); return value; }, color: corTextoDinamica, font: function(context) { if (context.datasetIndex === 1) { return { size: 14, weight: 'bold' }; } return fontPadraoGrafico; } },
                             title: { display: true, text: 'Tempo Total vs Qtd. de Alertas (Parado e Ligado - Máx. 10 Barras)', color: corTextoDinamica, font: { size: 14, weight: 'bold' } }
                         },
                         scales: {
                             x: { ticks: { color: corTextoDinamica, font: fontPadraoGrafico }, grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' } },
-                            y: {
-                                type: 'linear', display: true, position: 'left',
-                                title: { display: true, text: 'Tempo (HH:MM)', color: corTextoDinamica, font: fontPadraoGrafico },
-                                beginAtZero: true,
-                                ticks: { color: corTextoDinamica, font: fontPadraoGrafico, callback: function(value) { return formatarMinutosParaHhMm(value); } },
-                                grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' }
-                            },
-                            y1: {
-                                type: 'linear', display: true, position: 'right',
-                                title: { display: true, text: 'Qtd Alertas', color: corTextoDinamica, font: fontPadraoGrafico },
-                                grid: { drawOnChartArea: false },
-                                beginAtZero: true,
-                                ticks: { color: corTextoDinamica, font: fontPadraoGrafico }
-                            }
+                            y: { type: 'linear', display: true, position: 'left', title: { display: true, text: 'Tempo (HH:MM)', color: corTextoDinamica, font: fontPadraoGrafico }, beginAtZero: true, ticks: { color: corTextoDinamica, font: fontPadraoGrafico, callback: function(value) { return formatarMinutosParaHhMm(value); } }, grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' } },
+                            y1: { type: 'linear', display: true, position: 'right', title: { display: true, text: 'Qtd Alertas', color: corTextoDinamica, font: fontPadraoGrafico }, grid: { drawOnChartArea: false }, beginAtZero: true, ticks: { color: corTextoDinamica, font: fontPadraoGrafico } }
                         }
                     }
                 });
             }
 
-            let qtdEmTransitoPizza = 0;
-            let qtdParadosPizza = 0;
-            veiculosCacheGlobal.forEach(v => {
-                const vel = Number(v.velocidade) || 0;
-                const ign = Boolean(v.ignicao);
-                if (ign && vel > 10) qtdEmTransitoPizza++;
-                else qtdParadosPizza++;
-            });
+            let qtdEmTransitoPizza = 0; let qtdParadosPizza = 0;
+            veiculosCacheGlobal.forEach(v => { const vel = Number(v.velocidade) || 0; const ign = Boolean(v.ignicao); if (ign && vel > 10) qtdEmTransitoPizza++; else qtdParadosPizza++; });
 
             const canvasPizzaStatus = document.getElementById('graficoPizzaStatus');
             if (canvasPizzaStatus) {
                 window.graf3 = new Chart(canvasPizzaStatus.getContext('2d'), {
-                    type: 'pie',
-                    data: {
-                        labels: ['Em Trânsito (>10km/h)', 'Parados / Desligados'],
-                        datasets: [{
-                            data: [qtdEmTransitoPizza, qtdParadosPizza],
-                            backgroundColor: ['#388E3C', '#FF8F00']
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { position: 'bottom', labels: { boxWidth: 12, color: corTextoDinamica, font: { size: 12, weight: 'bold' } } },
-                            title: { display: true, text: 'Veículos em Trânsito vs Parados', color: corTextoDinamica, font: { size: 14, weight: 'bold' } },
-                            datalabels: {
-                                color: '#FFFFFF',
-                                font: { size: 13, weight: 'bold' },
-                                formatter: (val) => val > 0 ? val : ''
-                            }
-                        }
-                    }
+                    type: 'pie', data: { labels: ['Em Trânsito (>10km/h)', 'Parados / Desligados'], datasets: [{ data: [qtdEmTransitoPizza, qtdParadosPizza], backgroundColor: ['#388E3C', '#FF8F00'] }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, color: corTextoDinamica, font: { size: 12, weight: 'bold' } } }, title: { display: true, text: 'Veículos em Trânsito vs Parados', color: corTextoDinamica, font: { size: 14, weight: 'bold' } }, datalabels: { color: '#FFFFFF', font: { size: 13, weight: 'bold' }, formatter: (val) => val > 0 ? val : '' } } }
                 });
             }
 
-            let qtdComRota = 0;
-            let qtdSemRota = 0;
-            const uniquePlacas = new Set(veiculosCacheGlobal.map(v => {
-                let p = v.id_veiculo ? String(v.id_veiculo) : 'SEM-PLACA';
-                if (p.length === 7 && !isNaN(p)) p = p.substring(0,3) + '-' + p.substring(3);
-                return p;
-            }));
-
-            uniquePlacas.forEach(placa => {
-                if (rotasVeiculos[placa]) qtdComRota++;
-                else qtdSemRota++;
-            });
+            let qtdComRota = 0; let qtdSemRota = 0;
+            const uniquePlacas = new Set(veiculosCacheGlobal.map(v => formatarPlacaPadrao(v.id_veiculo)));
+            uniquePlacas.forEach(placa => { if (rotasVeiculos[placa]) qtdComRota++; else qtdSemRota++; });
 
             const canvasPizzaRotas = document.getElementById('graficoPizzaRotas');
             if (canvasPizzaRotas) {
                 window.graf4 = new Chart(canvasPizzaRotas.getContext('2d'), {
-                    type: 'pie',
-                    data: {
-                        labels: ['Com Rota Vinculada', 'Sem Rota Vinculada'],
-                        datasets: [{
-                            data: [qtdComRota, qtdSemRota],
-                            backgroundColor: ['#008DDA', '#757575']
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { position: 'bottom', labels: { boxWidth: 12, color: corTextoDinamica, font: { size: 12, weight: 'bold' } } },
-                            title: { display: true, text: 'Veículos com Rota vs Sem Rota', color: corTextoDinamica, font: { size: 14, weight: 'bold' } },
-                            datalabels: {
-                                color: '#FFFFFF',
-                                font: { size: 13, weight: 'bold' },
-                                formatter: (val) => val > 0 ? val : ''
-                            }
-                        }
-                    }
+                    type: 'pie', data: { labels: ['Com Rota Vinculada', 'Sem Rota Vinculada'], datasets: [{ data: [qtdComRota, qtdSemRota], backgroundColor: ['#008DDA', '#757575'] }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, color: corTextoDinamica, font: { size: 12, weight: 'bold' } } }, title: { display: true, text: 'Veículos com Rota vs Sem Rota', color: corTextoDinamica, font: { size: 14, weight: 'bold' } }, datalabels: { color: '#FFFFFF', font: { size: 13, weight: 'bold' }, formatter: (val) => val > 0 ? val : '' } } }
                 });
             }
 
-            let labelsPlacasEmbarcadas = [];
-            let dadosCustoMedio = [];
-            let somaTotalGeralViagens = 0;
-
-            Object.keys(rotasVeiculos).forEach(placa => {
-                const r = rotasVeiculos[placa];
-                if (r && r.custo) {
-                    const custoVal = parseFloat(r.custo);
-                    labelsPlacasEmbarcadas.push(placa);
-                    dadosCustoMedio.push(custoVal);
-                    somaTotalGeralViagens += custoVal;
-                }
-            });
-
-            if (labelsPlacasEmbarcadas.length > 9) {
-                labelsPlacasEmbarcadas = labelsPlacasEmbarcadas.slice(-9);
-                dadosCustoMedio = dadosCustoMedio.slice(-9);
-            }
-
+            let labelsPlacasEmbarcadas = []; let dadosCustoMedio = []; let somaTotalGeralViagens = 0;
+            Object.keys(rotasVeiculos).forEach(placa => { const r = rotasVeiculos[placa]; if (r && r.custo) { const custoVal = parseFloat(r.custo); labelsPlacasEmbarcadas.push(placa); dadosCustoMedio.push(custoVal); somaTotalGeralViagens += custoVal; } });
+            if (labelsPlacasEmbarcadas.length > 9) { labelsPlacasEmbarcadas = labelsPlacasEmbarcadas.slice(-9); dadosCustoMedio = dadosCustoMedio.slice(-9); }
             labelsPlacasEmbarcadas.push("TOTAL GERAL");
-            
-            let dadosCustoMedioDataset = [...dadosCustoMedio, null];
-            let dadosCustoTotalGeralDataset = new Array(labelsPlacasEmbarcadas.length).fill(null);
-            dadosCustoTotalGeralDataset[dadosCustoTotalGeralDataset.length - 1] = somaTotalGeralViagens;
+            let dadosCustoMedioDataset = [...dadosCustoMedio, null]; let dadosCustoTotalGeralDataset = new Array(labelsPlacasEmbarcadas.length).fill(null); dadosCustoTotalGeralDataset[dadosCustoTotalGeralDataset.length - 1] = somaTotalGeralViagens;
 
             const canvasCustoRotas = document.getElementById('graficoCustoRotasEmbarcadas');
             if (canvasCustoRotas) {
@@ -2912,41 +2588,20 @@
                     data: {
                         labels: labelsPlacasEmbarcadas.length > 0 ? labelsPlacasEmbarcadas : ['Sem Rotas Embarcadas'],
                         datasets: [
-                            {
-                                label: 'Custo Médio por Viagem (R$)',
-                                data: dadosCustoMedioDataset,
-                                backgroundColor: '#008DDA'
-                            },
-                            {
-                                label: 'Custo Total Geral (R$)',
-                                data: dadosCustoTotalGeralDataset,
-                                backgroundColor: '#0055A4'
-                            }
+                            { label: 'Custo Médio por Viagem (R$)', data: dadosCustoMedioDataset, backgroundColor: '#008DDA' },
+                            { label: 'Custo Total Geral (R$)', data: dadosCustoTotalGeralDataset, backgroundColor: '#0055A4' }
                         ]
                     },
                     options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
+                        responsive: true, maintainAspectRatio: false,
                         plugins: {
                             legend: { labels: { color: corTextoDinamica, font: fontPadraoGrafico } },
                             title: { display: true, text: `Custo Médio por Viagem vs Custo Total Geral (Total: R$ ${somaTotalGeralViagens.toFixed(2)})`, color: corTextoDinamica, font: { size: 14, weight: 'bold' } },
-                            datalabels: {
-                                formatter: (val) => val !== null && val > 0 ? 'R$ ' + Number(val).toFixed(2) : '',
-                                color: corTextoDinamica,
-                                font: { size: 11, weight: 'bold' }
-                            }
+                            datalabels: { formatter: (val) => val !== null && val > 0 ? 'R$ ' + Number(val).toFixed(2) : '', color: corTextoDinamica, font: { size: 11, weight: 'bold' } }
                         },
                         scales: {
-                            x: { 
-                                offset: true,
-                                ticks: { color: corTextoDinamica, font: fontPadraoGrafico }, 
-                                grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' } 
-                            },
-                            y: { 
-                                ticks: { color: corTextoDinamica, font: fontPadraoGrafico, callback: (val) => 'R$ ' + val }, 
-                                grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' }, 
-                                beginAtZero: true 
-                            }
+                            x: { offset: true, ticks: { color: corTextoDinamica, font: fontPadraoGrafico }, grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' } },
+                            y: { ticks: { color: corTextoDinamica, font: fontPadraoGrafico, callback: (val) => 'R$ ' + val }, grid: { color: document.body.classList.contains('dark-mode') ? '#2E5077' : '#ddd' }, beginAtZero: true }
                         }
                     }
                 });
@@ -2964,13 +2619,7 @@
                 new Chart(canvasConsumo.getContext('2d'), {
                     type: 'bar', 
                     data: { labels: ['ABC-1234'], datasets: [{ label: 'Abastecido', data: [500.34], backgroundColor: '#0055A4' }, { label: 'Consumido', data: [501.10], backgroundColor: '#388E3C' }] },
-                    options: {
-                        plugins: { legend: { labels: { color: corTextoDinamica, font: { size: 14, weight: 'bold' } } } },
-                        scales: {
-                            x: { offset: true, ticks: { color: corTextoDinamica, font: { size: 14, weight: 'bold' } } },
-                            y: { ticks: { color: corTextoDinamica, font: { size: 14, weight: 'bold' } } }
-                        }
-                    }
+                    options: { plugins: { legend: { labels: { color: corTextoDinamica, font: { size: 14, weight: 'bold' } } } }, scales: { x: { offset: true, ticks: { color: corTextoDinamica, font: { size: 14, weight: 'bold' } } }, y: { ticks: { color: corTextoDinamica, font: { size: 14, weight: 'bold' } } } } }
                 });
             }
         }
