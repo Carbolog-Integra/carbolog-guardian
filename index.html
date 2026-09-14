@@ -634,7 +634,7 @@
 
     <div id="modalPontoRef" class="modal">
         <div class="modal-content" style="max-width: 600px;">
-            <div class="modal-header">Cadastrar Ponto de Referência <span class="close-modal" onclick="fecharModalPontoRef()">×</span></div>
+            <div class="modal-header"><span id="tituloModalPontoRef">Cadastrar Ponto de Referência</span> <span class="close-modal" onclick="fecharModalPontoRef()">×</span></div>
             <div style="margin-bottom: 12px;">
                 <label><b>Pesquisar Referência (Google/OSM):</b></label><br>
                 <div class="autocomplete-container">
@@ -651,7 +651,7 @@
                 <div style="width: 50%;"><label><b>Latitude:</b></label><br><input type="text" id="refLat" class="input-livre" placeholder="-23.5505"></div>
                 <div style="width: 50%;"><label><b>Longitude:</b></label><br><input type="text" id="refLon" class="input-livre" placeholder="-46.6333"></div>
             </div>
-            <button class="btn" style="width: 100%; margin-top: 15px; background: var(--success);" onclick="salvarPontoReferencia()"><i class="fas fa-save"></i> Salvar Ponto de Referência</button>
+            <button class="btn" style="width: 100%; margin-top: 15px; background: var(--success);" onclick="salvarPontoReferencia()"><i class="fas fa-save"></i> <span id="textoBotaoPontoRef">Salvar Ponto de Referência</span></button>
         </div>
     </div>
 
@@ -873,6 +873,9 @@
         let linhaRotaEstatica = null; 
         let camadaTransitoGrupo = L.layerGroup();
         let camadaAreasGrupo = L.layerGroup();
+        let camadaReferenciasGrupo = L.layerGroup();
+        let camadaReferenciasArea = null;
+        let camadaReferenciasPonto = null;
         
         let camadaDesenhoTemp = L.layerGroup();
         let camadaPontoRefTemp = L.layerGroup();
@@ -907,6 +910,7 @@
         let popup20MinIntervalRef = null;
         let mapPlacasProximasGlobal = {};
         let tabelasExpandidas = {};
+        let pontoReferenciaEditandoId = null;
 
         let columnOrder = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
         const SUPABASE_URL = 'https://oyrqywoctnyottwvqrji.supabase.co';
@@ -1260,28 +1264,27 @@
             const lista = document.getElementById(listId);
             if (!termo || termo.length < 3) { if(lista) lista.style.display = 'none'; return; }
             
-            const termoBusca = termo.toLowerCase().includes('sp') ? termo : `${termo}, Sao Paulo, Brazil`;
+            const termoLower = termo.toLowerCase();
+            const referenciasLocais = pontosReferenciaSalvos
+                .filter(p => p.nome.toLowerCase().includes(termoLower))
+                .slice(0, 5)
+                .map(p => ({ lat: p.lat, lon: p.lon, display_name: `${p.nome}, Referência salva`, nomeReferencia: p.nome }));
+            const termoBusca = termoLower.includes('sp') ? termo : `${termo}, Sao Paulo, Brazil`;
             const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termoBusca)}&limit=5`;
             
             try {
                 const res = await fetch(url);
                 const data = await res.json();
                 if(!lista) return;
+                const resultados = [...referenciasLocais, ...data];
                 lista.innerHTML = '';
                 
-                if (data.length > 0) {
-                    data.forEach(item => {
+                if (resultados.length > 0) {
+                    resultados.forEach(item => {
                         const li = document.createElement('li');
-                        const titulo = item.display_name.split(',')[0];
-                        const resto = item.display_name.substring(titulo.length + 1);
-                        
-                        li.innerHTML = `
-                            <i class="fas fa-map-marker-alt"></i>
-                            <div>
-                                <b>${titulo}</b>
-                                <small>${resto}</small>
-                            </div>
-                        `;
+                        const titulo = item.nomeReferencia || item.display_name.split(',')[0];
+                        const resto = item.nomeReferencia ? 'Referência salva no sistema' : item.display_name.substring(titulo.length + 1);
+                        li.innerHTML = `<i class="fas fa-map-marker-alt"></i><div><b>${escapeHtml(titulo)}</b><small>${escapeHtml(resto)}</small></div>`;
                         li.onclick = () => {
                             callback(item);
                             lista.style.display = 'none';
@@ -1292,7 +1295,12 @@
                 } else {
                     lista.style.display = 'none';
                 }
-            } catch (e) {}
+            } catch (e) {
+                if (!lista) return;
+                lista.innerHTML = referenciasLocais.map(item => `<li><i class="fas fa-map-marker-alt"></i><div><b>${escapeHtml(item.nomeReferencia)}</b><small>Referência salva no sistema</small></div></li>`).join('');
+                lista.querySelectorAll('li').forEach((li, i) => li.onclick = () => { callback(referenciasLocais[i]); lista.style.display = 'none'; });
+                lista.style.display = referenciasLocais.length ? 'block' : 'none';
+            }
         }
 
         function configurarAutocompleteInput(inputId, listId, tipoDestino, customInputEl = null) {
@@ -1521,13 +1529,15 @@
             mapaNormal.addTo(map);
             camadaTransitoGrupo.addTo(map);
             camadaAreasGrupo.addTo(map);
+            camadaReferenciasGrupo.addTo(map);
 
             L.control.layers({
                 "Normal": mapaNormal, 
                 "Satélite (com Nomes/Vias)": rotulosSatelite
             }, {
                 "Tráfego & Acidentes (Dados Reais Atualizados)": camadaTransitoGrupo,
-                "Áreas Geográficas (Cercas)": camadaAreasGrupo
+                "Áreas Geográficas (Cercas)": camadaAreasGrupo,
+                "Pontos de Referência": camadaReferenciasGrupo
             }).addTo(map);
 
             if (localStorage.getItem('tema') === 'claro') {
@@ -1543,6 +1553,7 @@
             renderizarGruposAreas();
             renderizarTabelaPontosRef();
             renderizarAreasNoMapa();
+            renderizarPontosReferenciaNoMapa(map, camadaReferenciasGrupo);
 
             configurarAutocompleteInput('inputBuscaRefArea', 'autocompleteArea', 'area');
             configurarAutocompleteInput('refBuscaGoogle', 'autocompletePonto', 'ponto');
@@ -2448,40 +2459,61 @@
             alert("Alerta tratado, finalizado e salvo com sucesso!");
         }
 
-        function abrirModalPontoRef() {
-            document.getElementById('refNome').value = ''; document.getElementById('refBuscaGoogle').value = '';
-            document.getElementById('refLat').value = ''; document.getElementById('refLon').value = '';
+        function abrirModalPontoRef(id = null) {
+            pontoReferenciaEditandoId = id;
+            const ponto = id === null ? null : pontosReferenciaSalvos.find(p => p.id == id);
+            document.getElementById('refNome').value = ponto ? ponto.nome : '';
+            document.getElementById('refBuscaGoogle').value = '';
+            document.getElementById('refLat').value = ponto ? ponto.lat : '';
+            document.getElementById('refLon').value = ponto ? ponto.lon : '';
+            document.getElementById('tituloModalPontoRef').textContent = ponto ? 'Editar Ponto de Referência' : 'Cadastrar Ponto de Referência';
+            document.getElementById('textoBotaoPontoRef').textContent = ponto ? 'Atualizar Ponto de Referência' : 'Salvar Ponto de Referência';
             document.getElementById('modalPontoRef').style.display = 'flex';
             setTimeout(() => {
                 if (!mapPontoRefInstance) {
                     const mapaNormalPonto = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
                     const mapaSatelitePonto = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
                     const rotulosPonto = L.layerGroup([mapaSatelitePonto, L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 })]);
-                    mapPontoRefInstance = L.map('mapPontoRef', { center: [-23.5505, -46.6333], zoom: 8, layers: [rotulosPonto] });
+                    mapPontoRefInstance = L.map('mapPontoRef', { center: ponto ? [ponto.lat, ponto.lon] : [-23.5505, -46.6333], zoom: ponto ? 14 : 8, layers: [rotulosPonto] });
                     camadaPontoRefTemp.addTo(mapPontoRefInstance);
-                    L.control.layers({"Satélite (Com Nomes/Vias)": rotulosPonto, "Normal": mapaNormalPonto}).addTo(mapPontoRefInstance);
+                    camadaReferenciasPonto = L.layerGroup().addTo(mapPontoRefInstance);
+                    renderizarPontosReferenciaNoMapa(mapPontoRefInstance, camadaReferenciasPonto);
+                    L.control.layers({"Satélite (Com Nomes/Vias)": rotulosPonto, "Normal": mapaNormalPonto}, {"Pontos salvos": camadaReferenciasPonto}).addTo(mapPontoRefInstance);
+                } else if (ponto) {
+                    mapPontoRefInstance.setView([ponto.lat, ponto.lon], 14);
                 }
                 mapPontoRefInstance.invalidateSize();
             }, 200);
         }
 
-        function fecharModalPontoRef() { document.getElementById('modalPontoRef').style.display = 'none'; }
+        function fecharModalPontoRef() {
+            document.getElementById('modalPontoRef').style.display = 'none';
+            pontoReferenciaEditandoId = null;
+        }
 
         async function salvarPontoReferencia() {
             const nome = document.getElementById('refNome').value.trim();
-            const lat = parseFloat(document.getElementById('refLat').value);
-            const lon = parseFloat(document.getElementById('refLon').value);
+            const lat = parseFloat(String(document.getElementById('refLat').value).replace(',', '.'));
+            const lon = parseFloat(String(document.getElementById('refLon').value).replace(',', '.'));
             const origemBusca = document.getElementById('refBuscaGoogle').value.trim() ? 'Google/OSM' : 'Manual';
-            if (!nome || isNaN(lat) || isNaN(lon)) { alert("Preencha o nome e valide as coordenadas."); return; }
-            pontosReferenciaSalvos.push({ id: Date.now(), nome, lat, lon, origem: origemBusca });
+            if (!nome || isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) { alert("Preencha nome e coordenadas válidas."); return; }
+            if (pontoReferenciaEditandoId !== null) {
+                const ponto = pontosReferenciaSalvos.find(p => p.id == pontoReferenciaEditandoId);
+                if (ponto) Object.assign(ponto, { nome, lat, lon, origem: origemBusca });
+            } else {
+                pontosReferenciaSalvos.push({ id: Date.now(), nome, lat, lon, origem: origemBusca });
+            }
             await salvarDadosNoBanco();
             fecharModalPontoRef();
             renderizarTabelaPontosRef();
-            alert("Ponto de referência salvo com sucesso!");
+            renderizarPontosReferenciaNoMapa(map, camadaReferenciasGrupo);
+            renderizarPontosReferenciaNoMapa(mapPontoRefInstance, camadaReferenciasPonto);
+            renderizarPontosReferenciaNoMapa(mapDesenhoAreaInstance, camadaReferenciasArea);
+            alert("Ponto de referência atualizado com sucesso!");
         }
 
         function renderizarTabelaPontosRef() {
-            const linhas = pontosReferenciaSalvos.map(p => `<tr><td><b>${p.nome}</b></td><td>${p.lat}</td><td>${p.lon}</td><td>${p.origem}</td><td class="table-actions"><button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--danger);" onclick="excluirPontoRef(${p.id})"><i class="fas fa-trash"></i></button></td></tr>`);
+            const linhas = pontosReferenciaSalvos.map(p => `<tr><td><b>${escapeHtml(p.nome)}</b></td><td>${p.lat}</td><td>${p.lon}</td><td>${escapeHtml(p.origem)}</td><td class="table-actions"><button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--primary-blue);" onclick="abrirModalPontoRef(${p.id})" title="Editar"><i class="fas fa-edit"></i></button><button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--danger);" onclick="excluirPontoRef(${p.id})"><i class="fas fa-trash"></i></button></td></tr>`);
             renderizarLinhasComLimite('tbodyPontosRef', 'tabelaPontosRef', linhas, 5, 'Nenhum ponto cadastrado.');
         }
 
@@ -2490,6 +2522,9 @@
             pontosReferenciaSalvos = pontosReferenciaSalvos.filter(p => p.id !== id);
             await salvarDadosNoBanco();
             renderizarTabelaPontosRef();
+            renderizarPontosReferenciaNoMapa(map, camadaReferenciasGrupo);
+            renderizarPontosReferenciaNoMapa(mapPontoRefInstance, camadaReferenciasPonto);
+            renderizarPontosReferenciaNoMapa(mapDesenhoAreaInstance, camadaReferenciasArea);
         }
 
         function atualizarSelectsPontosRef() {
@@ -2638,7 +2673,9 @@
 
                     mapDesenhoAreaInstance = L.map('mapDesenhoArea', { center: [-23.5505, -46.6333], zoom: 8, layers: [rotulosArea] });
                     camadaDesenhoTemp.addTo(mapDesenhoAreaInstance);
-                    L.control.layers({"Satélite (Com Vias)": rotulosArea, "Normal": mapaNormalArea}).addTo(mapDesenhoAreaInstance);
+                    camadaReferenciasArea = L.layerGroup().addTo(mapDesenhoAreaInstance);
+                    renderizarPontosReferenciaNoMapa(mapDesenhoAreaInstance, camadaReferenciasArea);
+                    L.control.layers({"Satélite (Com Vias)": rotulosArea, "Normal": mapaNormalArea}, {"Pontos de Referência": camadaReferenciasArea}).addTo(mapDesenhoAreaInstance);
 
                     mapDesenhoAreaInstance.on('click', function(e) {
                         if (modoDesenhoAtual === 'polygon') {
@@ -2718,6 +2755,7 @@ function renderizarTabelaAreas() {
             await salvarDadosNoBanco();
             renderizarTabelaAreas();
             renderizarAreasNoMapa();
+            renderizarPontosReferenciaNoMapa(map, camadaReferenciasGrupo);
             renderizarPainelCardsAreas();
             renderizarGruposAreas();
             renderizarGridEMapa();
@@ -2762,6 +2800,16 @@ function renderizarTabelaAreas() {
             await salvarDadosNoBanco();
             renderizarGruposAreas();
             renderizarGridEMapa();
+        }
+
+        function renderizarPontosReferenciaNoMapa(mapaAlvo, camadaAlvo) {
+            if (!mapaAlvo || !camadaAlvo) return;
+            camadaAlvo.clearLayers();
+            pontosReferenciaSalvos.forEach(p => {
+                const marcador = L.marker([p.lat, p.lon])
+                    .bindPopup(`<b>${escapeHtml(p.nome)}</b><br><small>${Number(p.lat).toFixed(6)}, ${Number(p.lon).toFixed(6)}</small>`);
+                marcador.addTo(camadaAlvo);
+            });
         }
 
         function renderizarAreasNoMapa() {
@@ -2956,7 +3004,8 @@ function renderizarTabelaAreas() {
         async function resolverCoordenadasInput(inputEl) {
             const val = inputEl.value.trim();
             if (inputEl.dataset.lat && inputEl.dataset.lon) return { lat: parseFloat(inputEl.dataset.lat), lon: parseFloat(inputEl.dataset.lon), nome: val };
-            const pontoSalvo = pontosReferenciaSalvos.find(p => p.nome.toLowerCase() === val.toLowerCase());
+            const pontoSalvo = pontosReferenciaSalvos.find(p => p.nome.toLowerCase() === val.toLowerCase()) ||
+                pontosReferenciaSalvos.find(p => p.nome.toLowerCase().includes(val.toLowerCase()));
             if (pontoSalvo) return { lat: pontoSalvo.lat, lon: pontoSalvo.lon, nome: pontoSalvo.nome };
             try {
                 const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val + ", Sao Paulo, Brazil")}`);
