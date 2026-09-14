@@ -816,7 +816,7 @@
             <p>Veículo: <b id="veiculoSelecionadoModal"></b></p>
             <div style="margin-bottom: 15px;"><label><b>Selecione a Rota Criada:</b></label><br><select id="selectRotaVinculo" style="width: 95%; padding: 10px; margin-top: 5px; background: var(--card-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;"></select></div>
             <div style="display: flex; gap: 10px;">
-                <button class="btn" style="background: var(--success); flex: 1;" onclick="confirmarVinculacaoRota()">Salvar</button>
+                <button class="btn" style="background: var(--success); flex: 1;" onclick="confirmarVinculacaoRota()">Salvar Vínculo</button>
                 <button class="btn" style="background: var(--danger); flex: 1;" onclick="fecharModalVincular()">Cancelar</button>
             </div>
         </div>
@@ -2642,38 +2642,17 @@
             renderizarLinhasComLimite('tbodyAreasSalvas', 'tabelaAreasSalvas', linhas, 4, 'Nenhuma área cadastrada.');
         }
         
-function renderizarTabelaAreas() {
-            const linhas = areasSalvas.map(a => `<tr>
-                <td><b>${a.nome}</b></td>
-                <td>${a.tipo.toUpperCase()}</td>
-                <td>Cadastrada</td>
-                <td class="table-actions">
-                    <button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--primary-blue);" onclick="focarAreaNoMapa(${a.id})" title="Ver no Mapa"><i class="fas fa-eye"></i></button>
-                    <button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--warning); color: black;" onclick="editarArea(${a.id})" title="Editar Nome"><i class="fas fa-edit"></i></button>
-                    <button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--danger);" onclick="excluirArea(${a.id})" title="Excluir"><i class="fas fa-trash"></i></button>
-                </td>
-            </tr>`);
-            renderizarLinhasComLimite('tbodyAreasSalvas', 'tabelaAreasSalvas', linhas, 4, 'Nenhuma área cadastrada.');
-        }
-
-        async function editarArea(id) {
-            const area = areasSalvas.find(a => a.id === id);
-            if (!area) return;
-            
-            const novoNome = prompt("Digite o novo nome para a área:", area.nome);
-            if (!novoNome || novoNome.trim() === "" || novoNome === area.nome) return;
-
-            area.nome = novoNome.trim();
-            
-            // Salva e atualiza tudo onde o nome da área aparece
-            await salvarDadosNoBanco();
-            renderizarTabelaAreas();
-            renderizarAreasNoMapa();
-            renderizarPainelCardsAreas();
-            renderizarGruposAreas();
-            renderizarGridEMapa();
-            
-            alert("Área atualizada com sucesso!");
+        function renderizarGruposAreas() {
+            const tbody = document.getElementById('tbodyGruposAreas');
+            if (!tbody) return;
+            const linhas = gruposAreasSalvos.map(g => {
+                const nomes = g.areas.map(idA => {
+                    const a = areasSalvas.find(x => x.id == idA);
+                    return a ? a.nome : '';
+                }).filter(Boolean).join(', ');
+                return `<tr><td><b>${g.nome}</b></td><td>${nomes || 'Nenhuma área'}</td><td class="table-actions"><button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--danger);" onclick="excluirGrupoArea(${g.id})"><i class="fas fa-trash"></i></button></td></tr>`;
+            });
+            renderizarLinhasComLimite('tbodyGruposAreas', 'tabelaGruposAreas', linhas, 3, 'Nenhum grupo de áreas cadastrado.');
         }
 
         function abrirModalCriarGrupoArea() {
@@ -2971,7 +2950,7 @@ function renderizarTabelaAreas() {
             await salvarDadosNoBanco(); renderizarTabelaRotas(); fecharModalSalvar(); limparRota(); mudarAba('rotas');
         }
 
-function renderizarTabelaRotas(filtro = '') {
+        function renderizarTabelaRotas(filtro = '') {
             const filtradas = rotasSalvas.filter(r => r.nome.toLowerCase().includes(filtro.toLowerCase()));
             const linhas = filtradas.map(r => {
                 const litrosStr = r.litros ? `${r.litros} L` : `${(parseFloat(r.distancia)/2.5).toFixed(1)} L`;
@@ -2979,37 +2958,13 @@ function renderizarTabelaRotas(filtro = '') {
                     <td><b>${r.nome}</b></td><td>${r.origemTxt}</td><td>${r.destinoTxt}</td><td>${r.eixos}</td>
                     <td>${r.distancia} km | <span style="color:var(--warning); font-weight:bold;">${litrosStr}</span> | R$ ${r.custo}</td>
                     <td class="table-actions">
-                        <button class="btn" style="padding: 4px 8px; font-size: 11px; background: #00838F;" onclick="verDetalhesRota(${r.id})" title="Detalhes"><i class="fas fa-list"></i></button>
-                        <button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--primary-blue);" onclick="carregarRotaNoMapa(${r.id})" title="Ver no Mapa"><i class="fas fa-map"></i></button>
-                        <button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--warning); color: black;" onclick="editarRota(${r.id})" title="Editar Nome"><i class="fas fa-edit"></i></button>
-                        <button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--danger);" onclick="excluirRota(${r.id})" title="Excluir"><i class="fas fa-trash"></i></button>
+                        <button class="btn" style="padding: 4px 8px; font-size: 11px; background: #00838F;" onclick="verDetalhesRota(${r.id})">Detalhes</button>
+                        <button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--primary-blue);" onclick="carregarRotaNoMapa(${r.id})">Mapa</button>
+                        <button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--danger);" onclick="excluirRota(${r.id})"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>`;
             });
             renderizarLinhasComLimite('tbodyRotasSalvas', 'tabelaRotasSalvas', linhas, 6, 'Nenhuma rota cadastrada.');
-        }
-
-        async function editarRota(id) {
-            const rota = rotasSalvas.find(r => r.id === id);
-            if (!rota) return;
-            
-            const novoNome = prompt("Digite o novo nome para esta rota:", rota.nome);
-            if (!novoNome || novoNome.trim() === "" || novoNome === rota.nome) return;
-
-            rota.nome = novoNome.trim();
-            
-            // Se essa rota já estiver vinculada a um caminhão, atualiza o nome lá também
-            Object.keys(rotasVeiculos).forEach(placa => {
-                if (rotasVeiculos[placa].id === id) {
-                    rotasVeiculos[placa].nome = rota.nome;
-                }
-            });
-
-            await salvarDadosNoBanco();
-            renderizarTabelaRotas();
-            renderizarGridEMapa(); 
-            
-            alert("Rota atualizada com sucesso!");
         }
 
         function filtrarRotasSalvas() { const input = document.getElementById('filtroRotasInput'); if(input) renderizarTabelaRotas(input.value); }
