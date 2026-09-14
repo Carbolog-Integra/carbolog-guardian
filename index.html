@@ -911,7 +911,7 @@
                 if (reg.ordem_colunas) columnOrder = reg.ordem_colunas;
                 if (reg.frota_cadastrada) frotaCadastrada = reg.frota_cadastrada;
                 if (reg.rotas_salvas !== undefined) rotasSalvas = reg.rotas_salvas;
-                if (reg.rotas_veiculos) rotasVeiculos = rotasVeiculos;
+                if (reg.rotas_veiculos) rotasVeiculos = reg.rotas_veiculos;
                 if (reg.areas_salvas !== undefined) areasSalvas = reg.areas_salvas;
                 if (reg.areas_veiculos) areasVeiculos = reg.areas_veiculos;
                 if (reg.grupos_areas !== undefined) gruposAreasSalvos = reg.grupos_areas;
@@ -938,101 +938,96 @@
             reordenarCabecalhoVisualmente();
         }
 
-async function salvarDadosNoBanco() {
-    const payload = {
-        usuario: USUARIO_GLOBAL,
-        ordem_colunas: columnOrder,
-        frota_cadastrada: frotaCadastrada,
-        rotas_salvas: rotasSalvas,
-        rotas_veiculos: rotasVeiculos,
-        areas_salvas: areasSalvas,
-        areas_veiculos: areasVeiculos,
-        grupos_areas: gruposAreasSalvos,
-        grupos_veiculos: gruposVeiculos,
-        pontos_referencia: pontosReferenciaSalvos,
-        alertas_finalizados: alertasFinalizados,
-        contador_permanencia: contadorPermanenciaAreas,
-        hist_permanencias: historicoPermanenciasDashboard,
-        hist_desvios: historicoDesviosDashboard,
-        hist_comboios: historicoComboiosDashboard,
-        hist_excesso_vel: historicoExcessoVelocidadeDashboard,
-        hist_perda_sinal: historicoPerdaSinalDashboard,
-        hist_parados: historicoParadosLigados,
-        status_parado: statusParadoLigado,
-        hist_tratativas: historicoTratativas
-    };
+        async function salvarDadosNoBanco() {
+            const payload = {
+                usuario: USUARIO_GLOBAL,
+                ordem_colunas: columnOrder,
+                frota_cadastrada: frotaCadastrada,
+                rotas_salvas: rotasSalvas,
+                rotas_veiculos: rotasVeiculos,
+                areas_salvas: areasSalvas,
+                areas_veiculos: areasVeiculos,
+                grupos_areas: gruposAreasSalvos,
+                grupos_veiculos: gruposVeiculos,
+                pontos_referencia: pontosReferenciaSalvos,
+                alertas_finalizados: alertasFinalizados,
+                contador_permanencia: contadorPermanenciaAreas,
+                hist_permanencias: historicoPermanenciasDashboard,
+                hist_desvios: historicoDesviosDashboard,
+                hist_comboios: historicoComboiosDashboard,
+                hist_excesso_vel: historicoExcessoVelocidadeDashboard,
+                hist_perda_sinal: historicoPerdaSinalDashboard,
+                hist_parados: historicoParadosLigados,
+                status_parado: statusParadoLigado,
+                hist_tratativas: historicoTratativas
+            };
 
-    try {
-        localStorage.setItem('backup_global_sistema', JSON.stringify(payload));
-    } catch(e) {}
+            try {
+                localStorage.setItem('backup_global_sistema', JSON.stringify(payload));
+            } catch(e) {}
 
-    try {
-        // 1. Sempre verifica se já existe um registro para o usuario global na nuvem
-        const resBusca = await fetch(`${SUPABASE_URL}/rest/v1/preferencias_usuario?select=id&usuario=eq.${USUARIO_GLOBAL}`, {
-            method: 'GET',
-            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-        });
-        
-        const dadosBusca = await resBusca.json();
-        
-        let url = `${SUPABASE_URL}/rest/v1/preferencias_usuario`;
-        let method = 'POST';
-
-        // 2. Se o registro já existe no banco, usa PATCH com o ID encontrado
-        if (dadosBusca && dadosBusca.length > 0) {
-            registroIdBanco = dadosBusca[0].id;
-            url += `?id=eq.${registroIdBanco}`;
-            method = 'PATCH';
-        } else {
-            // Se não existe absolutamente nenhum, limpa o ID para forçar a criação limpa
-            registroIdBanco = null;
-        }
-
-        const res = await fetch(url, {
-            method: method,
-            headers: {
-                'apikey': SUPABASE_KEY,
-                'Authorization': `Bearer ${SUPABASE_KEY}`,
-                'Content-Type': 'application/json',
-                'Prefer': 'return=representation'
-            },
-            body: JSON.stringify(payload)
-        });
-
-        if (!res.ok) {
-            const erroApi = await res.json();
-            console.error("Supabase recusou:", erroApi);
-            
-            // Tratamento automático: se ainda der conflito de chave duplicada, força um UPSERT limpando o ID local e tentando via POST simples
-            if (erroApi.code === '23505') {
-                console.warn("Conflito detectado. Tentando reinserção forçada...");
-                await fetch(`${SUPABASE_URL}/rest/v1/preferencias_usuario?usuario=eq.${USUARIO_GLOBAL}`, {
-                    method: 'DELETE',
+            try {
+                const resBusca = await fetch(`${SUPABASE_URL}/rest/v1/preferencias_usuario?select=id&usuario=eq.${USUARIO_GLOBAL}`, {
+                    method: 'GET',
                     headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
                 });
-                // Tenta o POST novamente logo após limpar
-                await fetch(`${SUPABASE_URL}/rest/v1/preferencias_usuario`, {
-                    method: 'POST',
-                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+                
+                const dadosBusca = await resBusca.json();
+                
+                let url = `${SUPABASE_URL}/rest/v1/preferencias_usuario`;
+                let method = 'POST';
+
+                if (dadosBusca && dadosBusca.length > 0) {
+                    registroIdBanco = dadosBusca[0].id;
+                    url += `?id=eq.${registroIdBanco}`;
+                    method = 'PATCH';
+                } else {
+                    registroIdBanco = null;
+                }
+
+                const res = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
                     body: JSON.stringify(payload)
                 });
-                return;
-            }
 
-            alert("Atenção: O sistema salvou localmente, mas a nuvem recusou.\nDetalhe: " + erroApi.message);
-            return;
-        }
+                if (!res.ok) {
+                    const erroApi = await res.json();
+                    console.error("Supabase recusou:", erroApi);
+                    
+                    if (erroApi.code === '23505') {
+                        console.warn("Conflito detectado. Tentando reinserção forçada...");
+                        await fetch(`${SUPABASE_URL}/rest/v1/preferencias_usuario?usuario=eq.${USUARIO_GLOBAL}`, {
+                            method: 'DELETE',
+                            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+                        });
+                        await fetch(`${SUPABASE_URL}/rest/v1/preferencias_usuario`, {
+                            method: 'POST',
+                            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        return;
+                    }
 
-        if (method === 'POST') {
-            const data = await res.json();
-            if (data && data.length > 0) {
-                registroIdBanco = data[0].id;
+                    alert("Atenção: O sistema salvou localmente, mas a nuvem recusou.\nDetalhe: " + erroApi.message);
+                    return;
+                }
+
+                if (method === 'POST') {
+                    const data = await res.json();
+                    if (data && data.length > 0) {
+                        registroIdBanco = data[0].id;
+                    }
+                }
+            } catch(e) {
+                console.error("Falha na requisição:", e);
             }
         }
-    } catch(e) {
-        console.error("Falha na requisição:", e);
-    }
-}
 
         function verificarSessaoSalva() {
             const usuarioSalvo = localStorage.getItem('usuarioLogado');
@@ -1176,39 +1171,41 @@ async function salvarDadosNoBanco() {
         let timeoutBusca = null;
         async function buscarAutocomplete(termo, listId, callback) {
             const lista = document.getElementById(listId);
-            if (!termo || termo.length < 3) { if(lista) lista.style.display = 'none'; return; }
+            if (!termo || termo.length < 2) { if(lista) lista.style.display = 'none'; return; }
             
             const termoLower = termo.toLowerCase();
             const referenciasLocais = pontosReferenciaSalvos
                 .filter(p => p.nome.toLowerCase().includes(termoLower))
                 .slice(0, 5)
-                .map(p => ({ lat: p.lat, lon: p.lon, display_name: `${p.nome}, Referência salva`, nomeReferencia: p.nome }));
-            const termoBusca = termoLower.includes('sp') ? termo : `${termo}, Sao Paulo, Brazil`;
-            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termoBusca)}&limit=5`;
-            
+                .map(p => ({ lat: p.lat, lon: p.lon, display_name: `${p.nome} (Referência salva)`, nomeReferencia: p.nome }));
+
+            if(!lista) return;
+            lista.innerHTML = '';
+
+            let resultadosAPI = [];
             try {
+                const termoBusca = termoLower.includes('sp') ? termo : `${termo}, Sao Paulo, Brazil`;
+                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termoBusca)}&limit=5`;
                 const res = await fetch(url);
-                const data = await res.json();
-                if(!lista) return;
-                const resultados = [...referenciasLocais, ...data];
-                lista.innerHTML = '';
-                
-                if (resultados.length > 0) {
-                    resultados.forEach(item => {
-                        const li = document.createElement('li');
-                        const titulo = item.nomeReferencia || item.display_name.split(',')[0];
-                        const resto = item.nomeReferencia ? 'Referência salva no sistema' : item.display_name.substring(titulo.length + 1);
-                        li.innerHTML = `<i class="fas fa-map-marker-alt"></i><div><b>${escapeHtml(titulo)}</b><small>${escapeHtml(resto)}</small></div>`;
-                        li.onclick = () => { callback(item); lista.style.display = 'none'; };
-                        lista.appendChild(li);
-                    });
-                    lista.style.display = 'block';
-                } else { lista.style.display = 'none'; }
+                resultadosAPI = await res.json();
             } catch (e) {
-                if (!lista) return;
-                lista.innerHTML = referenciasLocais.map(item => `<li><i class="fas fa-map-marker-alt"></i><div><b>${escapeHtml(item.nomeReferencia)}</b><small>Referência salva no sistema</small></div></li>`).join('');
-                lista.querySelectorAll('li').forEach((li, i) => li.onclick = () => { callback(referenciasLocais[i]); lista.style.display = 'none'; });
-                lista.style.display = referenciasLocais.length ? 'block' : 'none';
+                console.warn("Falha ao buscar no Nominatim, exibindo apenas locais salvos.");
+            }
+
+            const resultados = [...referenciasLocais, ...resultadosAPI];
+            
+            if (resultados.length > 0) {
+                resultados.forEach(item => {
+                    const li = document.createElement('li');
+                    const titulo = item.nomeReferencia || item.display_name.split(',')[0];
+                    const resto = item.nomeReferencia ? 'Salvo no sistema' : item.display_name.substring(titulo.length + 1);
+                    li.innerHTML = `<i class="fas fa-map-marker-alt"></i><div><b>${escapeHtml(titulo)}</b><small>${escapeHtml(resto)}</small></div>`;
+                    li.onclick = () => { callback(item); lista.style.display = 'none'; };
+                    lista.appendChild(li);
+                });
+                lista.style.display = 'block';
+            } else { 
+                lista.style.display = 'none'; 
             }
         }
 
@@ -1221,8 +1218,8 @@ async function salvarDadosNoBanco() {
                 const val = e.target.value;
                 timeoutBusca = setTimeout(() => {
                     buscarAutocomplete(val, listId, (item) => {
-                        const lat = parseFloat(item.lat); const lon = parseFloat(item.lon); const nomeCurto = item.display_name.split(',')[0];
-                        input.value = item.display_name; input.dataset.lat = lat; input.dataset.lon = lon;
+                        const lat = parseFloat(item.lat); const lon = parseFloat(item.lon); const nomeCurto = item.display_name ? item.display_name.split(',')[0] : item.nomeReferencia;
+                        input.value = item.display_name || item.nomeReferencia; input.dataset.lat = lat; input.dataset.lon = lon;
                         
                         if (tipoDestino === 'area' && mapDesenhoAreaInstance) {
                             mapDesenhoAreaInstance.setView([lat, lon], 15); camadaDesenhoTemp.clearLayers();
@@ -1236,7 +1233,7 @@ async function salvarDadosNoBanco() {
                             }
                         }
                     });
-                }, 500);
+                }, 300);
             });
             
             if (!input.dataset.autocompleteOutsideClick) {
