@@ -1551,7 +1551,7 @@
             }
         }
 
-        async function carregarDadosVeiculos() {
+async function carregarDadosVeiculos() {
             const btnRefresh = document.getElementById('btnRefreshManual');
             const iconOriginal = '<i class="fas fa-sync"></i> Refresh';
             if (btnRefresh) {
@@ -1564,6 +1564,7 @@
             if(timerEl) timerEl.innerText = countdown;
 
             try {
+                // Busca os dados da API
                 const response = await fetch(`${SUPABASE_URL}/rest/v1/posicoes_sascar?select=*&order=data_posicao.desc`, {
                     method: 'GET',
                     headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' }
@@ -1603,6 +1604,32 @@
 
                 veiculosCacheGlobal = Array.from(veiculosMap.values());
                 
+                // ====================================================================
+                // NOVO CÓDIGO: AUTO-CADASTRO NA FROTA MASTER PARA NÃO PERDER PLACAS
+                // ====================================================================
+                let frotaAtualizada = false;
+                veiculosCacheGlobal.forEach(v => {
+                    const placa = formatarPlacaPadrao(v.id_veiculo);
+                    if (placa && placa !== 'SEM-PLACA') {
+                        // Se a placa não existe na Frota Master, cadastra automaticamente
+                        if (!frotaCadastrada.some(f => f.placa === placa)) {
+                            frotaCadastrada.push({
+                                placa: placa,
+                                descricao: 'Adicionado Automático (API)',
+                                dataCadastro: new Date().toLocaleString('pt-BR')
+                            });
+                            frotaAtualizada = true;
+                        }
+                    }
+                });
+
+                // Se encontrou veículos novos, salva no banco (Supabase) e atualiza a aba
+                if (frotaAtualizada) {
+                    await salvarDadosNoBanco();
+                    renderizarTabelaFrota(); 
+                }
+                // ====================================================================
+                
                 expirarAlertasNaoTratados();
                 processarRegrasEAlertas(veiculosCacheGlobal, dadosBrutos);
                 renderizarGridEMapa();
@@ -1614,7 +1641,6 @@
                 if (btnRefresh) { btnRefresh.innerHTML = iconOriginal; btnRefresh.disabled = false; }
             }
         }
-
         function processarRegrasEAlertas(veiculos, dadosBrutos) {
             const agora = Date.now();
             let houveMudanca = false;
