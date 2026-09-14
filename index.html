@@ -269,6 +269,9 @@
                         <span id="contadorAlertasGeral" style="color: red; font-weight: bold;">0 Alertas</span>
                     </h3>
                     <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <label class="info-tag" style="cursor: pointer; display: flex; align-items: center; gap: 5px; margin: 0; padding: 6px 10px;">
+                            <input type="checkbox" id="toggleAreasGrid" checked onchange="toggleVisibilidadeAreas()" style="margin: 0;"> Áreas Visíveis no Mapa
+                        </label>
                         <span class="info-tag">Pop-up 20m: <b id="statusPopupAlertaTxt" style="color: var(--success);">Habilitado</b></span>
                         <button class="btn" id="btnTogglePopup20m" style="background: var(--warning); padding: 6px 12px; font-size: 12px;" onclick="alternarPopupAlertas20Min()"><i class="fas fa-bell-slash"></i> Desabilitar Pop-up</button>
                         <span class="info-tag">Auto-Refresh: <span id="timerRefresh">300</span>s</span>
@@ -283,6 +286,7 @@
             <div class="card">
                 <div class="flex-row">
                     <h3 style="color: var(--accent-blue);"><i class="fas fa-list"></i> Grid de Monitoramento e Alertas</h3>
+                    <input type="text" id="buscaGeralGrid" placeholder="Busca global no grid..." onkeyup="filtrarGrid()" class="input-livre" style="width: 200px; margin-left: 10px; padding: 5px 10px; height: 32px; font-size: 12px; margin-right: auto;">
                     <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(true)"><i class="fas fa-check-square"></i> Marcar Todos os Veículos</button>
                     <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(false)"><i class="fas fa-square"></i> Desmarcar Todos os Veículos</button>
                     <button class="btn" style="background:var(--accent-blue); padding:5px 10px; font-size: 12px;" onclick="limparFiltrosGrid()"><i class="fas fa-eraser"></i> Limpar Filtros</button>
@@ -1515,6 +1519,8 @@
         }
 
         function limparFiltrosGrid() {
+            const buscaGeral = document.getElementById('buscaGeralGrid');
+            if (buscaGeral) buscaGeral.value = '';
             document.querySelectorAll('#gridOperacional .filtro-coluna').forEach(input => input.value = '');
             filtrarGrid();
         }
@@ -2317,6 +2323,20 @@
             if (elContador) elContador.innerText = `${totalAlertasAtivos} Alertas`;
 
             renderizarPainelCardsAreas();
+            filtrarGrid(); // Re-aplica filtros ao renderizar
+        }
+
+        function toggleVisibilidadeAreas() {
+            const chk = document.getElementById('toggleAreasGrid');
+            if (chk && chk.checked) {
+                if (!map.hasLayer(camadaAreasGrupo)) {
+                    map.addLayer(camadaAreasGrupo);
+                }
+            } else {
+                if (map.hasLayer(camadaAreasGrupo)) {
+                    map.removeLayer(camadaAreasGrupo);
+                }
+            }
         }
 
         function alternarPopupAlertas20Min() {
@@ -2739,7 +2759,7 @@
             fecharJanelaCriarArea(); renderizarTabelaAreas(); renderizarAreasNoMapa(); renderizarPainelCardsAreas(); mudarAba('areas');
         }
 
-function renderizarTabelaAreas() {
+        function renderizarTabelaAreas() {
             const linhas = areasSalvas.map(a => `<tr>
                 <td><b>${escapeHtml(a.nome)}</b></td>
                 <td>${a.tipo.toUpperCase()}</td>
@@ -2798,6 +2818,28 @@ function renderizarTabelaAreas() {
             fecharModalCriarGrupoArea();
             renderizarGruposAreas();
             alert("Grupo de áreas salvo com sucesso!");
+        }
+
+        function renderizarGruposAreas() {
+            const tbody = document.getElementById('tbodyGruposAreas');
+            if (!tbody) return;
+            if (gruposAreasSalvos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; opacity:0.7;">Nenhum grupo cadastrado.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = gruposAreasSalvos.map(g => {
+                const nomesAreas = g.areas.map(aId => {
+                    const area = areasSalvas.find(a => a.id === aId);
+                    return area ? area.nome : 'Desconhecida';
+                }).join(', ');
+                return `<tr>
+                    <td><b>${escapeHtml(g.nome)}</b></td>
+                    <td style="font-size:12px;">${escapeHtml(nomesAreas)}</td>
+                    <td>
+                        <button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--danger);" onclick="excluirGrupoArea(${g.id})" title="Excluir Grupo"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>`;
+            }).join('');
         }
 
         async function excluirGrupoArea(id) {
@@ -2983,11 +3025,17 @@ function renderizarTabelaAreas() {
         function toggleCheckAll() { const checkAll = document.getElementById('checkAll'); if (checkAll) marcarTodos(checkAll.checked); }
 
         function filtrarGrid() {
+            const termoGeral = document.getElementById('buscaGeralGrid') ? document.getElementById('buscaGeralGrid').value.trim().toLowerCase() : '';
             const filtros = Array.from(document.querySelectorAll('#gridOperacional thead .filtro-coluna')).map(input => input.value.trim().toLowerCase());
+            
             document.querySelectorAll('#tbodyOperacional tr').forEach(row => {
                 const cells = Array.from(row.children);
-                const visivel = filtros.every((filtro, index) => !filtro || (cells[index]?.innerText || '').toLowerCase().includes(filtro));
-                row.style.display = visivel ? '' : 'none';
+                const textoLinha = row.innerText.toLowerCase();
+                
+                const passaGeral = !termoGeral || textoLinha.includes(termoGeral);
+                const passaColunas = filtros.every((filtro, index) => !filtro || (cells[index]?.innerText || '').toLowerCase().includes(filtro));
+                
+                row.style.display = (passaGeral && passaColunas) ? '' : 'none';
             });
         }
 
@@ -3075,7 +3123,7 @@ function renderizarTabelaAreas() {
             await salvarDadosNoBanco(); renderizarTabelaRotas(); fecharModalSalvar(); limparRota(); mudarAba('rotas');
         }
 
-function renderizarTabelaRotas(filtro = '') {
+        function renderizarTabelaRotas(filtro = '') {
             const filtradas = rotasSalvas.filter(r => r.nome.toLowerCase().includes(filtro.toLowerCase()));
             const linhas = filtradas.map(r => {
                 const litrosStr = r.litros ? `${r.litros} L` : `${(parseFloat(r.distancia)/2.5).toFixed(1)} L`;
