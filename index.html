@@ -1807,81 +1807,93 @@
         }
 
         function renderizarResumoOperacao() {
-            const container = document.getElementById('containerResumoOperacao');
-            if (!container) return;
+    const container = document.getElementById('containerResumoOperacao');
+    if (!container) return;
 
-            const categorias = [
-                { id: 'carregamento', titulo: 'Em Carregamento', keywords: ['CARREGAMENTO', 'AREA DE CARREGAMENTO', 'ÁREA DE CARREGAMENTO'], color: 'var(--success)' },
-                { id: 'descarga', titulo: 'Em Descarga', keywords: ['DESCARGA', 'AREA DE DESCARGA', 'ÁREA DE DESCARGA'], color: 'var(--danger)' },
-                { id: 'patio', titulo: 'No Pátio Externo', keywords: ['PATIO', 'PÁTIO', 'PATIO EXTERNO', 'PÁTIO EXTERNO'], color: 'var(--warning)' }
-            ];
+    // 1. SALVAR ESTADO: Verifica quais listas estão abertas no momento
+    const dropdownsAbertos = {};
+    const dropdownsAtuais = container.querySelectorAll('.area-card-dropdown.expanded');
+    dropdownsAtuais.forEach(dd => {
+        dropdownsAbertos[dd.id] = true;
+    });
 
-            let htmlCards = '';
+    const categorias = [
+        { id: 'carregamento', titulo: 'Em Carregamento', keywords: ['CARREGAMENTO', 'AREA DE CARREGAMENTO', 'ÁREA DE CARREGAMENTO'], color: 'var(--success)' },
+        { id: 'descarga', titulo: 'Em Descarga', keywords: ['DESCARGA', 'AREA DE DESCARGA', 'ÁREA DE DESCARGA'], color: 'var(--danger)' },
+        { id: 'patio', titulo: 'No Pátio Externo', keywords: ['PATIO', 'PÁTIO', 'PATIO EXTERNO', 'PÁTIO EXTERNO'], color: 'var(--warning)' }
+    ];
 
-            categorias.forEach(cat => {
-                let veiculosNaCategoria = [];
+    let htmlCards = '';
 
-                areasSalvas.forEach(area => {
-                    const nomeAreaUpper = area.nome.toUpperCase();
-                    const match = cat.keywords.some(kw => nomeAreaUpper.includes(kw));
-                    if (match) {
-                        veiculosCacheGlobal.forEach(v => {
-                            const placa = formatarPlacaPadrao(v.id_veiculo);
-                            const lat = parseFloat(String(v.latitude).replace(',', '.'));
-                            const lon = parseFloat(String(v.longitude).replace(',', '.'));
-                            if (!isNaN(lat) && !isNaN(lon) && veiculoDentroDaArea(lat, lon, area)) {
-                                const chaveKey = `${placa}_${area.id}`;
-                                let tempoStr = 'Recém entrado';
-                                if (contadorPermanenciaAreas[chaveKey]) {
-                                    const min = Math.max(0, Math.round((Date.now() - contadorPermanenciaAreas[chaveKey].inicio) / 60000));
-                                    tempoStr = formatarMinutosParaHhMm(min);
-                                }
-                                veiculosNaCategoria.push({ placa, areaNome: area.nome, tempo: tempoStr });
-                            }
-                        });
+    categorias.forEach(cat => {
+        let veiculosNaCategoria = [];
+
+        areasSalvas.forEach(area => {
+            const nomeAreaUpper = area.nome.toUpperCase();
+            const match = cat.keywords.some(kw => nomeAreaUpper.includes(kw));
+            if (match) {
+                veiculosCacheGlobal.forEach(v => {
+                    const placa = formatarPlacaPadrao(v.id_veiculo);
+                    const lat = parseFloat(String(v.latitude).replace(',', '.'));
+                    const lon = parseFloat(String(v.longitude).replace(',', '.'));
+                    if (!isNaN(lat) && !isNaN(lon) && veiculoDentroDaArea(lat, lon, area)) {
+                        const chaveKey = `${placa}_${area.id}`;
+                        let tempoStr = 'Recém entrado';
+                        if (contadorPermanenciaAreas[chaveKey]) {
+                            const min = Math.max(0, Math.round((Date.now() - contadorPermanenciaAreas[chaveKey].inicio) / 60000));
+                            tempoStr = formatarMinutosParaHhMm(min);
+                        }
+                        veiculosNaCategoria.push({ placa, areaNome: area.nome, tempo: tempoStr });
                     }
                 });
+            }
+        });
 
-                const uniqueVeiculos = [];
-                const mapUniques = new Map();
-                for (const item of veiculosNaCategoria) {
-                    if(!mapUniques.has(item.placa)) {
-                        mapUniques.set(item.placa, true);
-                        uniqueVeiculos.push(item);
-                    }
-                }
-
-                const qtd = uniqueVeiculos.length;
-
-                let linhasTabela = uniqueVeiculos.map(v => `<tr><td><b>${v.placa}</b></td><td>${v.areaNome}</td><td>${v.tempo}</td></tr>`).join('');
-                if (qtd === 0) linhasTabela = `<tr><td colspan="3" style="text-align:center; opacity:0.6;">Nenhum veículo no momento</td></tr>`;
-
-                htmlCards += `
-                    <div class="area-card-item" style="border-left-color: ${cat.color};">
-                        <div class="area-card-header">
-                            <h4 class="area-card-title" style="color: ${cat.color};"><i class="fas fa-map-marker-alt"></i> ${cat.titulo}</h4>
-                            <button class="area-card-icon-btn" style="color: ${cat.color};" onclick="toggleCardAreaPlacas('resumo-${cat.id}')">
-                                <i class="fas fa-table"></i>
-                            </button>
-                        </div>
-                        <div class="area-card-body">
-                            <div>
-                                <span style="font-size: 12px; opacity: 0.7;">Total de Veículos:</span>
-                                <h2 class="area-card-count" style="color: ${cat.color};">${qtd}</h2>
-                            </div>
-                        </div>
-                        <div id="dropdown-area-resumo-${cat.id}" class="area-card-dropdown">
-                            <table class="resumo-table">
-                                <thead><tr><th>Placa</th><th>Área</th><th>Tempo</th></tr></thead>
-                                <tbody>${linhasTabela}</tbody>
-                            </table>
-                        </div>
-                    </div>
-                `;
-            });
-
-            container.innerHTML = htmlCards;
+        const uniqueVeiculos = [];
+        const mapUniques = new Map();
+        for (const item of veiculosNaCategoria) {
+            if(!mapUniques.has(item.placa)) {
+                mapUniques.set(item.placa, true);
+                uniqueVeiculos.push(item);
+            }
         }
+
+        const qtd = uniqueVeiculos.length;
+
+        let linhasTabela = uniqueVeiculos.map(v => `<tr><td><b>${v.placa}</b></td><td>${v.areaNome}</td><td>${v.tempo}</td></tr>`).join('');
+        if (qtd === 0) linhasTabela = `<tr><td colspan="3" style="text-align:center; opacity:0.6;">Nenhum veículo no momento</td></tr>`;
+
+        // 2. RECUPERAR ESTADO: Define a classe 'expanded' se a lista estava aberta antes
+        const idDropdown = `dropdown-area-resumo-${cat.id}`;
+        const classeExpandido = dropdownsAbertos[idDropdown] ? 'expanded' : '';
+
+        htmlCards += `
+            <div class="area-card-item" style="border-left-color: ${cat.color};">
+                <div class="area-card-header">
+                    <h4 class="area-card-title" style="color: ${cat.color};"><i class="fas fa-map-marker-alt"></i> ${cat.titulo}</h4>
+                    <button class="area-card-icon-btn" style="color: ${cat.color};" onclick="toggleCardAreaPlacas('resumo-${cat.id}')">
+                        <i class="fas fa-table"></i>
+                    </button>
+                </div>
+                <div class="area-card-body">
+                    <div>
+                        <span style="font-size: 12px; opacity: 0.7;">Total de Veículos:</span>
+                        <h2 class="area-card-count" style="color: ${cat.color};">${qtd}</h2>
+                    </div>
+                </div>
+                <!-- Aplica a classe de estado aqui -->
+                <div id="${idDropdown}" class="area-card-dropdown ${classeExpandido}">
+                    <table class="resumo-table">
+                        <thead><tr><th>Placa</th><th>Área</th><th>Tempo</th></tr></thead>
+                        <tbody>${linhasTabela}</tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = htmlCards;
+}
 
         function renderizarPainelCardsAreas() {
             const painel = document.getElementById('painelCardsAreas');
