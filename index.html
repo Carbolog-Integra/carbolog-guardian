@@ -884,6 +884,7 @@
         let camadaReferenciasPonto = null;
         
         let camadaDesenhoTemp = L.layerGroup();
+        let camadaAreasSalvasDesenho = L.layerGroup(); // CORREÇÃO: Visibilidade de áreas no Modal
         let camadaPontoRefTemp = L.layerGroup();
         
         let rotasSalvas = [];
@@ -919,13 +920,15 @@
         let pontoReferenciaEditandoId = null;
 
         let columnOrder = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+        
+        // CORREÇÃO: Guarda a ID do Banco (Supabase) para evitar dependência do localStorage
+        let registroIdBanco = null;
+
         const SUPABASE_URL = 'https://oyrqywoctnyottwvqrji.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95cnF5d29jdG55b3R0d3ZxcmppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMjMyOTQsImV4cCI6MjEwMzc5OTI5NH0.VdqJLc_u1VXFrnOe59Bw7wLWV-GZLnx6_fjzBV_TU8w';
         const USUARIO_GLOBAL = 'global_sistema_frota';
         const PRECO_DIESEL_SP = 6.43;
 
-        // Dados vindos de APIs, banco ou entrada do usuário nunca devem ser
-        // inseridos diretamente em HTML sem escape.
         function escapeHtml(valor) {
             return String(valor ?? '')
                 .replaceAll('&', '&amp;')
@@ -950,6 +953,7 @@
         async function carregarDadosDoBanco() {
             let dadosNuvem = null;
             try {
+                // CORREÇÃO: Agora sempre pegamos a ID se existir, para PATCH posterior.
                 const res = await fetch(`${SUPABASE_URL}/rest/v1/preferencias_usuario?select=*&usuario=eq.${USUARIO_GLOBAL}`, {
                     method: 'GET',
                     cache: 'no-store',
@@ -963,16 +967,18 @@
                 if (res.ok) {
                     const data = await res.json();
                     if (data && data.length > 0) {
-                        // FORÇANDO PEGAR O ÚLTIMO REGISTRO (MAIS RECENTE) EVITANDO CONFLITOS DE ARRAYS VAZIOS
-                        // Usa o registro mais recente quando a tabela possuir timestamp.
-                        dadosNuvem = [...data].sort((a, b) => {
-                            const ta = Date.parse(a.updated_at || a.created_at || '') || 0;
-                            const tb = Date.parse(b.updated_at || b.created_at || '') || 0;
+                        const reg = [...data].sort((a, b) => {
+                            const ta = new Date(a.updated_at || a.created_at || 0).getTime();
+                            const tb = new Date(b.updated_at || b.created_at || 0).getTime();
                             return ta - tb;
                         }).at(-1);
+                        dadosNuvem = reg;
+                        registroIdBanco = reg.id; // Guarda o ID para o PATCH
                     }
                 }
-            } catch(e) {}
+            } catch(e) {
+                console.error("Falha ao puxar Supabase:", e);
+            }
 
             let dadosLocais = null;
             try {
@@ -980,23 +986,18 @@
                 if (localStr) dadosLocais = JSON.parse(localStr);
             } catch(e) {}
 
+            // Nuvem é prioridade sempre
             const reg = dadosNuvem || dadosLocais;
             if (reg) {
                 if (reg.ordem_colunas) columnOrder = reg.ordem_colunas;
                 if (reg.frota_cadastrada) frotaCadastrada = reg.frota_cadastrada;
-                
-                // TRATAMENTO PARA ARRAYS VAZIOS FUNCIONAREM (QUANDO TUDO FOI DELETADO)
                 if (reg.rotas_salvas !== undefined) rotasSalvas = reg.rotas_salvas;
                 if (reg.rotas_veiculos) rotasVeiculos = reg.rotas_veiculos;
-                
                 if (reg.areas_salvas !== undefined) areasSalvas = reg.areas_salvas;
                 if (reg.areas_veiculos) areasVeiculos = reg.areas_veiculos;
-                
                 if (reg.grupos_areas !== undefined) gruposAreasSalvos = reg.grupos_areas;
                 if (reg.grupos_veiculos) gruposVeiculos = reg.grupos_veiculos;
-                
                 if (reg.pontos_referencia !== undefined) pontosReferenciaSalvos = reg.pontos_referencia;
-                
                 if (reg.alertas_finalizados) alertasFinalizados = reg.alertas_finalizados;
                 if (reg.contador_permanencia) contadorPermanenciaAreas = reg.contador_permanencia;
                 if (reg.hist_permanencias) historicoPermanenciasDashboard = reg.hist_permanencias;
@@ -1047,17 +1048,35 @@
             } catch(e) {}
 
             try {
-                await fetch(`${SUPABASE_URL}/rest/v1/preferencias_usuario`, {
-                    method: 'POST',
+                // CORREÇÃO: Usando PATCH se já existe ID, senão POST recebendo retorno. Resolve 100% o B.O. de máquinas diferentes.
+                let url = `${SUPABASE_URL}/rest/v1/preferencias_usuario`;
+                let method = 'POST';
+
+                if (registroIdBanco) {
+                    url += `?id=eq.${registroIdBanco}`;
+                    method = 'PATCH';
+                }
+
+                const res = await fetch(url, {
+                    method: method,
                     headers: {
                         'apikey': SUPABASE_KEY,
                         'Authorization': `Bearer ${SUPABASE_KEY}`,
                         'Content-Type': 'application/json',
-                        'Prefer': 'resolution=merge-duplicates'
+                        'Prefer': 'return=representation'
                     },
                     body: JSON.stringify(payload)
                 });
-            } catch(e) {}
+
+                if (res.ok && method === 'POST') {
+                    const data = await res.json();
+                    if (data && data.length > 0) {
+                        registroIdBanco = data[0].id;
+                    }
+                }
+            } catch(e) {
+                console.error("Falha ao salvar no Supabase:", e);
+            }
         }
 
         function verificarSessaoSalva() {
@@ -1090,8 +1109,6 @@
             const email = emailEl.value.trim().toLowerCase();
             const senha = passEl.value;
 
-            // Esta validação reduz entradas acidentais, mas NÃO substitui
-            // autenticação real no backend/Supabase Auth.
             const emailValido = /^[^\s@]+@carbolog\.com\.br$/.test(email);
             if (!emailValido || senha.length < 1) {
                 erroEl.textContent = 'Informe um e-mail corporativo e uma senha.';
@@ -1137,9 +1154,6 @@
             alert("Veículo adicionado com sucesso! Ele já aparecerá no Grid Operacional.");
         }
 
-        // ==========================================
-        // NOVO: EDIÇÃO DE VEÍCULOS NO CADASTRO MASTER
-        // ==========================================
         async function editarVeiculoFrota(placaAtual) {
             const veiculo = frotaCadastrada.find(f => f.placa === placaAtual);
             if (!veiculo) return;
@@ -1160,10 +1174,8 @@
                 return;
             }
 
-            // 1. Atualizar no array master
             veiculo.placa = novaPlaca;
 
-            // 2. Transferir vínculos de rotas e áreas para a nova placa
             if (rotasVeiculos[placaAtual]) {
                 rotasVeiculos[novaPlaca] = rotasVeiculos[placaAtual];
                 delete rotasVeiculos[placaAtual];
@@ -1181,7 +1193,6 @@
                 delete veiculosOcultosGlobal[placaAtual];
             }
 
-            // 3. Atualizar no cache global (API) para refletir no grid imediatamente
             const veiculoNoCache = veiculosCacheGlobal.find(v => formatarPlacaPadrao(v.id_veiculo) === placaAtual);
             if (veiculoNoCache) {
                 veiculoNoCache.id_veiculo = novaPlaca;
@@ -1201,7 +1212,6 @@
                     <td>${f.descricao}</td>
                     <td>${f.dataCadastro}</td>
                     <td>
-                        <!-- BOTÃO NOVO ADICIONADO AQUI -->
                         <button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--warning); color: #000; margin-right: 5px;" onclick="editarVeiculoFrota('${f.placa}')">
                             <i class="fas fa-edit"></i> Editar
                         </button>
@@ -1433,7 +1443,7 @@
 
             const tabelaEl = document.getElementById(tableId);
             const workbook = XLSX.utils.table_to_book(tabelaEl, { sheet: "Dados" });
-            XLS.writeFile(workbook, nomeArquivo + ".xlsx");
+            XLSX.writeFile(workbook, nomeArquivo + ".xlsx");
 
             tabelasExpandidas[tableId] = estadoAnterior;
             atualizarKpisETabelasDash();
@@ -1557,6 +1567,20 @@
                 "Pontos de Referência": camadaReferenciasGrupo
             }).addTo(map);
 
+            // CORREÇÃO: Sincronizar o controle nativo do mapa com o checkbox "Áreas visíveis no mapa"
+            map.on('overlayadd', function(e) {
+                if (e.name === "Áreas Geográficas (Cercas)") {
+                    const chk = document.getElementById('toggleAreasGrid');
+                    if (chk) chk.checked = true;
+                }
+            });
+            map.on('overlayremove', function(e) {
+                if (e.name === "Áreas Geográficas (Cercas)") {
+                    const chk = document.getElementById('toggleAreasGrid');
+                    if (chk) chk.checked = false;
+                }
+            });
+
             if (localStorage.getItem('tema') === 'claro') {
                 document.body.classList.remove('dark-mode');
                 const icone = document.getElementById('iconeTema');
@@ -1632,7 +1656,6 @@
         }
 
         function distanciaPontoSegmentoMetros(lat, lon, a, b) {
-            // Projeção equiretangular adequada para os pequenos segmentos das rotas.
             const escalaX = 111320 * Math.cos(lat * Math.PI / 180);
             const escalaY = 110540;
             const px = lon * escalaX, py = lat * escalaY;
@@ -2323,7 +2346,7 @@
             if (elContador) elContador.innerText = `${totalAlertasAtivos} Alertas`;
 
             renderizarPainelCardsAreas();
-            filtrarGrid(); // Re-aplica filtros ao renderizar
+            filtrarGrid(); 
         }
 
         function toggleVisibilidadeAreas() {
@@ -2704,6 +2727,7 @@
 
                     mapDesenhoAreaInstance = L.map('mapDesenhoArea', { center: [-23.5505, -46.6333], zoom: 8, layers: [rotulosArea] });
                     camadaDesenhoTemp.addTo(mapDesenhoAreaInstance);
+                    camadaAreasSalvasDesenho.addTo(mapDesenhoAreaInstance); // CORREÇÃO
                     camadaReferenciasArea = L.layerGroup().addTo(mapDesenhoAreaInstance);
                     renderizarPontosReferenciaNoMapa(mapDesenhoAreaInstance, camadaReferenciasArea);
                     L.control.layers({"Satélite (Com Vias)": rotulosArea, "Normal": mapaNormalArea}, {"Pontos de Referência": camadaReferenciasArea}).addTo(mapDesenhoAreaInstance);
@@ -2724,6 +2748,17 @@
                         }
                     });
                 }
+                
+                // CORREÇÃO: Mostra as áreas já salvas com transparência na tela de criar áreas para evitar sobreposição
+                camadaAreasSalvasDesenho.clearLayers();
+                areasSalvas.forEach(a => {
+                    if (a.tipo === 'polygon' || a.tipo === 'rectangle') {
+                        L.polygon(a.geometria, {color: '#888', fillColor: '#888', fillOpacity: 0.2, weight: 2}).bindPopup(`Área já salva: ${escapeHtml(a.nome)}`).addTo(camadaAreasSalvasDesenho);
+                    } else if (a.tipo === 'circle') {
+                        L.circle(a.geometria.center, {radius: a.geometria.radius, color: '#888', fillColor: '#888', fillOpacity: 0.2, weight: 2}).bindPopup(`Área já salva: ${escapeHtml(a.nome)}`).addTo(camadaAreasSalvasDesenho);
+                    }
+                });
+
                 mapDesenhoAreaInstance.invalidateSize();
             }, 200);
         }
@@ -2782,7 +2817,6 @@
 
             area.nome = novoNome.trim();
             
-            // Salva e atualiza tudo onde o nome da área aparece
             await salvarDadosNoBanco();
             renderizarTabelaAreas();
             renderizarAreasNoMapa();
@@ -2893,7 +2927,6 @@
                 g.areas = g.areas.filter(aId => aId != id);
             });
             
-            // LIMPEZA: Remove essa área atrelada a veículos no local Storage/Cache global
             Object.keys(areasVeiculos).forEach(placa => {
                 areasVeiculos[placa] = areasVeiculos[placa].filter(aId => aId != id);
             });
@@ -2960,12 +2993,10 @@
             placaAtualVinculandoArea = placa; 
             document.getElementById('veiculoSelecionadoAreaModal').innerText = placa;
             
-            // Renderizar Grupos de Áreas
             const containerGrupos = document.getElementById('listaCheckboxGruposVincular');
             const vinculadosGrupos = gruposVeiculos[placa] || [];
             containerGrupos.innerHTML = gruposAreasSalvos.length === 0 ? `<p style="font-size:12px; opacity:0.7;">Nenhum grupo de áreas criado.</p>` : gruposAreasSalvos.map(g => `<label style="display:block; margin-bottom:5px; font-size:13px;"><input type="checkbox" value="${g.id}" ${vinculadosGrupos.includes(g.id) ? 'checked' : ''}> ${g.nome}</label>`).join('');
 
-            // Renderizar Áreas Avulsas
             const containerAreas = document.getElementById('listaCheckboxAreas');
             const vinculadasAtuais = areasVeiculos[placa] || [];
             containerAreas.innerHTML = areasSalvas.length === 0 ? `<p style="font-size:12px; opacity:0.7;">Nenhuma área criada.</p>` : areasSalvas.map(a => `<label style="display:block; margin-bottom:5px; font-size:13px;"><input type="checkbox" value="${a.id}" ${vinculadasAtuais.includes(a.id) ? 'checked' : ''}> ${a.nome}</label>`).join('');
@@ -3044,7 +3075,6 @@
             timerIntervalRef = setInterval(() => {
                 countdown--; const timerEl = document.getElementById('timerRefresh'); if (timerEl) timerEl.innerText = countdown;
                 if(countdown <= 0) { countdown = 300; carregarDadosVeiculos(); }
-                // Atualiza o tempo dos veículos na área dinamicamente a cada segundo
                 renderizarResumoOperacao();
             }, 1000);
         }
@@ -3150,7 +3180,6 @@
 
             rota.nome = novoNome.trim();
             
-            // Se essa rota já estiver vinculada a um caminhão, atualiza o nome lá também
             Object.keys(rotasVeiculos).forEach(placa => {
                 if (rotasVeiculos[placa].id === id) {
                     rotasVeiculos[placa].nome = rota.nome;
@@ -3177,7 +3206,6 @@
             if (!confirm("Excluir rota?")) return;
             rotasSalvas = rotasSalvas.filter(r => r.id !== id);
             
-            // LIMPEZA: Remove rotas apagadas que ainda estariam no Cache
             Object.keys(rotasVeiculos).forEach(placa => {
                 if (rotasVeiculos[placa].id === id) {
                     delete rotasVeiculos[placa];
