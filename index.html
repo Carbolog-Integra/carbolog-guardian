@@ -285,6 +285,8 @@
                     <h3 style="color: var(--accent-blue);"><i class="fas fa-list"></i> Grid de Monitoramento e Alertas</h3>
                     <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(true)"><i class="fas fa-check-square"></i> Marcar Todos os Veículos</button>
                     <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(false)"><i class="fas fa-square"></i> Desmarcar Todos os Veículos</button>
+                    <button class="btn" style="background:var(--accent-blue); padding:5px 10px; font-size: 12px;" onclick="limparFiltrosGrid()"><i class="fas fa-eraser"></i> Limpar Filtros</button>
+                    <button class="btn" style="background:#6a1b9a; padding:5px 10px; font-size: 12px;" onclick="restaurarOrdemColunas()"><i class="fas fa-columns"></i> Restaurar Colunas</button>
                 </div>
                 <div style="overflow-x: auto;">
                     <table id="gridOperacional">
@@ -292,16 +294,16 @@
                             <tr>
                                 <th draggable="true"><i class="fas fa-list-ol"></i> Nº</th>
                                 <th draggable="true"><i class="fas fa-eye"></i> Ver <br><input type="checkbox" id="checkAll" checked onclick="toggleCheckAll()"></th>
-                                <th draggable="true"><i class="fas fa-truck"></i> Placa <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna"></th>
-                                <th draggable="true"><i class="fas fa-clock"></i> Data/Hora Com. <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna"></th>
+                                <th draggable="true"><i class="fas fa-truck"></i> Placa <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="placa"></th>
+                                <th draggable="true"><i class="fas fa-clock"></i> Data/Hora Com. <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="data/hora"></th>
                                 <th draggable="true"><i class="fas fa-power-off"></i> Ignição <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="ON/OFF"></th>
-                                <th draggable="true"><i class="fas fa-city"></i> Cidade <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna"></th>
-                                <th draggable="true"><i class="fas fa-map"></i> UF <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna"></th>
-                                <th draggable="true"><i class="fas fa-road"></i> Rua / Rodovia <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna"></th>
+                                <th draggable="true"><i class="fas fa-city"></i> Cidade <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="cidade"></th>
+                                <th draggable="true"><i class="fas fa-map"></i> UF <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="UF"></th>
+                                <th draggable="true"><i class="fas fa-road"></i> Rua / Rodovia <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="rua/rodovia"></th>
                                 <th draggable="true"><i class="fas fa-tachometer-alt"></i> Velocidade <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="km/h"></th>
-                                <th draggable="true"><i class="fas fa-route"></i> Rota Vinculada</th>
-                                <th draggable="true"><i class="fas fa-draw-polygon"></i> Áreas Vinculadas</th>
-                                <th draggable="true"><i class="fas fa-exclamation-triangle"></i> Alertas e Ações</th>
+                                <th draggable="true"><i class="fas fa-route"></i> Rota Vinculada <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="rota"></th>
+                                <th draggable="true"><i class="fas fa-draw-polygon"></i> Áreas Vinculadas <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="área"></th>
+                                <th draggable="true"><i class="fas fa-exclamation-triangle"></i> Alertas e Ações <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="alerta"></th>
                             </tr>
                         </thead>
                         <tbody id="tbodyOperacional"></tbody>
@@ -1253,6 +1255,7 @@
             const trHead = document.querySelector('#gridOperacional th');
             if (!trHead) return;
             const ths = Array.from(trHead.parentNode.children);
+            ths.forEach((th, idx) => { if (!th.dataset.colIndex) th.dataset.colIndex = String(idx); });
             const novosThs = new Array(columnOrder.length);
             ths.forEach((th, idx) => { if (columnOrder[idx] !== undefined) novosThs[columnOrder[idx]] = th; });
             trHead.parentNode.innerHTML = '';
@@ -1477,46 +1480,54 @@
         }
 
         function inicializarDragDropColunas() {
-            const ths = document.querySelectorAll('#gridOperacional th');
-            let draggedColIndex = null;
-            ths.forEach(th => {
+            const ths = Array.from(document.querySelectorAll('#gridOperacional th'));
+            ths.forEach((th, index) => {
+                if (!th.dataset.colIndex) th.dataset.colIndex = String(index);
                 th.setAttribute('draggable', 'true');
                 th.addEventListener('dragstart', (e) => {
-                    draggedColIndex = Array.from(th.parentNode.children).indexOf(th);
-                    e.dataTransfer.effectAllowed = 'move';
                     th.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', th.dataset.colIndex);
                 });
                 th.addEventListener('dragover', (e) => {
                     e.preventDefault();
-                    e.dataTransfer.dropEffect = 'move';
                     th.classList.add('drag-over');
+                    e.dataTransfer.dropEffect = 'move';
                 });
-                th.addEventListener('dragleave', () => { th.classList.remove('drag-over'); });
+                th.addEventListener('dragleave', () => th.classList.remove('drag-over'));
                 th.addEventListener('drop', (e) => {
                     e.preventDefault();
-                    th.classList.remove('drag-over');
-                    const targetColIndex = Array.from(th.parentNode.children).indexOf(th);
-                    
-                    if (draggedColIndex !== null && draggedColIndex !== targetColIndex) {
-                        const trHead = th.parentNode;
-                        const originalThs = Array.from(trHead.children);
-                        
-                        if (draggedColIndex < targetColIndex) { trHead.insertBefore(originalThs[draggedColIndex], originalThs[targetColIndex].nextSibling); } 
-                        else { trHead.insertBefore(originalThs[draggedColIndex], originalThs[targetColIndex]); }
-                        
-                        const novosThs = Array.from(trHead.children);
-                        const allInitialThs = Array.from(document.querySelectorAll('#gridOperacional th'));
-                        columnOrder = novosThs.map(t => allInitialThs.indexOf(t));
-                        
-                        salvarDadosNoBanco();
-                        renderizarGridEMapa();
-                    }
+                    const origem = document.querySelector('#gridOperacional th.dragging');
+                    if (!origem || origem === th) return;
+                    const parent = th.parentNode;
+                    const rect = th.getBoundingClientRect();
+                    const depois = e.clientX > rect.left + rect.width / 2;
+                    parent.insertBefore(origem, depois ? th.nextSibling : th);
+                    columnOrder = Array.from(parent.children).map(el => Number(el.dataset.colIndex));
+                    salvarDadosNoBanco();
+                    renderizarGridEMapa();
                 });
                 th.addEventListener('dragend', () => {
                     th.classList.remove('dragging');
-                    ths.forEach(t => t.classList.remove('drag-over'));
+                    ths.forEach(el => el.classList.remove('drag-over'));
                 });
             });
+        }
+
+        function limparFiltrosGrid() {
+            document.querySelectorAll('#gridOperacional .filtro-coluna').forEach(input => input.value = '');
+            filtrarGrid();
+        }
+
+        async function restaurarOrdemColunas() {
+            columnOrder = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+            const head = document.querySelector('#gridOperacional thead tr');
+            if (head) {
+                const colunas = Array.from(head.children).sort((a, b) => Number(a.dataset.colIndex) - Number(b.dataset.colIndex));
+                colunas.forEach(th => head.appendChild(th));
+            }
+            await salvarDadosNoBanco();
+            renderizarGridEMapa();
         }
 
         window.addEventListener('DOMContentLoaded', async () => {
@@ -2816,7 +2827,7 @@ function renderizarTabelaAreas() {
             camadaAreasGrupo.clearLayers();
             areasSalvas.forEach(a => {
                 if (a.tipo === 'polygon' || a.tipo === 'rectangle') {
-                    L.polygon(a.geometria, {color: '#00838F', fillColor: '#00838F', fillOpacity: 0.3, weight: 2}).bindPopup(`<b>Área:</b> ${escapeHtml(a.nome)}`).addTo(camadaAreasGrupo);
+                    L.polygon(a.geometria, {color: '#00838F', fillColor: '#00838F', fillOpacity: 0.35, weight: 3}).bindPopup(`<b>Área:</b> ${escapeHtml(a.nome)}`).addTo(camadaAreasGrupo);
                 } else if (a.tipo === 'circle') {
                     L.circle(a.geometria.center, {radius: a.geometria.radius, color: '#00838F', fillColor: '#00838F', fillOpacity: 0.3, weight: 2}).bindPopup(`<b>Área:</b> ${escapeHtml(a.nome)}`).addTo(camadaAreasGrupo);
                 }
@@ -2972,16 +2983,11 @@ function renderizarTabelaAreas() {
         function toggleCheckAll() { const checkAll = document.getElementById('checkAll'); if (checkAll) marcarTodos(checkAll.checked); }
 
         function filtrarGrid() {
-            document.querySelectorAll('#tbodyOperacional tr').forEach(linha => {
-                let visivel = true; const colunas = linha.querySelectorAll('td');
-                document.querySelectorAll('.filtro-coluna').forEach(input => {
-                    const termo = input.value.toUpperCase();
-                    if (termo) {
-                        const th = input.closest('th'); const idx = Array.from(th.parentNode.children).indexOf(th);
-                        if (colunas[idx] && colunas[idx].innerText.toUpperCase().indexOf(termo) === -1) visivel = false;
-                    }
-                });
-                linha.style.display = visivel ? '' : 'none';
+            const filtros = Array.from(document.querySelectorAll('#gridOperacional thead .filtro-coluna')).map(input => input.value.trim().toLowerCase());
+            document.querySelectorAll('#tbodyOperacional tr').forEach(row => {
+                const cells = Array.from(row.children);
+                const visivel = filtros.every((filtro, index) => !filtro || (cells[index]?.innerText || '').toLowerCase().includes(filtro));
+                row.style.display = visivel ? '' : 'none';
             });
         }
 
