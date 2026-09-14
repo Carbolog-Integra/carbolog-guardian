@@ -342,7 +342,7 @@
                             <th>Placa</th>
                             <th>Descrição / Detalhes</th>
                             <th>Data de Cadastro</th>
-                            <th style="width: 100px;">Ações</th>
+                            <th style="width: 150px;">Ações</th>
                         </tr>
                     </thead>
                     <tbody id="tbodyFrotaMaster"></tbody>
@@ -822,7 +822,7 @@
         </div>
     </div>
 
-    <!-- MODIFICADO: MODAL VINCULAR ÁREA / GRUPO -->
+    <!-- MODAL VINCULAR ÁREA / GRUPO -->
     <div id="modalVincularArea" class="modal">
         <div class="modal-content" style="max-width: 420px;">
             <div class="modal-header">Vincular Área/Grupo ao Veículo <span class="close-modal" onclick="fecharModalVincularArea()">×</span></div>
@@ -921,10 +921,9 @@
             return p;
         }
 
-async function carregarDadosDoBanco() {
+        async function carregarDadosDoBanco() {
             let dadosNuvem = null;
             try {
-                // Adicionado cache: 'no-store' para obrigar o sistema a buscar dados reais do Supabase
                 const res = await fetch(`${SUPABASE_URL}/rest/v1/preferencias_usuario?select=*&usuario=eq.${USUARIO_GLOBAL}`, {
                     method: 'GET',
                     cache: 'no-store',
@@ -937,7 +936,10 @@ async function carregarDadosDoBanco() {
                 });
                 if (res.ok) {
                     const data = await res.json();
-                    if (data && data.length > 0) dadosNuvem = data[0];
+                    if (data && data.length > 0) {
+                        // FORÇANDO PEGAR O ÚLTIMO REGISTRO (MAIS RECENTE) EVITANDO CONFLITOS DE ARRAYS VAZIOS
+                        dadosNuvem = data[data.length - 1]; 
+                    }
                 }
             } catch(e) {}
 
@@ -951,13 +953,19 @@ async function carregarDadosDoBanco() {
             if (reg) {
                 if (reg.ordem_colunas) columnOrder = reg.ordem_colunas;
                 if (reg.frota_cadastrada) frotaCadastrada = reg.frota_cadastrada;
-                if (reg.rotas_salvas && reg.rotas_salvas.length > 0) rotasSalvas = reg.rotas_salvas;
+                
+                // TRATAMENTO PARA ARRAYS VAZIOS FUNCIONAREM (QUANDO TUDO FOI DELETADO)
+                if (reg.rotas_salvas !== undefined) rotasSalvas = reg.rotas_salvas;
                 if (reg.rotas_veiculos) rotasVeiculos = reg.rotas_veiculos;
-                if (reg.areas_salvas && reg.areas_salvas.length > 0) areasSalvas = reg.areas_salvas;
+                
+                if (reg.areas_salvas !== undefined) areasSalvas = reg.areas_salvas;
                 if (reg.areas_veiculos) areasVeiculos = reg.areas_veiculos;
-                if (reg.grupos_areas) gruposAreasSalvos = reg.grupos_areas;
+                
+                if (reg.grupos_areas !== undefined) gruposAreasSalvos = reg.grupos_areas;
                 if (reg.grupos_veiculos) gruposVeiculos = reg.grupos_veiculos;
-                if (reg.pontos_referencia && reg.pontos_referencia.length > 0) pontosReferenciaSalvos = reg.pontos_referencia;
+                
+                if (reg.pontos_referencia !== undefined) pontosReferenciaSalvos = reg.pontos_referencia;
+                
                 if (reg.alertas_finalizados) alertasFinalizados = reg.alertas_finalizados;
                 if (reg.contador_permanencia) contadorPermanenciaAreas = reg.contador_permanencia;
                 if (reg.hist_permanencias) historicoPermanenciasDashboard = reg.hist_permanencias;
@@ -1083,6 +1091,63 @@ async function carregarDadosDoBanco() {
             alert("Veículo adicionado com sucesso! Ele já aparecerá no Grid Operacional.");
         }
 
+        // ==========================================
+        // NOVO: EDIÇÃO DE VEÍCULOS NO CADASTRO MASTER
+        // ==========================================
+        async function editarVeiculoFrota(placaAtual) {
+            const veiculo = frotaCadastrada.find(f => f.placa === placaAtual);
+            if (!veiculo) return;
+
+            const novaPlacaBruta = prompt("Digite a nova placa para o veículo (ela será atualizada no grid e relatórios):", veiculo.placa);
+            if (!novaPlacaBruta) return;
+
+            const novaPlaca = formatarPlacaPadrao(novaPlacaBruta);
+            if (novaPlaca === placaAtual) return;
+
+            if (novaPlaca.length < 7) {
+                alert("Por favor, insira uma placa válida.");
+                return;
+            }
+
+            if (frotaCadastrada.some(f => f.placa === novaPlaca)) {
+                alert("A placa " + novaPlaca + " já existe no cadastro! Remova a duplicata se necessário.");
+                return;
+            }
+
+            // 1. Atualizar no array master
+            veiculo.placa = novaPlaca;
+
+            // 2. Transferir vínculos de rotas e áreas para a nova placa
+            if (rotasVeiculos[placaAtual]) {
+                rotasVeiculos[novaPlaca] = rotasVeiculos[placaAtual];
+                delete rotasVeiculos[placaAtual];
+            }
+            if (areasVeiculos[placaAtual]) {
+                areasVeiculos[novaPlaca] = areasVeiculos[placaAtual];
+                delete areasVeiculos[placaAtual];
+            }
+            if (gruposVeiculos[placaAtual]) {
+                gruposVeiculos[novaPlaca] = gruposVeiculos[placaAtual];
+                delete gruposVeiculos[placaAtual];
+            }
+            if (veiculosOcultosGlobal[placaAtual] !== undefined) {
+                veiculosOcultosGlobal[novaPlaca] = veiculosOcultosGlobal[placaAtual];
+                delete veiculosOcultosGlobal[placaAtual];
+            }
+
+            // 3. Atualizar no cache global (API) para refletir no grid imediatamente
+            const veiculoNoCache = veiculosCacheGlobal.find(v => formatarPlacaPadrao(v.id_veiculo) === placaAtual);
+            if (veiculoNoCache) {
+                veiculoNoCache.id_veiculo = novaPlaca;
+            }
+
+            await salvarDadosNoBanco();
+            renderizarTabelaFrota();
+            renderizarGridEMapa();
+            atualizarKpisETabelasDash();
+            alert(`Placa atualizada com sucesso de ${placaAtual} para ${novaPlaca}! O grid já foi atualizado.`);
+        }
+
         function renderizarTabelaFrota() {
             const linhas = frotaCadastrada.map(f => `
                 <tr>
@@ -1090,6 +1155,10 @@ async function carregarDadosDoBanco() {
                     <td>${f.descricao}</td>
                     <td>${f.dataCadastro}</td>
                     <td>
+                        <!-- BOTÃO NOVO ADICIONADO AQUI -->
+                        <button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--warning); color: #000; margin-right: 5px;" onclick="editarVeiculoFrota('${f.placa}')">
+                            <i class="fas fa-edit"></i> Editar
+                        </button>
                         <button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--danger);" onclick="removerVeiculoFrota('${f.placa}')">
                             <i class="fas fa-trash"></i> Remover
                         </button>
@@ -1141,13 +1210,13 @@ async function carregarDadosDoBanco() {
         function obterCorTextoGrafico() { return document.body.classList.contains('dark-mode') ? '#FFFFFF' : '#333333'; }
 
         function reordenarCabecalhoVisualmente() {
-            const trHead = document.querySelector('#gridOperacional thead tr');
+            const trHead = document.querySelector('#gridOperacional th');
             if (!trHead) return;
-            const ths = Array.from(trHead.children);
+            const ths = Array.from(trHead.parentNode.children);
             const novosThs = new Array(columnOrder.length);
             ths.forEach((th, idx) => { if (columnOrder[idx] !== undefined) novosThs[columnOrder[idx]] = th; });
-            trHead.innerHTML = '';
-            novosThs.forEach(th => { if(th) trHead.appendChild(th); });
+            trHead.parentNode.innerHTML = '';
+            novosThs.forEach(th => { if(th) trHead.parentNode.appendChild(th); });
         }
 
         let timeoutBusca = null;
@@ -1559,7 +1628,7 @@ async function carregarDadosDoBanco() {
             }
         }
 
-async function carregarDadosVeiculos() {
+        async function carregarDadosVeiculos() {
             const btnRefresh = document.getElementById('btnRefreshManual');
             const iconOriginal = '<i class="fas fa-sync"></i> Refresh';
             if (btnRefresh) {
@@ -1572,7 +1641,6 @@ async function carregarDadosVeiculos() {
             if(timerEl) timerEl.innerText = countdown;
 
             try {
-                // Busca os dados da API
                 const response = await fetch(`${SUPABASE_URL}/rest/v1/posicoes_sascar?select=*&order=data_posicao.desc`, {
                     method: 'GET',
                     headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' }
@@ -1612,14 +1680,10 @@ async function carregarDadosVeiculos() {
 
                 veiculosCacheGlobal = Array.from(veiculosMap.values());
                 
-                // ====================================================================
-                // NOVO CÓDIGO: AUTO-CADASTRO NA FROTA MASTER PARA NÃO PERDER PLACAS
-                // ====================================================================
                 let frotaAtualizada = false;
                 veiculosCacheGlobal.forEach(v => {
                     const placa = formatarPlacaPadrao(v.id_veiculo);
                     if (placa && placa !== 'SEM-PLACA') {
-                        // Se a placa não existe na Frota Master, cadastra automaticamente
                         if (!frotaCadastrada.some(f => f.placa === placa)) {
                             frotaCadastrada.push({
                                 placa: placa,
@@ -1631,12 +1695,10 @@ async function carregarDadosVeiculos() {
                     }
                 });
 
-                // Se encontrou veículos novos, salva no banco (Supabase) e atualiza a aba
                 if (frotaAtualizada) {
                     await salvarDadosNoBanco();
                     renderizarTabelaFrota(); 
                 }
-                // ====================================================================
                 
                 expirarAlertasNaoTratados();
                 processarRegrasEAlertas(veiculosCacheGlobal, dadosBrutos);
@@ -1764,7 +1826,6 @@ async function carregarDadosVeiculos() {
                     }
                 }
 
-                // Considerar áreas individuais E áreas vindas dos grupos
                 let idsAreasDoVeiculo = [...(areasVeiculos[placaFormatada] || [])];
                 const idsGrupos = gruposVeiculos[placaFormatada] || [];
                 idsGrupos.forEach(idG => {
@@ -1841,93 +1902,90 @@ async function carregarDadosVeiculos() {
         }
 
         function renderizarResumoOperacao() {
-    const container = document.getElementById('containerResumoOperacao');
-    if (!container) return;
+            const container = document.getElementById('containerResumoOperacao');
+            if (!container) return;
 
-    // 1. SALVAR ESTADO: Verifica quais listas estão abertas no momento
-    const dropdownsAbertos = {};
-    const dropdownsAtuais = container.querySelectorAll('.area-card-dropdown.expanded');
-    dropdownsAtuais.forEach(dd => {
-        dropdownsAbertos[dd.id] = true;
-    });
+            const dropdownsAbertos = {};
+            const dropdownsAtuais = container.querySelectorAll('.area-card-dropdown.expanded');
+            dropdownsAtuais.forEach(dd => {
+                dropdownsAbertos[dd.id] = true;
+            });
 
-    const categorias = [
-        { id: 'carregamento', titulo: 'Em Carregamento', keywords: ['CARREGAMENTO', 'AREA DE CARREGAMENTO', 'ÁREA DE CARREGAMENTO'], color: 'var(--success)' },
-        { id: 'descarga', titulo: 'Em Descarga', keywords: ['DESCARGA', 'AREA DE DESCARGA', 'ÁREA DE DESCARGA'], color: 'var(--danger)' },
-        { id: 'patio', titulo: 'No Pátio Externo', keywords: ['PATIO', 'PÁTIO', 'PATIO EXTERNO', 'PÁTIO EXTERNO'], color: 'var(--warning)' }
-    ];
+            const categorias = [
+                { id: 'carregamento', titulo: 'Em Carregamento', keywords: ['CARREGAMENTO', 'AREA DE CARREGAMENTO', 'ÁREA DE CARREGAMENTO'], color: 'var(--success)' },
+                { id: 'descarga', titulo: 'Em Descarga', keywords: ['DESCARGA', 'AREA DE DESCARGA', 'ÁREA DE DESCARGA'], color: 'var(--danger)' },
+                { id: 'patio', titulo: 'No Pátio Externo', keywords: ['PATIO', 'PÁTIO', 'PATIO EXTERNO', 'PÁTIO EXTERNO'], color: 'var(--warning)' }
+            ];
 
-    let htmlCards = '';
+            let htmlCards = '';
 
-    categorias.forEach(cat => {
-        let veiculosNaCategoria = [];
+            categorias.forEach(cat => {
+                let veiculosNaCategoria = [];
 
-        areasSalvas.forEach(area => {
-            const nomeAreaUpper = area.nome.toUpperCase();
-            const match = cat.keywords.some(kw => nomeAreaUpper.includes(kw));
-            if (match) {
-                veiculosCacheGlobal.forEach(v => {
-                    const placa = formatarPlacaPadrao(v.id_veiculo);
-                    const lat = parseFloat(String(v.latitude).replace(',', '.'));
-                    const lon = parseFloat(String(v.longitude).replace(',', '.'));
-                    if (!isNaN(lat) && !isNaN(lon) && veiculoDentroDaArea(lat, lon, area)) {
-                        const chaveKey = `${placa}_${area.id}`;
-                        let tempoStr = 'Recém entrado';
-                        if (contadorPermanenciaAreas[chaveKey]) {
-                            const min = Math.max(0, Math.round((Date.now() - contadorPermanenciaAreas[chaveKey].inicio) / 60000));
-                            tempoStr = formatarMinutosParaHhMm(min);
-                        }
-                        veiculosNaCategoria.push({ placa, areaNome: area.nome, tempo: tempoStr });
+                areasSalvas.forEach(area => {
+                    const nomeAreaUpper = area.nome.toUpperCase();
+                    const match = cat.keywords.some(kw => nomeAreaUpper.includes(kw));
+                    if (match) {
+                        veiculosCacheGlobal.forEach(v => {
+                            const placa = formatarPlacaPadrao(v.id_veiculo);
+                            const lat = parseFloat(String(v.latitude).replace(',', '.'));
+                            const lon = parseFloat(String(v.longitude).replace(',', '.'));
+                            if (!isNaN(lat) && !isNaN(lon) && veiculoDentroDaArea(lat, lon, area)) {
+                                const chaveKey = `${placa}_${area.id}`;
+                                let tempoStr = 'Recém entrado';
+                                if (contadorPermanenciaAreas[chaveKey]) {
+                                    const min = Math.max(0, Math.round((Date.now() - contadorPermanenciaAreas[chaveKey].inicio) / 60000));
+                                    tempoStr = formatarMinutosParaHhMm(min);
+                                }
+                                veiculosNaCategoria.push({ placa, areaNome: area.nome, tempo: tempoStr });
+                            }
+                        });
                     }
                 });
-            }
-        });
 
-        const uniqueVeiculos = [];
-        const mapUniques = new Map();
-        for (const item of veiculosNaCategoria) {
-            if(!mapUniques.has(item.placa)) {
-                mapUniques.set(item.placa, true);
-                uniqueVeiculos.push(item);
-            }
-        }
+                const uniqueVeiculos = [];
+                const mapUniques = new Map();
+                for (const item of veiculosNaCategoria) {
+                    if(!mapUniques.has(item.placa)) {
+                        mapUniques.set(item.placa, true);
+                        uniqueVeiculos.push(item);
+                    }
+                }
 
-        const qtd = uniqueVeiculos.length;
+                const qtd = uniqueVeiculos.length;
 
-        let linhasTabela = uniqueVeiculos.map(v => `<tr><td><b>${v.placa}</b></td><td>${v.areaNome}</td><td>${v.tempo}</td></tr>`).join('');
-        if (qtd === 0) linhasTabela = `<tr><td colspan="3" style="text-align:center; opacity:0.6;">Nenhum veículo no momento</td></tr>`;
+                let linhasTabela = uniqueVeiculos.map(v => `<tr><td><b>${v.placa}</b></td><td>${v.areaNome}</td><td>${v.tempo}</td></tr>`).join('');
+                if (qtd === 0) linhasTabela = `<tr><td colspan="3" style="text-align:center; opacity:0.6;">Nenhum veículo no momento</td></tr>`;
 
-        // 2. RECUPERAR ESTADO: Define a classe 'expanded' se a lista estava aberta antes
-        const idDropdown = `dropdown-area-resumo-${cat.id}`;
-        const classeExpandido = dropdownsAbertos[idDropdown] ? 'expanded' : '';
+                const idDropdown = `dropdown-area-resumo-${cat.id}`;
+                const classeExpandido = dropdownsAbertos[idDropdown] ? 'expanded' : '';
 
-        htmlCards += `
-            <div class="area-card-item" style="border-left-color: ${cat.color};">
-                <div class="area-card-header">
-                    <h4 class="area-card-title" style="color: ${cat.color};"><i class="fas fa-map-marker-alt"></i> ${cat.titulo}</h4>
-                    <button class="area-card-icon-btn" style="color: ${cat.color};" onclick="toggleCardAreaPlacas('resumo-${cat.id}')">
-                        <i class="fas fa-table"></i>
-                    </button>
-                </div>
-                <div class="area-card-body">
-                    <div>
-                        <span style="font-size: 12px; opacity: 0.7;">Total de Veículos:</span>
-                        <h2 class="area-card-count" style="color: ${cat.color};">${qtd}</h2>
+                htmlCards += `
+                    <div class="area-card-item" style="border-left-color: ${cat.color};">
+                        <div class="area-card-header">
+                            <h4 class="area-card-title" style="color: ${cat.color};"><i class="fas fa-map-marker-alt"></i> ${cat.titulo}</h4>
+                            <button class="area-card-icon-btn" style="color: ${cat.color};" onclick="toggleCardAreaPlacas('resumo-${cat.id}')">
+                                <i class="fas fa-table"></i>
+                            </button>
+                        </div>
+                        <div class="area-card-body">
+                            <div>
+                                <span style="font-size: 12px; opacity: 0.7;">Total de Veículos:</span>
+                                <h2 class="area-card-count" style="color: ${cat.color};">${qtd}</h2>
+                            </div>
+                        </div>
+                        <div id="${idDropdown}" class="area-card-dropdown ${classeExpandido}">
+                            <table class="resumo-table">
+                                <thead><tr><th>Placa</th><th>Área</th><th>Tempo</th></tr></thead>
+                                <tbody>${linhasTabela}</tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
-                <!-- Aplica a classe de estado aqui -->
-                <div id="${idDropdown}" class="area-card-dropdown ${classeExpandido}">
-                    <table class="resumo-table">
-                        <thead><tr><th>Placa</th><th>Área</th><th>Tempo</th></tr></thead>
-                        <tbody>${linhasTabela}</tbody>
-                    </table>
-                </div>
-            </div>
-        `;
-    });
+                `;
+            });
 
-    container.innerHTML = htmlCards;
-}
+            container.innerHTML = htmlCards;
+        }
 
         function renderizarPainelCardsAreas() {
             const painel = document.getElementById('painelCardsAreas');
@@ -1979,7 +2037,6 @@ async function carregarDadosVeiculos() {
                     painel.innerHTML = htmlCards;
                 }
             }
-            // Ao renderizar os cards gerais, também atualiza o resumo especial de contadores:
             renderizarResumoOperacao();
         }
 
@@ -2628,7 +2685,6 @@ async function carregarDadosVeiculos() {
             if (!confirm('Excluir este grupo de áreas?')) return;
             gruposAreasSalvos = gruposAreasSalvos.filter(g => g.id != id);
             
-            // Remover vínculos de veículos que tinham este grupo
             Object.keys(gruposVeiculos).forEach(placa => {
                 gruposVeiculos[placa] = gruposVeiculos[placa].filter(gId => gId != id);
             });
@@ -2659,13 +2715,23 @@ async function carregarDadosVeiculos() {
 
         async function excluirArea(id) {
             if (!confirm("Deseja excluir esta área? Ela também será removida de qualquer grupo.")) return;
+            
             areasSalvas = areasSalvas.filter(a => a.id != id);
             
             gruposAreasSalvos.forEach(g => {
                 g.areas = g.areas.filter(aId => aId != id);
             });
             
-            await salvarDadosNoBanco(); renderizarTabelaAreas(); renderizarGruposAreas(); renderizarAreasNoMapa(); renderizarPainelCardsAreas();
+            // LIMPEZA: Remove essa área atrelada a veículos no local Storage/Cache global
+            Object.keys(areasVeiculos).forEach(placa => {
+                areasVeiculos[placa] = areasVeiculos[placa].filter(aId => aId != id);
+            });
+
+            await salvarDadosNoBanco(); 
+            renderizarTabelaAreas(); 
+            renderizarGruposAreas(); 
+            renderizarAreasNoMapa(); 
+            renderizarPainelCardsAreas();
         }
 
         function abrirModalVincular(placa) {
@@ -2912,7 +2978,18 @@ async function carregarDadosVeiculos() {
 
         async function excluirRota(id) {
             if (!confirm("Excluir rota?")) return;
-            rotasSalvas = rotasSalvas.filter(r => r.id !== id); await salvarDadosNoBanco(); renderizarTabelaRotas();
+            rotasSalvas = rotasSalvas.filter(r => r.id !== id);
+            
+            // LIMPEZA: Remove rotas apagadas que ainda estariam no Cache
+            Object.keys(rotasVeiculos).forEach(placa => {
+                if (rotasVeiculos[placa].id === id) {
+                    delete rotasVeiculos[placa];
+                }
+            });
+
+            await salvarDadosNoBanco(); 
+            renderizarTabelaRotas();
+            renderizarGridEMapa();
         }
 
         function atualizarDashboards() {
