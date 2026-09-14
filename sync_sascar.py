@@ -32,9 +32,21 @@ def obter_endereco_por_coordenadas(lat, lon):
                 address.get('city_district') or 
                 'Região Metropolitana'
             )
-            uf = address.get('state_code') or address.get('state') or 'SP'
+            
+            # Pega o state_code (ex: "MG", "RJ", "SP"). Se não existir, tenta pegar as duas primeiras letras do state ou mapeia pelo nome
+            uf = address.get('state_code')
+            if not uf:
+                state_name = address.get('state', '')
+                # Mapeamento básico caso o Nominatim retorne o nome completo do estado
+                estados_map = {
+                    'minas gerais': 'MG', 'rio de janeiro': 'RJ', 'são paulo': 'SP',
+                    'paraná': 'PR', 'santa catarina': 'SC', 'rio grande do sul': 'RS',
+                    'espírito santo': 'ES', 'bahia': 'BA', 'goiás': 'GO', 'distrito federal': 'DF'
+                }
+                uf = estados_map.get(state_name.lower(), 'SP')
+
             if len(uf) > 2:
-                uf = 'SP'
+                uf = uf[:2]
                 
             rua = (
                 address.get('road') or 
