@@ -639,7 +639,6 @@
         </div>
     </div>
 
-    <!-- NOVO MODAL: CRIAR GRUPO DE ÁREAS -->
     <div id="modalCriarGrupoArea" class="modal">
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">Criar Grupo de Áreas <span class="close-modal" onclick="fecharModalCriarGrupoArea()">×</span></div>
@@ -912,7 +911,7 @@
                 if (reg.ordem_colunas) columnOrder = reg.ordem_colunas;
                 if (reg.frota_cadastrada) frotaCadastrada = reg.frota_cadastrada;
                 if (reg.rotas_salvas !== undefined) rotasSalvas = reg.rotas_salvas;
-                if (reg.rotas_veiculos) rotasVeiculos = reg.rotas_veiculos;
+                if (reg.rotas_veiculos) rotasVeiculos = rotasVeiculos;
                 if (reg.areas_salvas !== undefined) areasSalvas = reg.areas_salvas;
                 if (reg.areas_veiculos) areasVeiculos = reg.areas_veiculos;
                 if (reg.grupos_areas !== undefined) gruposAreasSalvos = reg.grupos_areas;
@@ -963,14 +962,28 @@
                 hist_tratativas: historicoTratativas
             };
 
+            // Backup local imediato
             try {
                 localStorage.setItem('backup_global_sistema', JSON.stringify(payload));
             } catch(e) {}
 
             try {
+                // TRAVA DE SEGURANÇA: Busca o ID real no banco caso o sistema tenha perdido a referência
+                if (!registroIdBanco) {
+                    const resBusca = await fetch(`${SUPABASE_URL}/rest/v1/preferencias_usuario?select=id&usuario=eq.${USUARIO_GLOBAL}`, {
+                        method: 'GET',
+                        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+                    });
+                    const dadosBusca = await resBusca.json();
+                    if (dadosBusca && dadosBusca.length > 0) {
+                        registroIdBanco = dadosBusca[0].id;
+                    }
+                }
+
                 let url = `${SUPABASE_URL}/rest/v1/preferencias_usuario`;
                 let method = 'POST';
 
+                // Se encontrou o ID, força a atualização (PATCH) para evitar o erro de duplicidade
                 if (registroIdBanco) {
                     url += `?id=eq.${registroIdBanco}`;
                     method = 'PATCH';
