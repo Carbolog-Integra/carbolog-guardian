@@ -213,6 +213,11 @@
             font-size: 12px;
             margin: 2px;
         }
+        
+        /* Estilos da nova tabela de resumo */
+        .resumo-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+        .resumo-table th, .resumo-table td { border: 1px solid var(--border-color); padding: 5px; text-align: left; }
+        .resumo-table th { background: var(--primary-blue); color: white; }
     </style>
 </head>
 <body class="dark-mode">
@@ -384,6 +389,16 @@
                     <h2 id="kpiParadosLigados" style="margin: 10px 0 0 0; color: var(--text-color);">0</h2>
                 </div>
             </div>
+            
+            <!-- NOVO PAINEL DE RESUMO DA OPERAÇÃO -->
+            <div class="card" id="painelResumoOperacao">
+                <div class="flex-row" style="justify-content: space-between;">
+                    <h3 style="color: var(--accent-blue);"><i class="fas fa-chart-bar"></i> Resumo de Operação em Áreas</h3>
+                </div>
+                <div class="areas-cards-container" id="containerResumoOperacao" style="margin-top: 15px;">
+                    <!-- Cards renderizados via JS -->
+                </div>
+            </div>
 
             <div class="card" id="exportAreaDash">
                 <div class="flex-row" style="justify-content: space-between;">
@@ -545,6 +560,23 @@
                     <tbody id="tbodyAreasSalvas"></tbody>
                 </table>
             </div>
+
+            <div class="card" style="margin-top: 20px;">
+                <div class="flex-row" style="justify-content: space-between;">
+                    <h3 style="color: var(--accent-blue);"><i class="fas fa-layer-group"></i> Grupos de Áreas</h3>
+                    <button class="btn" style="background: #00838F;" onclick="abrirModalCriarGrupoArea()"><i class="fas fa-plus"></i> Criar Novo Grupo</button>
+                </div>
+                <table id="tabelaGruposAreas" style="margin-top: 15px;">
+                    <thead>
+                        <tr>
+                            <th>Nome do Grupo</th>
+                            <th>Áreas Vinculadas</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyGruposAreas"></tbody>
+                </table>
+            </div>
         </div>
 
         <!-- ABA 6: PONTOS DE REFERÊNCIA -->
@@ -688,6 +720,22 @@
         </div>
     </div>
 
+    <!-- NOVO MODAL: CRIAR GRUPO DE ÁREAS -->
+    <div id="modalCriarGrupoArea" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">Criar Grupo de Áreas <span class="close-modal" onclick="fecharModalCriarGrupoArea()">×</span></div>
+            <div style="margin-bottom: 15px;">
+                <label><b>Nome do Grupo:</b></label><br>
+                <input type="text" id="inputNomeGrupoArea" class="input-livre" placeholder="Ex: Operações Sul" style="width: 100%;">
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label><b>Selecione as Áreas:</b></label>
+                <div id="listaCheckboxAreasParaGrupo" style="max-height: 180px; overflow-y: auto; border: 1px solid var(--border-color); padding: 10px; border-radius: 4px; margin-top: 5px;"></div>
+            </div>
+            <button class="btn" style="width: 100%; background: var(--success);" onclick="salvarGrupoArea()">Salvar Grupo</button>
+        </div>
+    </div>
+
     <div id="modalDetalhesRota" class="modal">
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">Detalhes e Custos da Rota <span class="close-modal" onclick="fecharModalDetalhesRota()">×</span></div>
@@ -774,13 +822,18 @@
         </div>
     </div>
 
+    <!-- MODIFICADO: MODAL VINCULAR ÁREA / GRUPO -->
     <div id="modalVincularArea" class="modal">
         <div class="modal-content" style="max-width: 420px;">
-            <div class="modal-header">Vincular Área ao Veículo <span class="close-modal" onclick="fecharModalVincularArea()">×</span></div>
+            <div class="modal-header">Vincular Área/Grupo ao Veículo <span class="close-modal" onclick="fecharModalVincularArea()">×</span></div>
             <p>Veículo: <b id="veiculoSelecionadoAreaModal"></b></p>
+            
             <div style="margin-bottom: 15px;">
+                <label><b>Selecione os Grupos de Áreas:</b></label>
+                <div id="listaCheckboxGruposVincular" style="max-height: 120px; overflow-y: auto; border: 1px solid var(--border-color); padding: 10px; border-radius: 4px; margin-top: 5px; margin-bottom: 10px;"></div>
+                
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <label><b>Selecione as Áreas (Cercas):</b></label>
+                    <label><b>Selecione as Áreas (Avulsas):</b></label>
                     <div>
                         <button class="btn" style="background: #555; padding: 3px 8px; font-size: 10px; margin-top: 0;" onclick="marcarTodasAreasModal(true)"><i class="fas fa-check-square"></i> Marcar Todas</button>
                         <button class="btn" style="background: #555; padding: 3px 8px; font-size: 10px; margin-top: 0;" onclick="marcarTodasAreasModal(false)"><i class="fas fa-square"></i> Desmarcar</button>
@@ -788,8 +841,9 @@
                 </div>
                 <div id="listaCheckboxAreas" style="max-height: 180px; overflow-y: auto; border: 1px solid var(--border-color); padding: 10px; border-radius: 4px; margin-top: 5px;"></div>
             </div>
+            
             <div style="display: flex; gap: 10px;">
-                <button class="btn" style="background: var(--success); flex: 1;" onclick="confirmarVinculacaoArea()">Salvar Vínculo de Áreas</button>
+                <button class="btn" style="background: var(--success); flex: 1;" onclick="confirmarVinculacaoArea()">Salvar Vínculos</button>
                 <button class="btn" style="background: var(--danger); flex: 1;" onclick="fecharModalVincularArea()">Cancelar</button>
             </div>
         </div>
@@ -806,6 +860,10 @@
         let frotaCadastrada = []; 
         let rotasVeiculos = {}; 
         let areasVeiculos = {}; 
+        
+        let gruposAreasSalvos = [];
+        let gruposVeiculos = {};
+
         let veiculosCacheGlobal = []; 
         let veiculosOcultosGlobal = {}; 
         let veiculoFocoGlobal = null; 
@@ -889,6 +947,8 @@
                 if (reg.rotas_veiculos) rotasVeiculos = reg.rotas_veiculos;
                 if (reg.areas_salvas && reg.areas_salvas.length > 0) areasSalvas = reg.areas_salvas;
                 if (reg.areas_veiculos) areasVeiculos = reg.areas_veiculos;
+                if (reg.grupos_areas) gruposAreasSalvos = reg.grupos_areas;
+                if (reg.grupos_veiculos) gruposVeiculos = reg.grupos_veiculos;
                 if (reg.pontos_referencia && reg.pontos_referencia.length > 0) pontosReferenciaSalvos = reg.pontos_referencia;
                 if (reg.alertas_finalizados) alertasFinalizados = reg.alertas_finalizados;
                 if (reg.contador_permanencia) contadorPermanenciaAreas = reg.contador_permanencia;
@@ -920,6 +980,8 @@
                 rotas_veiculos: rotasVeiculos,
                 areas_salvas: areasSalvas,
                 areas_veiculos: areasVeiculos,
+                grupos_areas: gruposAreasSalvos,
+                grupos_veiculos: gruposVeiculos,
                 pontos_referencia: pontosReferenciaSalvos,
                 alertas_finalizados: alertasFinalizados,
                 contador_permanencia: contadorPermanenciaAreas,
@@ -1206,6 +1268,7 @@
             atualizarKpisETabelasDash();
             renderizarTabelaRotas();
             renderizarTabelaAreas();
+            renderizarGruposAreas();
             renderizarTabelaPontosRef();
             renderizarTabelaFrota();
             carregarAbastecimentos();
@@ -1232,18 +1295,20 @@
             atualizarKpisETabelasDash();
             renderizarTabelaRotas();
             renderizarTabelaAreas();
+            renderizarGruposAreas();
             renderizarTabelaPontosRef();
             renderizarTabelaFrota();
             carregarAbastecimentos();
 
             const tabelaEl = document.getElementById(tableId);
             const workbook = XLSX.utils.table_to_book(tabelaEl, { sheet: "Dados" });
-            XLSX.writeFile(workbook, nomeArquivo + ".xlsx");
+            XLS.writeFile(workbook, nomeArquivo + ".xlsx");
 
             tabelasExpandidas[tableId] = estadoAnterior;
             atualizarKpisETabelasDash();
             renderizarTabelaRotas();
             renderizarTabelaAreas();
+            renderizarGruposAreas();
             renderizarTabelaPontosRef();
             renderizarTabelaFrota();
             carregarAbastecimentos();
@@ -1359,6 +1424,7 @@
             renderizarTabelaFrota();
             renderizarTabelaRotas();
             renderizarTabelaAreas();
+            renderizarGruposAreas();
             renderizarTabelaPontosRef();
             renderizarAreasNoMapa();
 
@@ -1404,7 +1470,10 @@
             }
             if(abaId === 'frota') renderizarTabelaFrota();
             if(abaId === 'rotas') renderizarTabelaRotas();
-            if(abaId === 'areas') renderizarTabelaAreas();
+            if(abaId === 'areas') {
+                renderizarTabelaAreas();
+                renderizarGruposAreas();
+            }
             if(abaId === 'pontosRef') renderizarTabelaPontosRef();
         }
 
@@ -1661,8 +1730,19 @@
                     }
                 }
 
-                const areasIdsDoVeiculo = areasVeiculos[placaFormatada] || [];
-                areasIdsDoVeiculo.forEach(areaId => {
+                // Considerar áreas individuais E áreas vindas dos grupos
+                let idsAreasDoVeiculo = [...(areasVeiculos[placaFormatada] || [])];
+                const idsGrupos = gruposVeiculos[placaFormatada] || [];
+                idsGrupos.forEach(idG => {
+                    const gr = gruposAreasSalvos.find(g => g.id == idG);
+                    if (gr && gr.areas) {
+                        gr.areas.forEach(aId => {
+                            if (!idsAreasDoVeiculo.includes(aId)) idsAreasDoVeiculo.push(aId);
+                        });
+                    }
+                });
+
+                idsAreasDoVeiculo.forEach(areaId => {
                     const areaObj = areasSalvas.find(a => a.id == areaId);
                     if (!areaObj) return;
                     const chaveKey = `${placaFormatada}_${areaId}`;
@@ -1726,58 +1806,135 @@
             }
         }
 
-        function renderizarPainelCardsAreas() {
-            const painel = document.getElementById('painelCardsAreas');
-            if (!painel) return;
+        function renderizarResumoOperacao() {
+            const container = document.getElementById('containerResumoOperacao');
+            if (!container) return;
 
-            if (!areasSalvas || areasSalvas.length === 0) {
-                painel.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; opacity: 0.7; padding: 10px; font-size: 13px;">Nenhuma área (cerca eletrônica) cadastrada para monitoramento de cards.</div>`;
-                return;
-            }
+            const categorias = [
+                { id: 'carregamento', titulo: 'Em Carregamento', keywords: ['CARREGAMENTO', 'AREA DE CARREGAMENTO', 'ÁREA DE CARREGAMENTO'], color: 'var(--success)' },
+                { id: 'descarga', titulo: 'Em Descarga', keywords: ['DESCARGA', 'AREA DE DESCARGA', 'ÁREA DE DESCARGA'], color: 'var(--danger)' },
+                { id: 'patio', titulo: 'No Pátio Externo', keywords: ['PATIO', 'PÁTIO', 'PATIO EXTERNO', 'PÁTIO EXTERNO'], color: 'var(--warning)' }
+            ];
 
             let htmlCards = '';
-            areasSalvas.forEach(area => {
-                let veiculosNaArea = [];
 
-                veiculosCacheGlobal.forEach(v => {
-                    const placa = formatarPlacaPadrao(v.id_veiculo);
-                    const lat = parseFloat(String(v.latitude).replace(',', '.'));
-                    const lon = parseFloat(String(v.longitude).replace(',', '.'));
-                    if (!isNaN(lat) && !isNaN(lon)) {
-                        if (veiculoDentroDaArea(lat, lon, area)) {
-                            veiculosNaArea.push(placa);
-                        }
+            categorias.forEach(cat => {
+                let veiculosNaCategoria = [];
+
+                areasSalvas.forEach(area => {
+                    const nomeAreaUpper = area.nome.toUpperCase();
+                    const match = cat.keywords.some(kw => nomeAreaUpper.includes(kw));
+                    if (match) {
+                        veiculosCacheGlobal.forEach(v => {
+                            const placa = formatarPlacaPadrao(v.id_veiculo);
+                            const lat = parseFloat(String(v.latitude).replace(',', '.'));
+                            const lon = parseFloat(String(v.longitude).replace(',', '.'));
+                            if (!isNaN(lat) && !isNaN(lon) && veiculoDentroDaArea(lat, lon, area)) {
+                                const chaveKey = `${placa}_${area.id}`;
+                                let tempoStr = 'Recém entrado';
+                                if (contadorPermanenciaAreas[chaveKey]) {
+                                    const min = Math.max(0, Math.round((Date.now() - contadorPermanenciaAreas[chaveKey].inicio) / 60000));
+                                    tempoStr = formatarMinutosParaHhMm(min);
+                                }
+                                veiculosNaCategoria.push({ placa, areaNome: area.nome, tempo: tempoStr });
+                            }
+                        });
                     }
                 });
 
-                const qtd = veiculosNaArea.length;
-                const placasPills = qtd > 0 
-                    ? veiculosNaArea.map(p => `<span class="area-placa-pill">${p}</span>`).join('') 
-                    : `<span style="font-size: 12px; opacity: 0.6; font-style: italic;">Nenhum veículo no momento</span>`;
+                const uniqueVeiculos = [];
+                const mapUniques = new Map();
+                for (const item of veiculosNaCategoria) {
+                    if(!mapUniques.has(item.placa)) {
+                        mapUniques.set(item.placa, true);
+                        uniqueVeiculos.push(item);
+                    }
+                }
+
+                const qtd = uniqueVeiculos.length;
+
+                let linhasTabela = uniqueVeiculos.map(v => `<tr><td><b>${v.placa}</b></td><td>${v.areaNome}</td><td>${v.tempo}</td></tr>`).join('');
+                if (qtd === 0) linhasTabela = `<tr><td colspan="3" style="text-align:center; opacity:0.6;">Nenhum veículo no momento</td></tr>`;
 
                 htmlCards += `
-                    <div class="area-card-item">
+                    <div class="area-card-item" style="border-left-color: ${cat.color};">
                         <div class="area-card-header">
-                            <h4 class="area-card-title"><i class="fas fa-draw-polygon"></i> ${area.nome}</h4>
-                            <button class="area-card-icon-btn" title="Ver placas na cerca" onclick="toggleCardAreaPlacas(${area.id})">
-                                <i class="fas fa-list-ul"></i>
+                            <h4 class="area-card-title" style="color: ${cat.color};"><i class="fas fa-map-marker-alt"></i> ${cat.titulo}</h4>
+                            <button class="area-card-icon-btn" style="color: ${cat.color};" onclick="toggleCardAreaPlacas('resumo-${cat.id}')">
+                                <i class="fas fa-table"></i>
                             </button>
                         </div>
                         <div class="area-card-body">
                             <div>
-                                <span style="font-size: 12px; opacity: 0.7;">Veículos na Cerca:</span>
-                                <h2 class="area-card-count">${qtd}</h2>
+                                <span style="font-size: 12px; opacity: 0.7;">Total de Veículos:</span>
+                                <h2 class="area-card-count" style="color: ${cat.color};">${qtd}</h2>
                             </div>
                         </div>
-                        <div id="dropdown-area-${area.id}" class="area-card-dropdown">
-                            <div style="font-weight: bold; margin-bottom: 5px; font-size: 11px; text-transform: uppercase; opacity: 0.8;">Placas Presentes:</div>
-                            ${placasPills}
+                        <div id="dropdown-area-resumo-${cat.id}" class="area-card-dropdown">
+                            <table class="resumo-table">
+                                <thead><tr><th>Placa</th><th>Área</th><th>Tempo</th></tr></thead>
+                                <tbody>${linhasTabela}</tbody>
+                            </table>
                         </div>
                     </div>
                 `;
             });
 
-            painel.innerHTML = htmlCards;
+            container.innerHTML = htmlCards;
+        }
+
+        function renderizarPainelCardsAreas() {
+            const painel = document.getElementById('painelCardsAreas');
+            if (painel) {
+                if (!areasSalvas || areasSalvas.length === 0) {
+                    painel.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; opacity: 0.7; padding: 10px; font-size: 13px;">Nenhuma área (cerca eletrônica) cadastrada para monitoramento de cards.</div>`;
+                } else {
+                    let htmlCards = '';
+                    areasSalvas.forEach(area => {
+                        let veiculosNaArea = [];
+
+                        veiculosCacheGlobal.forEach(v => {
+                            const placa = formatarPlacaPadrao(v.id_veiculo);
+                            const lat = parseFloat(String(v.latitude).replace(',', '.'));
+                            const lon = parseFloat(String(v.longitude).replace(',', '.'));
+                            if (!isNaN(lat) && !isNaN(lon)) {
+                                if (veiculoDentroDaArea(lat, lon, area)) {
+                                    veiculosNaArea.push(placa);
+                                }
+                            }
+                        });
+
+                        const qtd = veiculosNaArea.length;
+                        const placasPills = qtd > 0 
+                            ? veiculosNaArea.map(p => `<span class="area-placa-pill">${p}</span>`).join('') 
+                            : `<span style="font-size: 12px; opacity: 0.6; font-style: italic;">Nenhum veículo no momento</span>`;
+
+                        htmlCards += `
+                            <div class="area-card-item">
+                                <div class="area-card-header">
+                                    <h4 class="area-card-title"><i class="fas fa-draw-polygon"></i> ${area.nome}</h4>
+                                    <button class="area-card-icon-btn" title="Ver placas na cerca" onclick="toggleCardAreaPlacas(${area.id})">
+                                        <i class="fas fa-list-ul"></i>
+                                    </button>
+                                </div>
+                                <div class="area-card-body">
+                                    <div>
+                                        <span style="font-size: 12px; opacity: 0.7;">Veículos na Cerca:</span>
+                                        <h2 class="area-card-count">${qtd}</h2>
+                                    </div>
+                                </div>
+                                <div id="dropdown-area-${area.id}" class="area-card-dropdown">
+                                    <div style="font-weight: bold; margin-bottom: 5px; font-size: 11px; text-transform: uppercase; opacity: 0.8;">Placas Presentes:</div>
+                                    ${placasPills}
+                                </div>
+                            </div>
+                        `;
+                    });
+                    painel.innerHTML = htmlCards;
+                }
+            }
+            // Ao renderizar os cards gerais, também atualiza o resumo especial de contadores:
+            renderizarResumoOperacao();
         }
 
         function renderizarGridEMapa() {
@@ -1901,10 +2058,18 @@
                 const dataFormatadaPtBr = isOfflineForced ? '-' : formatarDataHoraPtBr(v.data_posicao);
 
                 const idsAreasVeic = areasVeiculos[placaFormatada] || [];
+                const idsGruposVeic = gruposVeiculos[placaFormatada] || [];
+                
                 const nomesAreas = idsAreasVeic.map(idA => {
                     const ar = areasSalvas.find(a => a.id == idA); return ar ? ar.nome : null;
                 }).filter(Boolean);
-                const areasStr = nomesAreas.length > 0 ? nomesAreas.join(', ') : 'Nenhuma';
+                
+                const nomesGrupos = idsGruposVeic.map(idG => {
+                    const gr = gruposAreasSalvos.find(g => g.id == idG); return gr ? `[Grupo] ${gr.nome}` : null;
+                }).filter(Boolean);
+                
+                const todosNomesVinculados = [...nomesGrupos, ...nomesAreas];
+                const areasStr = todosNomesVinculados.length > 0 ? todosNomesVinculados.join(', ') : 'Nenhuma';
                 
                 const isChecked = veiculosOcultosGlobal[placaFormatada] ? '' : 'checked';
                 const tagCadastro = item.cadastrado ? `<span class="tag-cadastrado">Master</span>` : '';
@@ -1950,7 +2115,7 @@
                             if (rotaVinculadaObj) {
                                 acoesHtml += `Desvio da Rota: <b style="color:${desvioMetros > 250 ? 'red':'green'}">${desvioMetros}m</b><br>`;
                             }
-                            acoesHtml += `Áreas Atreladas: <b>${areasStr}</b><br><hr style="margin:5px 0;">`;
+                            acoesHtml += `Áreas/Grupos Atrelados: <b>${areasStr}</b><br><hr style="margin:5px 0;">`;
                             
                             if (rotaVinculadaObj) {
                                 acoesHtml += `<button class="btn" style="background:var(--primary-blue); padding:4px 8px; font-size:11px; width:100%; margin-top:3px;" onclick="visualizarRotaEmbarcada('${placaFormatada}')"><i class="fas fa-route"></i> Visualizar Rota</button>`;
@@ -1958,7 +2123,7 @@
                             } else {
                                 acoesHtml += `<button class="btn" style="background:var(--success); padding:4px 8px; font-size:11px; width:100%; margin-top:3px;" onclick="abrirModalVincular('${placaFormatada}')"><i class="fas fa-link"></i> Vincular Rota</button>`;
                             }
-                            acoesHtml += `<button class="btn" style="background:#00838F; padding:4px 8px; font-size:11px; width:100%; margin-top:3px;" onclick="abrirModalVincularArea('${placaFormatada}')"><i class="fas fa-draw-polygon"></i> Vincular Áreas</button>`;
+                            acoesHtml += `<button class="btn" style="background:#00838F; padding:4px 8px; font-size:11px; width:100%; margin-top:3px;" onclick="abrirModalVincularArea('${placaFormatada}')"><i class="fas fa-draw-polygon"></i> Vincular Áreas/Grupos</button>`;
                             acoesHtml += `</div>`;
                             return acoesHtml;
                         };
@@ -2373,6 +2538,59 @@
             const linhas = areasSalvas.map(a => `<tr><td><b>${a.nome}</b></td><td>${a.tipo.toUpperCase()}</td><td>Cadastrada</td><td class="table-actions"><button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--primary-blue);" onclick="focarAreaNoMapa(${a.id})"><i class="fas fa-eye"></i></button><button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--danger);" onclick="excluirArea(${a.id})"><i class="fas fa-trash"></i></button></td></tr>`);
             renderizarLinhasComLimite('tbodyAreasSalvas', 'tabelaAreasSalvas', linhas, 4, 'Nenhuma área cadastrada.');
         }
+        
+        function renderizarGruposAreas() {
+            const tbody = document.getElementById('tbodyGruposAreas');
+            if (!tbody) return;
+            const linhas = gruposAreasSalvos.map(g => {
+                const nomes = g.areas.map(idA => {
+                    const a = areasSalvas.find(x => x.id == idA);
+                    return a ? a.nome : '';
+                }).filter(Boolean).join(', ');
+                return `<tr><td><b>${g.nome}</b></td><td>${nomes || 'Nenhuma área'}</td><td class="table-actions"><button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--danger);" onclick="excluirGrupoArea(${g.id})"><i class="fas fa-trash"></i></button></td></tr>`;
+            });
+            renderizarLinhasComLimite('tbodyGruposAreas', 'tabelaGruposAreas', linhas, 3, 'Nenhum grupo de áreas cadastrado.');
+        }
+
+        function abrirModalCriarGrupoArea() {
+            document.getElementById('inputNomeGrupoArea').value = '';
+            const container = document.getElementById('listaCheckboxAreasParaGrupo');
+            container.innerHTML = areasSalvas.map(a => `<label style="display:block; margin-bottom:5px; font-size:13px;"><input type="checkbox" value="${a.id}"> ${a.nome}</label>`).join('');
+            if (areasSalvas.length === 0) {
+                container.innerHTML = '<p style="font-size:12px; opacity:0.7;">Nenhuma área cadastrada para agrupar.</p>';
+            }
+            document.getElementById('modalCriarGrupoArea').style.display = 'flex';
+        }
+
+        function fecharModalCriarGrupoArea() {
+            document.getElementById('modalCriarGrupoArea').style.display = 'none';
+        }
+
+        async function salvarGrupoArea() {
+            const nome = document.getElementById('inputNomeGrupoArea').value.trim();
+            const selecionadas = Array.from(document.querySelectorAll('#listaCheckboxAreasParaGrupo input[type="checkbox"]:checked')).map(chk => parseInt(chk.value));
+            if (!nome || selecionadas.length === 0) { alert('Preencha o nome do grupo e selecione pelo menos uma área.'); return; }
+            
+            gruposAreasSalvos.push({ id: Date.now(), nome: nome, areas: selecionadas });
+            await salvarDadosNoBanco();
+            fecharModalCriarGrupoArea();
+            renderizarGruposAreas();
+            alert("Grupo de áreas salvo com sucesso!");
+        }
+
+        async function excluirGrupoArea(id) {
+            if (!confirm('Excluir este grupo de áreas?')) return;
+            gruposAreasSalvos = gruposAreasSalvos.filter(g => g.id != id);
+            
+            // Remover vínculos de veículos que tinham este grupo
+            Object.keys(gruposVeiculos).forEach(placa => {
+                gruposVeiculos[placa] = gruposVeiculos[placa].filter(gId => gId != id);
+            });
+            
+            await salvarDadosNoBanco();
+            renderizarGruposAreas();
+            renderizarGridEMapa();
+        }
 
         function renderizarAreasNoMapa() {
             camadaAreasGrupo.clearLayers();
@@ -2394,9 +2612,14 @@
         }
 
         async function excluirArea(id) {
-            if (!confirm("Deseja excluir esta área?")) return;
+            if (!confirm("Deseja excluir esta área? Ela também será removida de qualquer grupo.")) return;
             areasSalvas = areasSalvas.filter(a => a.id != id);
-            await salvarDadosNoBanco(); renderizarTabelaAreas(); renderizarAreasNoMapa(); renderizarPainelCardsAreas();
+            
+            gruposAreasSalvos.forEach(g => {
+                g.areas = g.areas.filter(aId => aId != id);
+            });
+            
+            await salvarDadosNoBanco(); renderizarTabelaAreas(); renderizarGruposAreas(); renderizarAreasNoMapa(); renderizarPainelCardsAreas();
         }
 
         function abrirModalVincular(placa) {
@@ -2451,10 +2674,19 @@
         }
 
         function abrirModalVincularArea(placa) {
-            placaAtualVinculandoArea = placa; document.getElementById('veiculoSelecionadoAreaModal').innerText = placa;
-            const container = document.getElementById('listaCheckboxAreas');
+            placaAtualVinculandoArea = placa; 
+            document.getElementById('veiculoSelecionadoAreaModal').innerText = placa;
+            
+            // Renderizar Grupos de Áreas
+            const containerGrupos = document.getElementById('listaCheckboxGruposVincular');
+            const vinculadosGrupos = gruposVeiculos[placa] || [];
+            containerGrupos.innerHTML = gruposAreasSalvos.length === 0 ? `<p style="font-size:12px; opacity:0.7;">Nenhum grupo de áreas criado.</p>` : gruposAreasSalvos.map(g => `<label style="display:block; margin-bottom:5px; font-size:13px;"><input type="checkbox" value="${g.id}" ${vinculadosGrupos.includes(g.id) ? 'checked' : ''}> ${g.nome}</label>`).join('');
+
+            // Renderizar Áreas Avulsas
+            const containerAreas = document.getElementById('listaCheckboxAreas');
             const vinculadasAtuais = areasVeiculos[placa] || [];
-            container.innerHTML = areasSalvas.length === 0 ? `<p style="font-size:12px; opacity:0.7;">Nenhuma área criada.</p>` : areasSalvas.map(a => `<label style="display:block; margin-bottom:5px; font-size:13px;"><input type="checkbox" value="${a.id}" ${vinculadasAtuais.includes(a.id) ? 'checked' : ''}> ${a.nome}</label>`).join('');
+            containerAreas.innerHTML = areasSalvas.length === 0 ? `<p style="font-size:12px; opacity:0.7;">Nenhuma área criada.</p>` : areasSalvas.map(a => `<label style="display:block; margin-bottom:5px; font-size:13px;"><input type="checkbox" value="${a.id}" ${vinculadasAtuais.includes(a.id) ? 'checked' : ''}> ${a.nome}</label>`).join('');
+            
             document.getElementById('modalVincularArea').style.display = 'flex';
         }
 
@@ -2462,9 +2694,15 @@
         function fecharModalVincularArea() { document.getElementById('modalVincularArea').style.display = 'none'; }
 
         async function confirmarVinculacaoArea() {
-            const selecionadas = Array.from(document.querySelectorAll('#listaCheckboxAreas input[type="checkbox"]:checked')).map(chk => parseInt(chk.value));
-            areasVeiculos[placaAtualVinculandoArea] = selecionadas;
-            await salvarDadosNoBanco(); fecharModalVincularArea(); renderizarGridEMapa();
+            const selecionadasAreas = Array.from(document.querySelectorAll('#listaCheckboxAreas input[type="checkbox"]:checked')).map(chk => parseInt(chk.value));
+            const selecionadosGrupos = Array.from(document.querySelectorAll('#listaCheckboxGruposVincular input[type="checkbox"]:checked')).map(chk => parseInt(chk.value));
+            
+            areasVeiculos[placaAtualVinculandoArea] = selecionadasAreas;
+            gruposVeiculos[placaAtualVinculandoArea] = selecionadosGrupos;
+            
+            await salvarDadosNoBanco(); 
+            fecharModalVincularArea(); 
+            renderizarGridEMapa();
         }
 
         function carregarAcidentesWazeGoogle() {
@@ -2522,6 +2760,8 @@
             timerIntervalRef = setInterval(() => {
                 countdown--; const timerEl = document.getElementById('timerRefresh'); if (timerEl) timerEl.innerText = countdown;
                 if(countdown <= 0) { countdown = 300; carregarDadosVeiculos(); }
+                // Atualiza o tempo dos veículos na área dinamicamente a cada segundo
+                renderizarResumoOperacao();
             }, 1000);
         }
 
@@ -2768,9 +3008,6 @@
                 });
             }
         }
-
-        function exportarExcel(tableId, nome) { exportarExcelCompleto(tableId, nome); }
-        function exportarPDF(elementId, nome) { html2pdf().from(document.getElementById(elementId)).save(nome + '.pdf'); }
     </script>
 </body>
 </html>
