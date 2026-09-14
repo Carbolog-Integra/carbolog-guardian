@@ -1168,47 +1168,71 @@
             novosThs.forEach(th => { if(th) trHead.parentNode.appendChild(th); });
         }
 
-        let timeoutBusca = null;
-        async function buscarAutocomplete(termo, listId, callback) {
-            const lista = document.getElementById(listId);
-            if (!termo || termo.length < 2) { if(lista) lista.style.display = 'none'; return; }
-            
-            const termoLower = termo.toLowerCase();
-            const referenciasLocais = pontosReferenciaSalvos
-                .filter(p => p.nome.toLowerCase().includes(termoLower))
-                .slice(0, 5)
-                .map(p => ({ lat: p.lat, lon: p.lon, display_name: `${p.nome} (Referência salva)`, nomeReferencia: p.nome }));
+      let timeoutBusca = null;
+async function buscarAutocomplete(termo, listId, callback) {
+    const lista = document.getElementById(listId);
+    if (!termo || termo.length < 2) { 
+        if (lista) lista.style.display = 'none'; 
+        return; 
+    }
+    
+    const termoLower = termo.toLowerCase();
+    
+    // 1. Busca primeiro nas referências já salvas no sistema (pesquisa local instantânea)
+    const referenciasLocais = pontosReferenciaSalvos
+        .filter(p => p.nome.toLowerCase().includes(termoLower))
+        .map(p => ({ lat: p.lat, lon: p.lon, display_name: `${p.nome} (Salvo)`, nomeReferencia: p.nome }));
 
-            if(!lista) return;
-            lista.innerHTML = '';
+    if (!lista) return;
+    lista.innerHTML = '';
 
-            let resultadosAPI = [];
-            try {
-                const termoBusca = termoLower.includes('sp') ? termo : `${termo}, Sao Paulo, Brazil`;
-                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termoBusca)}&limit=5`;
-                const res = await fetch(url);
-                resultadosAPI = await res.json();
-            } catch (e) {
-                console.warn("Falha ao buscar no Nominatim, exibindo apenas locais salvos.");
+    let resultadosAPI = [];
+    try {
+        // 2. Busca externa com cabeçalho User-Agent amigável exigido pelo Nominatim
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termo + ", Sao Paulo, Brazil")}&limit=5`;
+        const res = await fetch(url, {
+            headers: {
+                'Accept-Language': 'pt-BR'
             }
-
-            const resultados = [...referenciasLocais, ...resultadosAPI];
-            
-            if (resultados.length > 0) {
-                resultados.forEach(item => {
-                    const li = document.createElement('li');
-                    const titulo = item.nomeReferencia || item.display_name.split(',')[0];
-                    const resto = item.nomeReferencia ? 'Salvo no sistema' : item.display_name.substring(titulo.length + 1);
-                    li.innerHTML = `<i class="fas fa-map-marker-alt"></i><div><b>${escapeHtml(titulo)}</b><small>${escapeHtml(resto)}</small></div>`;
-                    li.onclick = () => { callback(item); lista.style.display = 'none'; };
-                    lista.appendChild(li);
-                });
-                lista.style.display = 'block';
-            } else { 
-                lista.style.display = 'none'; 
-            }
+        });
+        if (res.ok) {
+            resultadosAPI = await res.json();
         }
+    } catch (e) {
+        console.warn("Consulta externa indisponível no momento. Exibindo locais salvos.");
+    }
 
+    // Remove duplicados comparando nomes
+    const mapUnicos = new Map();
+    const resultados = [...referenciasLocais, ...resultadosAPI];
+    const itensFiltrados = [];
+    
+    resultados.forEach(item => {
+        const nomeChave = item.nomeReferencia || item.display_name;
+        if (!mapUnicos.has(nomeChave)) {
+            mapUnicos.set(nomeChave, true);
+            itensFiltrados.push(item);
+        }
+    });
+
+    if (itensFiltrados.length > 0) {
+        itensFiltrados.forEach(item => {
+            const li = document.createElement('li');
+            const titulo = item.nomeReferencia || item.display_name.split(',')[0];
+            const resto = item.nomeReferencia ? 'Ponto de Referência do Sistema' : item.display_name.substring(titulo.length + 1);
+            
+            li.innerHTML = `<i class="fas fa-map-marker-alt"></i><div><b>${escapeHtml(titulo)}</b><small>${escapeHtml(resto)}</small></div>`;
+            li.onclick = () => { 
+                callback(item); 
+                lista.style.display = 'none'; 
+            };
+            lista.appendChild(li);
+        });
+        lista.style.display = 'block';
+    } else { 
+        lista.style.display = 'none'; 
+    }
+}
         function configurarAutocompleteInput(inputId, listId, tipoDestino, customInputEl = null) {
             const input = customInputEl || document.getElementById(inputId);
             if (!input) return;
