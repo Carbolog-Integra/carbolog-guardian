@@ -1168,7 +1168,7 @@
             novosThs.forEach(th => { if(th) trHead.parentNode.appendChild(th); });
         }
 
-    let timeoutBusca = null;
+  let timeoutBusca = null;
 async function buscarAutocomplete(termo, listId, callback) {
     const lista = document.getElementById(listId);
     if (!termo || termo.length < 2) { 
@@ -1188,18 +1188,29 @@ async function buscarAutocomplete(termo, listId, callback) {
 
     let resultadosAPI = [];
     try {
-        // 2. Requisição externa utilizando fetch com codificação segura
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termo)}&addressdetails=1&limit=5`;
-        const res = await fetch(url, {
-            headers: {
-                'Accept': 'application/json'
-            }
-        });
+        // 2. Utiliza a Photon API (compatível com navegador e sem bloqueio de User-Agent)
+        const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(termo)}&limit=5&lang=pt`;
+        const res = await fetch(url);
         if (res.ok) {
-            resultadosAPI = await res.json();
+            const data = await res.json();
+            if (data && data.features) {
+                resultadosAPI = data.features.map(f => {
+                    const props = f.properties;
+                    const nomeLocal = props.name || '';
+                    const cidadeLocal = props.city || props.county || props.state || '';
+                    const estadoLocal = props.state || '';
+                    const display = [nomeLocal, cidadeLocal, estadoLocal].filter(Boolean).join(', ');
+                    
+                    return {
+                        lat: f.geometry.coordinates[1],
+                        lon: f.geometry.coordinates[0],
+                        display_name: display || 'Localizador OpenStreetMap'
+                    };
+                });
+            }
         }
     } catch (e) {
-        console.warn("Rede bloqueou a busca externa. Utilizando referências locais.");
+        console.warn("Falha na consulta externa. Exibindo apenas locais salvos.");
     }
 
     // Combina locais salvos e resultados da API sem duplicar
@@ -1218,7 +1229,7 @@ async function buscarAutocomplete(termo, listId, callback) {
         itensFiltrados.forEach(item => {
             const li = document.createElement('li');
             const titulo = item.nomeReferencia || item.display_name.split(',')[0];
-            const resto = item.nomeReferencia ? 'Sistema' : item.display_name.substring(titulo.length + 1);
+            const resto = item.nomeReferencia ? 'Ponto Salvo no Sistema' : item.display_name.substring(titulo.length + 1);
             
             li.innerHTML = `<i class="fas fa-map-marker-alt"></i><div><b>${escapeHtml(titulo)}</b><small>${escapeHtml(resto)}</small></div>`;
             li.onclick = () => { 
@@ -1229,18 +1240,7 @@ async function buscarAutocomplete(termo, listId, callback) {
         });
         lista.style.display = 'block';
     } else { 
-        // Se a API falhar ou não achar, mostra pelo menos os pontos salvos que correspondam ao texto
-        if (referenciasLocais.length > 0) {
-            referenciasLocais.forEach(item => {
-                const li = document.createElement('li');
-                li.innerHTML = `<i class="fas fa-map-marker-alt"></i><div><b>${escapeHtml(item.nomeReferencia)}</b><small>Ponto Salvo</small></div>`;
-                li.onclick = () => { callback(item); lista.style.display = 'none'; };
-                lista.appendChild(li);
-            });
-            lista.style.display = 'block';
-        } else {
-            lista.style.display = 'none'; 
-        }
+        lista.style.display = 'none'; 
     }
 }
         function configurarAutocompleteInput(inputId, listId, tipoDestino, customInputEl = null) {
