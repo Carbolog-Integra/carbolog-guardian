@@ -720,22 +720,107 @@
         </div>
     </div>
 
-    <!-- NOVO MODAL: CRIAR GRUPO DE ÁREAS -->
-    <div id="modalCriarGrupoArea" class="modal">
-        <div class="modal-content" style="max-width: 500px;">
-            <div class="modal-header">Criar Grupo de Áreas <span class="close-modal" onclick="fecharModalCriarGrupoArea()">×</span></div>
-            <div style="margin-bottom: 15px;">
-                <label><b>Nome do Grupo:</b></label><br>
-                <input type="text" id="inputNomeGrupoArea" class="input-livre" placeholder="Ex: Operações Sul" style="width: 100%;">
-            </div>
-            <div style="margin-bottom: 15px;">
-                <label><b>Selecione as Áreas:</b></label>
-                <div id="listaCheckboxAreasParaGrupo" style="max-height: 180px; overflow-y: auto; border: 1px solid var(--border-color); padding: 10px; border-radius: 4px; margin-top: 5px;"></div>
-            </div>
-            <button class="btn" style="width: 100%; background: var(--success);" onclick="salvarGrupoArea()">Salvar Grupo</button>
-        </div>
-    </div>
+    // Abre o modal para criar ou editar um grupo de áreas
+function abrirModalGrupoArea(grupoId = null) {
+    const isEdicao = grupoId !== null;
+    let grupoAtual = isEdicao ? gruposAreas.find(g => g.id === grupoId) : { nome: '', areas: [] };
 
+    // Monta o HTML do modal dinamicamente com as áreas cadastradas disponíveis
+    const checkboxesAreas = areasCadastradas.map(area => `
+        <label style="display: block; margin-bottom: 8px; cursor: pointer;">
+            <input type="checkbox" name="area-vinculada" value="${area.id}" 
+                ${grupoAtual.areas.includes(area.id) ? 'checked' : ''}>
+            ${area.nome} (${area.tipo})
+        </label>
+    `).join('');
+
+    // Exibe o modal (assumindo o uso de um modal padrão ou SweetAlert / Bootstrap)
+    Swal.fire({
+        title: isEdicao ? 'Editar Grupo de Áreas' : 'Criar Novo Grupo de Áreas',
+        html: `
+            <div style="text-align: left; display: flex; flex-direction: column; gap: 12px;">
+                <label style="font-weight: bold;">Nome do Grupo:</label>
+                <input type="text" id="swal-nome-grupo" class="swal2-input" placeholder="Ex: Filiais Sudeste" value="${grupoAtual.nome}" style="margin: 0; width: 100%;">
+                
+                <label style="font-weight: bold; margin-top: 10px;">Vincular Áreas:</label>
+                <div style="max-height: 200px; overflow-y: auto; border: 1px solid #333; padding: 10px; border-radius: 4px;">
+                    ${checkboxesAreas.length > 0 ? checkboxesAreas : '<p style="color: #888;">Nenhuma área cadastrada.</p>'}
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Salvar Grupo',
+        cancelButtonText: 'Cancelar',
+        preConfirm: () => {
+            const nome = document.getElementById('swal-nome-grupo').value.trim();
+            const checkboxes = document.querySelectorAll('input[name="area-vinculada"]:checked');
+            const areasSelecionadas = Array.from(checkboxes).map(cb => cb.value);
+
+            if (!nome) {
+                Swal.showValidationMessage('O nome do grupo é obrigatório!');
+                return false;
+            }
+
+            return { nome, areas: areasSelecionadas };
+        }
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            await salvarGrupoAreaSupabase(grupoId, result.value.nome, result.value.areas);
+        }
+    });
+}
+async function salvarGrupoAreaSupabase(id, nome, areasIds) {
+    try {
+        const dadosGrupo = {
+            nome: nome,
+            areas_vinculadas: areasIds // Salva o array de IDs das áreas associadas
+        };
+
+        let resposta;
+        if (id) {
+            // Atualização no Supabase
+            resposta = await supabaseClient
+                .from('grupos_areas')
+                .update(dadosGrupo)
+                .eq('id', id);
+        } else {
+            // Inserção no Supabase
+            resposta = await supabaseClient
+                .from('grupos_areas')
+                .insert([dadosGrupo]);
+        }
+
+        if (resposta.error) throw resposta.error;
+
+        Swal.fire('Sucesso!', 'Grupo de áreas salvo com sucesso.', 'success');
+        carregarGruposAreas(); // Recarrega a tabela da interface
+    } catch (error) {
+        console.error('Erro ao salvar grupo de áreas:', error);
+        Swal.fire('Erro', 'Não foi possível salvar o grupo: ' + error.message, 'error');
+    }
+}
+
+// Função para renderizar os dados na tabela da interface
+async function carregarGruposAreas() {
+    try {
+        const { data, error } = await supabaseClient.from('grupos_areas').select('*');
+        if (error) throw error;
+
+        const tbody = document.querySelector('#tabela-grupos-areas tbody') || document.querySelector('.tabela-grupos-container'); 
+        // Ajuste o seletor conforme o ID/Classe exato da sua tabela na UI
+        
+        if (!data || data.length === 0) {
+            // Caso queira deixar vazio ou mostrar aviso
+            return;
+        }
+
+        // Popula as linhas da tabela dinamicamente com base na imagem enviada
+        // Nome do Grupo | Áreas Vinculadas | Ações
+        // ...
+    } catch (error) {
+        console.error('Erro ao carregar grupos:', error);
+    }
+}
     <div id="modalDetalhesRota" class="modal">
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">Detalhes e Custos da Rota <span class="close-modal" onclick="fecharModalDetalhesRota()">×</span></div>
