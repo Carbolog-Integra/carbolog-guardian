@@ -938,85 +938,101 @@
             reordenarCabecalhoVisualmente();
         }
 
-        async function salvarDadosNoBanco() {
-            const payload = {
-                usuario: USUARIO_GLOBAL,
-                ordem_colunas: columnOrder,
-                frota_cadastrada: frotaCadastrada,
-                rotas_salvas: rotasSalvas,
-                rotas_veiculos: rotasVeiculos,
-                areas_salvas: areasSalvas,
-                areas_veiculos: areasVeiculos,
-                grupos_areas: gruposAreasSalvos,
-                grupos_veiculos: gruposVeiculos,
-                pontos_referencia: pontosReferenciaSalvos,
-                alertas_finalizados: alertasFinalizados,
-                contador_permanencia: contadorPermanenciaAreas,
-                hist_permanencias: historicoPermanenciasDashboard,
-                hist_desvios: historicoDesviosDashboard,
-                hist_comboios: historicoComboiosDashboard,
-                hist_excesso_vel: historicoExcessoVelocidadeDashboard,
-                hist_perda_sinal: historicoPerdaSinalDashboard,
-                hist_parados: historicoParadosLigados,
-                status_parado: statusParadoLigado,
-                hist_tratativas: historicoTratativas
-            };
+async function salvarDadosNoBanco() {
+    const payload = {
+        usuario: USUARIO_GLOBAL,
+        ordem_colunas: columnOrder,
+        frota_cadastrada: frotaCadastrada,
+        rotas_salvas: rotasSalvas,
+        rotas_veiculos: rotasVeiculos,
+        areas_salvas: areasSalvas,
+        areas_veiculos: areasVeiculos,
+        grupos_areas: gruposAreasSalvos,
+        grupos_veiculos: gruposVeiculos,
+        pontos_referencia: pontosReferenciaSalvos,
+        alertas_finalizados: alertasFinalizados,
+        contador_permanencia: contadorPermanenciaAreas,
+        hist_permanencias: historicoPermanenciasDashboard,
+        hist_desvios: historicoDesviosDashboard,
+        hist_comboios: historicoComboiosDashboard,
+        hist_excesso_vel: historicoExcessoVelocidadeDashboard,
+        hist_perda_sinal: historicoPerdaSinalDashboard,
+        hist_parados: historicoParadosLigados,
+        status_parado: statusParadoLigado,
+        hist_tratativas: historicoTratativas
+    };
 
-            // Backup local imediato
-            try {
-                localStorage.setItem('backup_global_sistema', JSON.stringify(payload));
-            } catch(e) {}
+    try {
+        localStorage.setItem('backup_global_sistema', JSON.stringify(payload));
+    } catch(e) {}
 
-            try {
-                // TRAVA DE SEGURANÇA: Busca o ID real no banco caso o sistema tenha perdido a referência
-                if (!registroIdBanco) {
-                    const resBusca = await fetch(`${SUPABASE_URL}/rest/v1/preferencias_usuario?select=id&usuario=eq.${USUARIO_GLOBAL}`, {
-                        method: 'GET',
-                        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-                    });
-                    const dadosBusca = await resBusca.json();
-                    if (dadosBusca && dadosBusca.length > 0) {
-                        registroIdBanco = dadosBusca[0].id;
-                    }
-                }
+    try {
+        // 1. Sempre verifica se já existe um registro para o usuario global na nuvem
+        const resBusca = await fetch(`${SUPABASE_URL}/rest/v1/preferencias_usuario?select=id&usuario=eq.${USUARIO_GLOBAL}`, {
+            method: 'GET',
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+        });
+        
+        const dadosBusca = await resBusca.json();
+        
+        let url = `${SUPABASE_URL}/rest/v1/preferencias_usuario`;
+        let method = 'POST';
 
-                let url = `${SUPABASE_URL}/rest/v1/preferencias_usuario`;
-                let method = 'POST';
+        // 2. Se o registro já existe no banco, usa PATCH com o ID encontrado
+        if (dadosBusca && dadosBusca.length > 0) {
+            registroIdBanco = dadosBusca[0].id;
+            url += `?id=eq.${registroIdBanco}`;
+            method = 'PATCH';
+        } else {
+            // Se não existe absolutamente nenhum, limpa o ID para forçar a criação limpa
+            registroIdBanco = null;
+        }
 
-                // Se encontrou o ID, força a atualização (PATCH) para evitar o erro de duplicidade
-                if (registroIdBanco) {
-                    url += `?id=eq.${registroIdBanco}`;
-                    method = 'PATCH';
-                }
+        const res = await fetch(url, {
+            method: method,
+            headers: {
+                'apikey': SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+            },
+            body: JSON.stringify(payload)
+        });
 
-                const res = await fetch(url, {
-                    method: method,
-                    headers: {
-                        'apikey': SUPABASE_KEY,
-                        'Authorization': `Bearer ${SUPABASE_KEY}`,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'return=representation'
-                    },
+        if (!res.ok) {
+            const erroApi = await res.json();
+            console.error("Supabase recusou:", erroApi);
+            
+            // Tratamento automático: se ainda der conflito de chave duplicada, força um UPSERT limpando o ID local e tentando via POST simples
+            if (erroApi.code === '23505') {
+                console.warn("Conflito detectado. Tentando reinserção forçada...");
+                await fetch(`${SUPABASE_URL}/rest/v1/preferencias_usuario?usuario=eq.${USUARIO_GLOBAL}`, {
+                    method: 'DELETE',
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+                });
+                // Tenta o POST novamente logo após limpar
+                await fetch(`${SUPABASE_URL}/rest/v1/preferencias_usuario`, {
+                    method: 'POST',
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
+                return;
+            }
 
-                if (!res.ok) {
-                    const erroApi = await res.json();
-                    console.error("Falha ao salvar no Supabase:", erroApi);
-                    alert("Atenção: O sistema salvou localmente, mas a nuvem recusou os dados.\nVerifique se todas as colunas existem no Supabase.\n\nDetalhe técnico: " + erroApi.message);
-                    return;
-                }
+            alert("Atenção: O sistema salvou localmente, mas a nuvem recusou.\nDetalhe: " + erroApi.message);
+            return;
+        }
 
-                if (method === 'POST') {
-                    const data = await res.json();
-                    if (data && data.length > 0) {
-                        registroIdBanco = data[0].id;
-                    }
-                }
-            } catch(e) {
-                console.error("Falha ao salvar no Supabase:", e);
+        if (method === 'POST') {
+            const data = await res.json();
+            if (data && data.length > 0) {
+                registroIdBanco = data[0].id;
             }
         }
+    } catch(e) {
+        console.error("Falha na requisição:", e);
+    }
+}
 
         function verificarSessaoSalva() {
             const usuarioSalvo = localStorage.getItem('usuarioLogado');
