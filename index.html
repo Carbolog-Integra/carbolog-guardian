@@ -1748,47 +1748,7 @@ async function buscarAutocomplete(termo, listId, callback) {
             }
             renderizarResumoOperacao();
         }
-function corrigirUfPorCidade(cidade, ufOriginal) {
-    if (!cidade) return ufOriginal || 'SP';
-    const c = cidade.trim().toLowerCase();
-    
-    // Dicionário de cidades comuns fora de São Paulo
-    const mapaEstados = {
-        'betim': 'MG',
-        'vespasiano': 'MG',
-        'contagem': 'MG',
-        'belo horizonte': 'MG',
-        'uberlandia': 'MG',
-        'juiz de fora': 'MG',
-        'poços de caldas': 'MG',
-        'rio de janeiro': 'RJ',
-        'duque de caxias': 'RJ',
-        'nova iguaçu': 'RJ',
-        'niteroi': 'RJ',
-        'volta redonda': 'RJ',
-        'curitiba': 'PR',
-        'londrina': 'PR',
-        'maringa': 'PR',
-        'florianopolis': 'SC',
-        'joinville': 'SC',
-        'blumenau': 'SC',
-        'porto alegre': 'RS',
-        'canoas': 'RS',
-        'caxias do sul': 'RS',
-        'goiania': 'GO',
-        'anapolis': 'GO',
-        'brasilia': 'DF',
-        'vitoria': 'ES',
-        'vila velha': 'ES',
-        'salvador': 'BA',
-        'feira de santana': 'BA'
-    };
 
-    if (mapaEstados[c]) {
-        return mapaEstados[c];
-    }
-    return ufOriginal || 'SP';
-}
         function renderizarGridEMapa() {
             const tbody = document.getElementById('tbodyOperacional'); if (!tbody) return;
             tbody.innerHTML = '';
