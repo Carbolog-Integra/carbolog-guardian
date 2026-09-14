@@ -1168,7 +1168,7 @@
             novosThs.forEach(th => { if(th) trHead.parentNode.appendChild(th); });
         }
 
-      let timeoutBusca = null;
+    let timeoutBusca = null;
 async function buscarAutocomplete(termo, listId, callback) {
     const lista = document.getElementById(listId);
     if (!termo || termo.length < 2) { 
@@ -1178,38 +1178,37 @@ async function buscarAutocomplete(termo, listId, callback) {
     
     const termoLower = termo.toLowerCase();
     
-    // 1. Busca primeiro nas referências já salvas no sistema (pesquisa local instantânea)
+    // 1. Busca imediata nas referências já salvas no seu sistema
     const referenciasLocais = pontosReferenciaSalvos
         .filter(p => p.nome.toLowerCase().includes(termoLower))
-        .map(p => ({ lat: p.lat, lon: p.lon, display_name: `${p.nome} (Salvo)`, nomeReferencia: p.nome }));
+        .map(p => ({ lat: p.lat, lon: p.lon, display_name: `${p.nome} (Ponto Salvo)`, nomeReferencia: p.nome }));
 
     if (!lista) return;
     lista.innerHTML = '';
 
     let resultadosAPI = [];
     try {
-        // 2. Busca externa com cabeçalho User-Agent amigável exigido pelo Nominatim
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termo + ", Sao Paulo, Brazil")}&limit=5`;
+        // 2. Requisição externa utilizando fetch com codificação segura
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termo)}&addressdetails=1&limit=5`;
         const res = await fetch(url, {
             headers: {
-                'Accept-Language': 'pt-BR'
+                'Accept': 'application/json'
             }
         });
         if (res.ok) {
             resultadosAPI = await res.json();
         }
     } catch (e) {
-        console.warn("Consulta externa indisponível no momento. Exibindo locais salvos.");
+        console.warn("Rede bloqueou a busca externa. Utilizando referências locais.");
     }
 
-    // Remove duplicados comparando nomes
+    // Combina locais salvos e resultados da API sem duplicar
     const mapUnicos = new Map();
-    const resultados = [...referenciasLocais, ...resultadosAPI];
     const itensFiltrados = [];
     
-    resultados.forEach(item => {
+    [...referenciasLocais, ...resultadosAPI].forEach(item => {
         const nomeChave = item.nomeReferencia || item.display_name;
-        if (!mapUnicos.has(nomeChave)) {
+        if (nomeChave && !mapUnicos.has(nomeChave)) {
             mapUnicos.set(nomeChave, true);
             itensFiltrados.push(item);
         }
@@ -1219,7 +1218,7 @@ async function buscarAutocomplete(termo, listId, callback) {
         itensFiltrados.forEach(item => {
             const li = document.createElement('li');
             const titulo = item.nomeReferencia || item.display_name.split(',')[0];
-            const resto = item.nomeReferencia ? 'Ponto de Referência do Sistema' : item.display_name.substring(titulo.length + 1);
+            const resto = item.nomeReferencia ? 'Sistema' : item.display_name.substring(titulo.length + 1);
             
             li.innerHTML = `<i class="fas fa-map-marker-alt"></i><div><b>${escapeHtml(titulo)}</b><small>${escapeHtml(resto)}</small></div>`;
             li.onclick = () => { 
@@ -1230,7 +1229,18 @@ async function buscarAutocomplete(termo, listId, callback) {
         });
         lista.style.display = 'block';
     } else { 
-        lista.style.display = 'none'; 
+        // Se a API falhar ou não achar, mostra pelo menos os pontos salvos que correspondam ao texto
+        if (referenciasLocais.length > 0) {
+            referenciasLocais.forEach(item => {
+                const li = document.createElement('li');
+                li.innerHTML = `<i class="fas fa-map-marker-alt"></i><div><b>${escapeHtml(item.nomeReferencia)}</b><small>Ponto Salvo</small></div>`;
+                li.onclick = () => { callback(item); lista.style.display = 'none'; };
+                lista.appendChild(li);
+            });
+            lista.style.display = 'block';
+        } else {
+            lista.style.display = 'none'; 
+        }
     }
 }
         function configurarAutocompleteInput(inputId, listId, tipoDestino, customInputEl = null) {
