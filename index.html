@@ -232,7 +232,7 @@
                 <option value="Administrador">Administrador</option>
                 <option value="Gestor">Gestor de Frota</option>
             </select>
-            <input type="password" id="passInput" placeholder="Senha" value="123456" required>
+            <input type="password" id="passInput" placeholder="Senha" autocomplete="current-password" required>
             <button class="btn" onclick="fazerLogin()" style="width: 100%;">Entrar</button>
             <p id="loginError" style="color: red; display: none; margin-top: 15px; font-size: 14px; font-weight: bold;">Domínio não autorizado!</p>
         </div>
@@ -816,7 +816,7 @@
             <p>Veículo: <b id="veiculoSelecionadoModal"></b></p>
             <div style="margin-bottom: 15px;"><label><b>Selecione a Rota Criada:</b></label><br><select id="selectRotaVinculo" style="width: 95%; padding: 10px; margin-top: 5px; background: var(--card-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;"></select></div>
             <div style="display: flex; gap: 10px;">
-                <button class="btn" style="background: var(--success); flex: 1;" onclick="confirmarVinculacaoRota()">Salvar Vínculo</button>
+                <button class="btn" style="background: var(--success); flex: 1;" onclick="confirmarVinculacaoRota()">Salvar</button>
                 <button class="btn" style="background: var(--danger); flex: 1;" onclick="fecharModalVincular()">Cancelar</button>
             </div>
         </div>
@@ -914,6 +914,22 @@
         const USUARIO_GLOBAL = 'global_sistema_frota';
         const PRECO_DIESEL_SP = 6.43;
 
+        // Dados vindos de APIs, banco ou entrada do usuário nunca devem ser
+        // inseridos diretamente em HTML sem escape.
+        function escapeHtml(valor) {
+            return String(valor ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        }
+
+        function normalizarIgnicao(valor) {
+            return valor === true || valor === 1 || valor === '1' ||
+                String(valor).toLowerCase() === 'true';
+        }
+
         function formatarPlacaPadrao(p) {
             if(!p || p === 'SEM-PLACA') return 'SEM-PLACA';
             p = String(p).replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
@@ -938,7 +954,12 @@
                     const data = await res.json();
                     if (data && data.length > 0) {
                         // FORÇANDO PEGAR O ÚLTIMO REGISTRO (MAIS RECENTE) EVITANDO CONFLITOS DE ARRAYS VAZIOS
-                        dadosNuvem = data[data.length - 1]; 
+                        // Usa o registro mais recente quando a tabela possuir timestamp.
+                        dadosNuvem = [...data].sort((a, b) => {
+                            const ta = Date.parse(a.updated_at || a.created_at || '') || 0;
+                            const tb = Date.parse(b.updated_at || b.created_at || '') || 0;
+                            return ta - tb;
+                        }).at(-1);
                     }
                 }
             } catch(e) {}
@@ -1034,7 +1055,7 @@
             if (usuarioSalvo) {
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('app').style.display = 'block';
-                document.getElementById('userLogado').innerHTML = `<b>Usuário:</b> ${usuarioSalvo}`;
+                document.getElementById('userLogado').textContent = `Usuário: ${usuarioSalvo}`;
                 
                 carregarDadosDoBanco().then(() => {
                     const abaAtivaSalva = localStorage.getItem('abaAtiva') || 'operacional';
@@ -1053,7 +1074,22 @@
         }
 
         function fazerLogin() {
-            const email = document.getElementById('emailInput').value;
+            const emailEl = document.getElementById('emailInput');
+            const passEl = document.getElementById('passInput');
+            const erroEl = document.getElementById('loginError');
+            const email = emailEl.value.trim().toLowerCase();
+            const senha = passEl.value;
+
+            // Esta validação reduz entradas acidentais, mas NÃO substitui
+            // autenticação real no backend/Supabase Auth.
+            const emailValido = /^[^\s@]+@carbolog\.com\.br$/.test(email);
+            if (!emailValido || senha.length < 1) {
+                erroEl.textContent = 'Informe um e-mail corporativo e uma senha.';
+                erroEl.style.display = 'block';
+                return;
+            }
+
+            erroEl.style.display = 'none';
             localStorage.setItem('usuarioLogado', email);
             verificarSessaoSalva();
         }
@@ -1297,12 +1333,15 @@
                 }, 500);
             });
             
-            document.addEventListener('click', function(e) {
-                const listaEl = document.getElementById(listId);
-                if (listaEl && !input.contains(e.target) && !listaEl.contains(e.target)) {
-                    listaEl.style.display = 'none';
-                }
-            });
+            if (!input.dataset.autocompleteOutsideClick) {
+                document.addEventListener('click', function(e) {
+                    const listaEl = document.getElementById(listId);
+                    if (listaEl && !input.contains(e.target) && !listaEl.contains(e.target)) {
+                        listaEl.style.display = 'none';
+                    }
+                });
+                input.dataset.autocompleteOutsideClick = 'true';
+            }
         }
 
         function adicionarCampoPontoIntermediario() {
@@ -1564,12 +1603,27 @@
             return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
         }
 
+        function distanciaPontoSegmentoMetros(lat, lon, a, b) {
+            // Projeção equiretangular adequada para os pequenos segmentos das rotas.
+            const escalaX = 111320 * Math.cos(lat * Math.PI / 180);
+            const escalaY = 110540;
+            const px = lon * escalaX, py = lat * escalaY;
+            const ax = a[1] * escalaX, ay = a[0] * escalaY;
+            const bx = b[1] * escalaX, by = b[0] * escalaY;
+            const dx = bx - ax, dy = by - ay;
+            const comprimento2 = dx * dx + dy * dy;
+            const t = comprimento2 === 0 ? 0 : Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / comprimento2));
+            return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+        }
+
         function calcularMenorDistanciaAteRota(lat, lon, coordenadasRota) {
+            if (!Array.isArray(coordenadasRota) || coordenadasRota.length === 0) return Infinity;
+            if (coordenadasRota.length === 1) {
+                return calcularDistanciaMetros(lat, lon, coordenadasRota[0][0], coordenadasRota[0][1]);
+            }
             let menorDist = Infinity;
-            for (let i = 0; i < coordenadasRota.length; i++) {
-                const pt = coordenadasRota[i];
-                const d = calcularDistanciaMetros(lat, lon, pt[0], pt[1]);
-                if (d < menorDist) menorDist = d;
+            for (let i = 0; i < coordenadasRota.length - 1; i++) {
+                menorDist = Math.min(menorDist, distanciaPontoSegmentoMetros(lat, lon, coordenadasRota[i], coordenadasRota[i + 1]));
             }
             return menorDist;
         }
@@ -1954,7 +2008,7 @@
 
                 const qtd = uniqueVeiculos.length;
 
-                let linhasTabela = uniqueVeiculos.map(v => `<tr><td><b>${v.placa}</b></td><td>${v.areaNome}</td><td>${v.tempo}</td></tr>`).join('');
+                let linhasTabela = uniqueVeiculos.map(v => `<tr><td><b>${v.placa}</b></td><td>${escapeHtml(v.areaNome)}</td><td>${v.tempo}</td></tr>`).join('');
                 if (qtd === 0) linhasTabela = `<tr><td colspan="3" style="text-align:center; opacity:0.6;">Nenhum veículo no momento</td></tr>`;
 
                 const idDropdown = `dropdown-area-resumo-${cat.id}`;
@@ -2114,7 +2168,7 @@
                 
                 const linkGoogle = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
                 const linkWaze = `https://waze.com/ul?ll=${lat},${lon}&navigate=yes`;
-                const ignicaoBool = Boolean(v.ignicao);
+                const ignicaoBool = normalizarIgnicao(v.ignicao);
                 const velFinal = Number(v.velocidade) || 0;
                 
                 const rotaVinculadaObj = rotasVeiculos[placaFormatada];
@@ -2192,7 +2246,7 @@
                     `<td><span style="font-size:12px; background:rgba(255,143,0,0.1); padding:4px 8px; border-radius:4px; font-weight:bold; color:#FF8F00;">${areasStr}</span></td>`,
                     `<td class="table-actions">
                         ${htmlAlertas}
-                        ${!isOfflineForced ? `<a href="${linkGoogle}" target="_blank" title="Google Maps" style="margin-left: 10px;"><i class="fas fa-map-marker-alt"></i></a><a href="${linkWaze}" target="_blank" title="Waze"><i class="fab fa-waze"></i></a>` : ''}
+                        ${!isOfflineForced ? `<a href="${linkGoogle}" target="_blank" rel="noopener noreferrer" title="Google Maps" style="margin-left: 10px;"><i class="fas fa-map-marker-alt"></i></a><a href="${linkWaze}" target="_blank" rel="noopener noreferrer" title="Waze"><i class="fab fa-waze"></i></a>` : ''}
                     </td>`
                 ];
 
@@ -2637,22 +2691,38 @@
             fecharJanelaCriarArea(); renderizarTabelaAreas(); renderizarAreasNoMapa(); renderizarPainelCardsAreas(); mudarAba('areas');
         }
 
-        function renderizarTabelaAreas() {
-            const linhas = areasSalvas.map(a => `<tr><td><b>${a.nome}</b></td><td>${a.tipo.toUpperCase()}</td><td>Cadastrada</td><td class="table-actions"><button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--primary-blue);" onclick="focarAreaNoMapa(${a.id})"><i class="fas fa-eye"></i></button><button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--danger);" onclick="excluirArea(${a.id})"><i class="fas fa-trash"></i></button></td></tr>`);
+function renderizarTabelaAreas() {
+            const linhas = areasSalvas.map(a => `<tr>
+                <td><b>${escapeHtml(a.nome)}</b></td>
+                <td>${a.tipo.toUpperCase()}</td>
+                <td>Cadastrada</td>
+                <td class="table-actions">
+                    <button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--primary-blue);" onclick="focarAreaNoMapa(${a.id})" title="Ver no Mapa"><i class="fas fa-eye"></i></button>
+                    <button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--warning); color: black;" onclick="editarArea(${a.id})" title="Editar Nome"><i class="fas fa-edit"></i></button>
+                    <button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--danger);" onclick="excluirArea(${a.id})" title="Excluir"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>`);
             renderizarLinhasComLimite('tbodyAreasSalvas', 'tabelaAreasSalvas', linhas, 4, 'Nenhuma área cadastrada.');
         }
-        
-        function renderizarGruposAreas() {
-            const tbody = document.getElementById('tbodyGruposAreas');
-            if (!tbody) return;
-            const linhas = gruposAreasSalvos.map(g => {
-                const nomes = g.areas.map(idA => {
-                    const a = areasSalvas.find(x => x.id == idA);
-                    return a ? a.nome : '';
-                }).filter(Boolean).join(', ');
-                return `<tr><td><b>${g.nome}</b></td><td>${nomes || 'Nenhuma área'}</td><td class="table-actions"><button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--danger);" onclick="excluirGrupoArea(${g.id})"><i class="fas fa-trash"></i></button></td></tr>`;
-            });
-            renderizarLinhasComLimite('tbodyGruposAreas', 'tabelaGruposAreas', linhas, 3, 'Nenhum grupo de áreas cadastrado.');
+
+        async function editarArea(id) {
+            const area = areasSalvas.find(a => a.id === id);
+            if (!area) return;
+            
+            const novoNome = prompt("Digite o novo nome para a área:", area.nome);
+            if (!novoNome || novoNome.trim() === "" || novoNome === area.nome) return;
+
+            area.nome = novoNome.trim();
+            
+            // Salva e atualiza tudo onde o nome da área aparece
+            await salvarDadosNoBanco();
+            renderizarTabelaAreas();
+            renderizarAreasNoMapa();
+            renderizarPainelCardsAreas();
+            renderizarGruposAreas();
+            renderizarGridEMapa();
+            
+            alert("Área atualizada com sucesso!");
         }
 
         function abrirModalCriarGrupoArea() {
@@ -2698,9 +2768,9 @@
             camadaAreasGrupo.clearLayers();
             areasSalvas.forEach(a => {
                 if (a.tipo === 'polygon' || a.tipo === 'rectangle') {
-                    L.polygon(a.geometria, {color: '#00838F', fillColor: '#00838F', fillOpacity: 0.3, weight: 2}).bindPopup(`<b>Área:</b> ${a.nome}`).addTo(camadaAreasGrupo);
+                    L.polygon(a.geometria, {color: '#00838F', fillColor: '#00838F', fillOpacity: 0.3, weight: 2}).bindPopup(`<b>Área:</b> ${escapeHtml(a.nome)}`).addTo(camadaAreasGrupo);
                 } else if (a.tipo === 'circle') {
-                    L.circle(a.geometria.center, {radius: a.geometria.radius, color: '#00838F', fillColor: '#00838F', fillOpacity: 0.3, weight: 2}).bindPopup(`<b>Área:</b> ${a.nome}`).addTo(camadaAreasGrupo);
+                    L.circle(a.geometria.center, {radius: a.geometria.radius, color: '#00838F', fillColor: '#00838F', fillOpacity: 0.3, weight: 2}).bindPopup(`<b>Área:</b> ${escapeHtml(a.nome)}`).addTo(camadaAreasGrupo);
                 }
             });
             renderizarPainelCardsAreas();
@@ -2950,7 +3020,7 @@
             await salvarDadosNoBanco(); renderizarTabelaRotas(); fecharModalSalvar(); limparRota(); mudarAba('rotas');
         }
 
-        function renderizarTabelaRotas(filtro = '') {
+function renderizarTabelaRotas(filtro = '') {
             const filtradas = rotasSalvas.filter(r => r.nome.toLowerCase().includes(filtro.toLowerCase()));
             const linhas = filtradas.map(r => {
                 const litrosStr = r.litros ? `${r.litros} L` : `${(parseFloat(r.distancia)/2.5).toFixed(1)} L`;
@@ -2958,13 +3028,37 @@
                     <td><b>${r.nome}</b></td><td>${r.origemTxt}</td><td>${r.destinoTxt}</td><td>${r.eixos}</td>
                     <td>${r.distancia} km | <span style="color:var(--warning); font-weight:bold;">${litrosStr}</span> | R$ ${r.custo}</td>
                     <td class="table-actions">
-                        <button class="btn" style="padding: 4px 8px; font-size: 11px; background: #00838F;" onclick="verDetalhesRota(${r.id})">Detalhes</button>
-                        <button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--primary-blue);" onclick="carregarRotaNoMapa(${r.id})">Mapa</button>
-                        <button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--danger);" onclick="excluirRota(${r.id})"><i class="fas fa-trash"></i></button>
+                        <button class="btn" style="padding: 4px 8px; font-size: 11px; background: #00838F;" onclick="verDetalhesRota(${r.id})" title="Detalhes"><i class="fas fa-list"></i></button>
+                        <button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--primary-blue);" onclick="carregarRotaNoMapa(${r.id})" title="Ver no Mapa"><i class="fas fa-map"></i></button>
+                        <button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--warning); color: black;" onclick="editarRota(${r.id})" title="Editar Nome"><i class="fas fa-edit"></i></button>
+                        <button class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--danger);" onclick="excluirRota(${r.id})" title="Excluir"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>`;
             });
             renderizarLinhasComLimite('tbodyRotasSalvas', 'tabelaRotasSalvas', linhas, 6, 'Nenhuma rota cadastrada.');
+        }
+
+        async function editarRota(id) {
+            const rota = rotasSalvas.find(r => r.id === id);
+            if (!rota) return;
+            
+            const novoNome = prompt("Digite o novo nome para esta rota:", rota.nome);
+            if (!novoNome || novoNome.trim() === "" || novoNome === rota.nome) return;
+
+            rota.nome = novoNome.trim();
+            
+            // Se essa rota já estiver vinculada a um caminhão, atualiza o nome lá também
+            Object.keys(rotasVeiculos).forEach(placa => {
+                if (rotasVeiculos[placa].id === id) {
+                    rotasVeiculos[placa].nome = rota.nome;
+                }
+            });
+
+            await salvarDadosNoBanco();
+            renderizarTabelaRotas();
+            renderizarGridEMapa(); 
+            
+            alert("Rota atualizada com sucesso!");
         }
 
         function filtrarRotasSalvas() { const input = document.getElementById('filtroRotasInput'); if(input) renderizarTabelaRotas(input.value); }
