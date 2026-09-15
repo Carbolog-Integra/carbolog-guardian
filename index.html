@@ -1168,127 +1168,86 @@
             novosThs.forEach(th => { if(th) trHead.parentNode.appendChild(th); });
         }
 
-  let timeoutBusca = null;
-let timeoutBusca = null;
-async function buscarAutocomplete(termo, listId, callback) {
-    const lista = document.getElementById(listId);
-    
-    // Só começa a buscar se digitar pelo menos 3 letras
-    if (!termo || termo.length < 3) { 
-        if (lista) lista.style.display = 'none'; 
-        return; 
-    }
-    
-    if (!lista) return;
-    
-    // Mostra feedback visual de que está carregando
-    lista.innerHTML = '<li style="padding: 15px; text-align: center; opacity: 0.7;"><i class="fas fa-spinner fa-spin"></i> Buscando...</li>';
-    lista.style.display = 'block';
-
-    const termoLower = termo.toLowerCase();
-    
-    // 1. Busca Local (Pontos de Referência Salvos)
-    const resultadosLocais = pontosReferenciaSalvos
-        .filter(p => p.nome.toLowerCase().includes(termoLower))
-        .map(p => ({ lat: p.lat, lon: p.lon, display_name: `${p.nome} (Ponto Salvo)`, nomeReferencia: p.nome }));
-
-    // 2. Busca também nas Áreas Geográficas Salvas
-    areasSalvas.forEach(a => {
-        if (a.nome.toLowerCase().includes(termoLower)) {
-            let latA, lonA;
-            if (a.tipo === 'circle') { latA = a.geometria.center[0]; lonA = a.geometria.center[1]; }
-            else if (a.geometria && a.geometria.length > 0) { latA = a.geometria[0][0]; lonA = a.geometria[0][1]; }
+        // ==========================
+        // AUTOCOMPLETE DE MAPAS (ARCGIS - 100% FUNCIONAL)
+        // ==========================
+        let timeoutBusca = null;
+        async function buscarAutocomplete(termo, listId, callback) {
+            const lista = document.getElementById(listId);
+            if (!termo || termo.length < 3) { 
+                if (lista) lista.style.display = 'none'; 
+                return; 
+            }
+            if (!lista) return;
             
-            if (latA && lonA) {
-                resultadosLocais.push({ lat: latA, lon: lonA, display_name: `${a.nome} (Área/Cerca Salva)`, nomeReferencia: a.nome });
+            lista.innerHTML = '<li style="padding: 15px; text-align: center; opacity: 0.7;"><i class="fas fa-spinner fa-spin"></i> Buscando...</li>';
+            lista.style.display = 'block';
+
+            const termoLower = termo.toLowerCase();
+            const resultadosLocais = pontosReferenciaSalvos
+                .filter(p => p.nome.toLowerCase().includes(termoLower))
+                .map(p => ({ lat: p.lat, lon: p.lon, display_name: `${p.nome} (Ponto Salvo)`, nomeReferencia: p.nome }));
+
+            areasSalvas.forEach(a => {
+                if (a.nome.toLowerCase().includes(termoLower)) {
+                    let latA, lonA;
+                    if (a.tipo === 'circle') { latA = a.geometria.center[0]; lonA = a.geometria.center[1]; }
+                    else if (a.geometria && a.geometria.length > 0) { latA = a.geometria[0][0]; lonA = a.geometria[0][1]; }
+                    if (latA && lonA) {
+                        resultadosLocais.push({ lat: latA, lon: lonA, display_name: `${a.nome} (Área/Cerca Salva)`, nomeReferencia: a.nome });
+                    }
+                }
+            });
+
+            let resultadosAPI = [];
+            try {
+                const url = `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&singleLine=${encodeURIComponent(termo + ' Brasil')}&maxLocations=5`;
+                const res = await fetch(url);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.candidates) {
+                        resultadosAPI = data.candidates.map(c => ({
+                            lat: c.location.y,
+                            lon: c.location.x,
+                            display_name: c.address,
+                            nomeReferencia: c.address.split(',')[0]
+                        }));
+                    }
+                }
+            } catch (e) {
+                console.error("Erro na busca de endereço da ArcGIS:", e);
+            }
+
+            lista.innerHTML = '';
+            const mapUnicos = new Map();
+            const itensFiltrados = [];
+            
+            [...resultadosLocais, ...resultadosAPI].forEach(item => {
+                const nomeChave = item.nomeReferencia || item.display_name;
+                if (nomeChave && !mapUnicos.has(nomeChave)) {
+                    mapUnicos.set(nomeChave, true);
+                    itensFiltrados.push(item);
+                }
+            });
+
+            if (itensFiltrados.length > 0) {
+                itensFiltrados.forEach(item => {
+                    const li = document.createElement('li');
+                    const titulo = item.nomeReferencia;
+                    const resto = item.display_name.substring(titulo.length + 1) || 'Resultado encontrado';
+                    
+                    li.innerHTML = `<i class="fas fa-map-marker-alt"></i><div><b>${escapeHtml(titulo)}</b><small>${escapeHtml(resto)}</small></div>`;
+                    li.onclick = () => { 
+                        callback(item); 
+                        lista.style.display = 'none'; 
+                    };
+                    lista.appendChild(li);
+                });
+            } else { 
+                lista.innerHTML = `<li style="padding: 15px; text-align: center;"><i class="fas fa-exclamation-circle" style="color: var(--warning); font-size: 20px; margin-bottom: 5px;"></i><br><b>Nenhum resultado</b><br><small>Tente digitar rua e cidade</small></li>`;
             }
         }
-    });
 
-    let resultadosAPI = [];
-    try {
-        // 3. API da ArcGIS (Esri) - Não bloqueia CORS, não precisa de Key e é super rápida
-        const url = `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&singleLine=${encodeURIComponent(termo + ' Brasil')}&maxLocations=5`;
-        
-        const res = await fetch(url);
-        if (res.ok) {
-            const data = await res.json();
-            if (data && data.candidates) {
-                resultadosAPI = data.candidates.map(c => ({
-                    lat: c.location.y,
-                    lon: c.location.x,
-                    display_name: c.address,
-                    nomeReferencia: c.address.split(',')[0]
-                }));
-            }
-        }
-    } catch (e) {
-        console.error("Erro na busca de endereço da ArcGIS:", e);
-    }
-
-    lista.innerHTML = '';
-    
-    // Junta os resultados locais e da internet, removendo duplicados
-    const mapUnicos = new Map();
-    const itensFiltrados = [];
-    
-    [...resultadosLocais, ...resultadosAPI].forEach(item => {
-        const nomeChave = item.nomeReferencia || item.display_name;
-        if (nomeChave && !mapUnicos.has(nomeChave)) {
-            mapUnicos.set(nomeChave, true);
-            itensFiltrados.push(item);
-        }
-    });
-
-    // Renderiza a lista final na tela
-    if (itensFiltrados.length > 0) {
-        itensFiltrados.forEach(item => {
-            const li = document.createElement('li');
-            const titulo = item.nomeReferencia;
-            const resto = item.display_name.substring(titulo.length + 1) || 'Resultado encontrado';
-            
-            li.innerHTML = `<i class="fas fa-map-marker-alt"></i><div><b>${escapeHtml(titulo)}</b><small>${escapeHtml(resto)}</small></div>`;
-            li.onclick = () => { 
-                callback(item); 
-                lista.style.display = 'none'; 
-            };
-            lista.appendChild(li);
-        });
-    } else { 
-        lista.innerHTML = `<li style="padding: 15px; text-align: center;"><i class="fas fa-exclamation-circle" style="color: var(--warning); font-size: 20px; margin-bottom: 5px;"></i><br><b>Nenhum resultado</b><br><small>Tente digitar rua e cidade</small></li>`;
-    }
-}
-
-    // Combina locais salvos e resultados da API sem duplicar
-    const mapUnicos = new Map();
-    const itensFiltrados = [];
-    
-    [...referenciasLocais, ...resultadosAPI].forEach(item => {
-        const nomeChave = item.nomeReferencia || item.display_name;
-        if (nomeChave && !mapUnicos.has(nomeChave)) {
-            mapUnicos.set(nomeChave, true);
-            itensFiltrados.push(item);
-        }
-    });
-
-    if (itensFiltrados.length > 0) {
-        itensFiltrados.forEach(item => {
-            const li = document.createElement('li');
-            const titulo = item.nomeReferencia || item.display_name.split(',')[0];
-            const resto = item.nomeReferencia ? 'Ponto Salvo no Sistema' : item.display_name.substring(titulo.length + 1);
-            
-            li.innerHTML = `<i class="fas fa-map-marker-alt"></i><div><b>${escapeHtml(titulo)}</b><small>${escapeHtml(resto)}</small></div>`;
-            li.onclick = () => { 
-                callback(item); 
-                lista.style.display = 'none'; 
-            };
-            lista.appendChild(li);
-        });
-        lista.style.display = 'block';
-    } else { 
-        lista.style.display = 'none'; 
-    }
-}
         function configurarAutocompleteInput(inputId, listId, tipoDestino, customInputEl = null) {
             const input = customInputEl || document.getElementById(inputId);
             if (!input) return;
@@ -1805,6 +1764,26 @@ async function buscarAutocomplete(termo, listId, callback) {
             renderizarResumoOperacao();
         }
 
+        // FUNÇÃO DE CORREÇÃO DE ESTADOS PARA O GRID
+        function corrigirUfPorCidade(cidade, ufOriginal) {
+            if (!cidade) return ufOriginal || 'SP';
+            const c = cidade.trim().toLowerCase();
+            
+            const mapaEstados = {
+                'betim': 'MG', 'vespasiano': 'MG', 'contagem': 'MG', 'belo horizonte': 'MG', 'uberlandia': 'MG',
+                'juiz de fora': 'MG', 'poços de caldas': 'MG', 'rio de janeiro': 'RJ', 'duque de caxias': 'RJ',
+                'nova iguaçu': 'RJ', 'niteroi': 'RJ', 'volta redonda': 'RJ', 'curitiba': 'PR', 'londrina': 'PR',
+                'maringa': 'PR', 'florianopolis': 'SC', 'joinville': 'SC', 'blumenau': 'SC', 'porto alegre': 'RS',
+                'canoas': 'RS', 'caxias do sul': 'RS', 'goiania': 'GO', 'anapolis': 'GO', 'brasilia': 'DF',
+                'vitoria': 'ES', 'vila velha': 'ES', 'salvador': 'BA', 'feira de santana': 'BA'
+            };
+
+            if (mapaEstados[c]) {
+                return mapaEstados[c];
+            }
+            return ufOriginal || 'SP';
+        }
+
         function renderizarGridEMapa() {
             const tbody = document.getElementById('tbodyOperacional'); if (!tbody) return;
             tbody.innerHTML = '';
@@ -1891,6 +1870,8 @@ async function buscarAutocomplete(termo, listId, callback) {
                 const isChecked = veiculosOcultosGlobal[placaFormatada] ? '' : 'checked';
                 const tagCadastro = item.cadastrado ? `<span class="tag-cadastrado">Master</span>` : '';
 
+                const ufCorrigida = corrigirUfPorCidade(v.cidade, v.uf);
+
                 const tr = document.createElement('tr');
                 const tds = [
                     `<td><b>${index + 1}</b></td>`,
@@ -1899,7 +1880,7 @@ async function buscarAutocomplete(termo, listId, callback) {
                     `<td>${dataFormatadaPtBr}</td>`,
                     `<td><span style="color: ${isOfflineForced ? '#757575' : (ignicaoBool ? 'var(--success)' : 'var(--danger)')}; font-weight:bold;">${isOfflineForced ? '-' : (ignicaoBool ? 'LIGADA' : 'DESLIGADA')}</span></td>`,
                     `<td>${v.cidade || '-'}</td>`,
-                    `<td>${v.uf || '-'}</td>`,
+                    `<td>${ufCorrigida}</td>`,
                     `<td>${v.rua || '-'}</td>`,
                     `<td><b>${isOfflineForced ? '-' : velFinal + ' km/h'}</b></td>`,
                     `<td><span style="font-size:12px; background:rgba(0,131,143,0.1); padding:4px 8px; border-radius:4px; font-weight:bold; color:#00838F;">${rotaVinculadaNome}</span></td>`,
