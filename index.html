@@ -1169,49 +1169,95 @@
         }
 
   let timeoutBusca = null;
+let timeoutBusca = null;
 async function buscarAutocomplete(termo, listId, callback) {
     const lista = document.getElementById(listId);
-    if (!termo || termo.length < 2) { 
+    
+    // Só começa a buscar se digitar pelo menos 3 letras
+    if (!termo || termo.length < 3) { 
         if (lista) lista.style.display = 'none'; 
         return; 
     }
     
+    if (!lista) return;
+    
+    // Mostra feedback visual de que está carregando
+    lista.innerHTML = '<li style="padding: 15px; text-align: center; opacity: 0.7;"><i class="fas fa-spinner fa-spin"></i> Buscando...</li>';
+    lista.style.display = 'block';
+
     const termoLower = termo.toLowerCase();
     
-    // 1. Busca imediata nas referências já salvas no seu sistema
-    const referenciasLocais = pontosReferenciaSalvos
+    // 1. Busca Local (Pontos de Referência Salvos)
+    const resultadosLocais = pontosReferenciaSalvos
         .filter(p => p.nome.toLowerCase().includes(termoLower))
         .map(p => ({ lat: p.lat, lon: p.lon, display_name: `${p.nome} (Ponto Salvo)`, nomeReferencia: p.nome }));
 
-    if (!lista) return;
-    lista.innerHTML = '';
+    // 2. Busca também nas Áreas Geográficas Salvas
+    areasSalvas.forEach(a => {
+        if (a.nome.toLowerCase().includes(termoLower)) {
+            let latA, lonA;
+            if (a.tipo === 'circle') { latA = a.geometria.center[0]; lonA = a.geometria.center[1]; }
+            else if (a.geometria && a.geometria.length > 0) { latA = a.geometria[0][0]; lonA = a.geometria[0][1]; }
+            
+            if (latA && lonA) {
+                resultadosLocais.push({ lat: latA, lon: lonA, display_name: `${a.nome} (Área/Cerca Salva)`, nomeReferencia: a.nome });
+            }
+        }
+    });
 
     let resultadosAPI = [];
     try {
-        // 2. Utiliza a Photon API (compatível com navegador e sem bloqueio de User-Agent)
-        const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(termo)}&limit=5&lang=pt`;
+        // 3. API da ArcGIS (Esri) - Não bloqueia CORS, não precisa de Key e é super rápida
+        const url = `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&singleLine=${encodeURIComponent(termo + ' Brasil')}&maxLocations=5`;
+        
         const res = await fetch(url);
         if (res.ok) {
             const data = await res.json();
-            if (data && data.features) {
-                resultadosAPI = data.features.map(f => {
-                    const props = f.properties;
-                    const nomeLocal = props.name || '';
-                    const cidadeLocal = props.city || props.county || props.state || '';
-                    const estadoLocal = props.state || '';
-                    const display = [nomeLocal, cidadeLocal, estadoLocal].filter(Boolean).join(', ');
-                    
-                    return {
-                        lat: f.geometry.coordinates[1],
-                        lon: f.geometry.coordinates[0],
-                        display_name: display || 'Localizador OpenStreetMap'
-                    };
-                });
+            if (data && data.candidates) {
+                resultadosAPI = data.candidates.map(c => ({
+                    lat: c.location.y,
+                    lon: c.location.x,
+                    display_name: c.address,
+                    nomeReferencia: c.address.split(',')[0]
+                }));
             }
         }
     } catch (e) {
-        console.warn("Falha na consulta externa. Exibindo apenas locais salvos.");
+        console.error("Erro na busca de endereço da ArcGIS:", e);
     }
+
+    lista.innerHTML = '';
+    
+    // Junta os resultados locais e da internet, removendo duplicados
+    const mapUnicos = new Map();
+    const itensFiltrados = [];
+    
+    [...resultadosLocais, ...resultadosAPI].forEach(item => {
+        const nomeChave = item.nomeReferencia || item.display_name;
+        if (nomeChave && !mapUnicos.has(nomeChave)) {
+            mapUnicos.set(nomeChave, true);
+            itensFiltrados.push(item);
+        }
+    });
+
+    // Renderiza a lista final na tela
+    if (itensFiltrados.length > 0) {
+        itensFiltrados.forEach(item => {
+            const li = document.createElement('li');
+            const titulo = item.nomeReferencia;
+            const resto = item.display_name.substring(titulo.length + 1) || 'Resultado encontrado';
+            
+            li.innerHTML = `<i class="fas fa-map-marker-alt"></i><div><b>${escapeHtml(titulo)}</b><small>${escapeHtml(resto)}</small></div>`;
+            li.onclick = () => { 
+                callback(item); 
+                lista.style.display = 'none'; 
+            };
+            lista.appendChild(li);
+        });
+    } else { 
+        lista.innerHTML = `<li style="padding: 15px; text-align: center;"><i class="fas fa-exclamation-circle" style="color: var(--warning); font-size: 20px; margin-bottom: 5px;"></i><br><b>Nenhum resultado</b><br><small>Tente digitar rua e cidade</small></li>`;
+    }
+}
 
     // Combina locais salvos e resultados da API sem duplicar
     const mapUnicos = new Map();
