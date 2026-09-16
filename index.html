@@ -331,18 +331,18 @@
                     <table id="gridOperacional">
                         <thead>
                             <tr>
-                                <th draggable="true"><i class="fas fa-list-ol"></i> Nº</th>
-                                <th draggable="true"><i class="fas fa-eye"></i> Ver <br><input type="checkbox" id="checkAll" checked onclick="toggleCheckAll()"></th>
-                                <th draggable="true"><i class="fas fa-truck"></i> Placa <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="placa"></th>
-                                <th draggable="true"><i class="fas fa-clock"></i> Data/Hora Com. <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="data/hora"></th>
-                                <th draggable="true"><i class="fas fa-power-off"></i> Ignição <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="ON/OFF"></th>
-                                <th draggable="true"><i class="fas fa-city"></i> Cidade <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="cidade"></th>
-                                <th draggable="true"><i class="fas fa-map"></i> UF <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="UF"></th>
-                                <th draggable="true"><i class="fas fa-road"></i> Rua / Rodovia <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="rua/rodovia"></th>
-                                <th draggable="true"><i class="fas fa-tachometer-alt"></i> Velocidade <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="km/h"></th>
-                                <th draggable="true"><i class="fas fa-route"></i> Rota Vinculada <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="rota"></th>
-                                <th draggable="true"><i class="fas fa-draw-polygon"></i> Áreas Vinculadas <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="área"></th>
-                                <th draggable="true"><i class="fas fa-exclamation-triangle"></i> Alertas e Ações <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="alerta"></th>
+                                <th draggable="true" onclick="if(!event.target.closest('input,button,a')) abrirOrganizadorColunas()"><i class="fas fa-list-ol"></i> Nº</th>
+                                <th draggable="true" onclick="if(!event.target.closest('input,button,a')) abrirOrganizadorColunas()"><i class="fas fa-eye"></i> Ver <br><input type="checkbox" id="checkAll" checked onclick="toggleCheckAll()"></th>
+                                <th draggable="true" onclick="if(!event.target.closest('input,button,a')) abrirOrganizadorColunas()"><i class="fas fa-truck"></i> Placa <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="placa"></th>
+                                <th draggable="true" onclick="if(!event.target.closest('input,button,a')) abrirOrganizadorColunas()"><i class="fas fa-clock"></i> Data/Hora Com. <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="data/hora"></th>
+                                <th draggable="true" onclick="if(!event.target.closest('input,button,a')) abrirOrganizadorColunas()"><i class="fas fa-power-off"></i> Ignição <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="ON/OFF"></th>
+                                <th draggable="true" onclick="if(!event.target.closest('input,button,a')) abrirOrganizadorColunas()"><i class="fas fa-city"></i> Cidade <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="cidade"></th>
+                                <th draggable="true" onclick="if(!event.target.closest('input,button,a')) abrirOrganizadorColunas()"><i class="fas fa-map"></i> UF <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="UF"></th>
+                                <th draggable="true" onclick="if(!event.target.closest('input,button,a')) abrirOrganizadorColunas()"><i class="fas fa-road"></i> Rua / Rodovia <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="rua/rodovia"></th>
+                                <th draggable="true" onclick="if(!event.target.closest('input,button,a')) abrirOrganizadorColunas()"><i class="fas fa-tachometer-alt"></i> Velocidade <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="km/h"></th>
+                                <th draggable="true" onclick="if(!event.target.closest('input,button,a')) abrirOrganizadorColunas()"><i class="fas fa-route"></i> Rota Vinculada <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="rota"></th>
+                                <th draggable="true" onclick="if(!event.target.closest('input,button,a')) abrirOrganizadorColunas()"><i class="fas fa-draw-polygon"></i> Áreas Vinculadas <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="área"></th>
+                                <th draggable="true" onclick="if(!event.target.closest('input,button,a')) abrirOrganizadorColunas()"><i class="fas fa-exclamation-triangle"></i> Alertas e Ações <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="alerta"></th>
                             </tr>
                         </thead>
                         <tbody id="tbodyOperacional"></tbody>
