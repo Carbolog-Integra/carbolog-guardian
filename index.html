@@ -421,6 +421,20 @@
                     <div><button class="btn" style="background: #1D6F42;" onclick="exportarDashboardCompletoExcel()"><i class="fas fa-file-excel"></i> Exportar Toda Dashboard (Excel)</button></div>
                 </div>
 
+                <div class="card" style="border-left: 4px solid #008DDA; margin-top: 20px;">
+                    <div class="flex-row" style="justify-content:space-between; margin-bottom:5px;">
+                        <h3 style="color:var(--accent-blue); margin:0;"><i class="fas fa-stopwatch"></i> Lead Time das Viagens Unimetal / Refinaria</h3>
+                        <button class="btn" style="background:#1D6F42; margin-top:0;" onclick="exportarLeadTimeExcel()"><i class="fas fa-file-excel"></i> Exportar Lead Time</button>
+                    </div>
+                    <p style="font-size:12px; opacity:.8; margin:0 0 15px;">A viagem inicia quando o veículo sai da referência de origem configurada. A barra mostra o percentual do tempo previsto já consumido.</p>
+                    <div class="areas-cards-container" id="cardsLeadTimeViagens"></div>
+                    <div class="dashboard-grid" style="margin-top:10px;">
+                        <div class="chart-box" style="grid-column:span 2; min-height:340px;"><canvas id="graficoLeadTime"></canvas></div>
+                        <div class="chart-box"><canvas id="graficoPizzaLeadTimeQtd"></canvas></div>
+                        <div class="chart-box"><canvas id="graficoPizzaLeadTimePerc"></canvas></div>
+                    </div>
+                </div>
+
                 <div class="dashboard-grid">
                     <div class="chart-box"><canvas id="graficoVelocidade"></canvas></div>
                     <div class="chart-box"><canvas id="graficoParado"></canvas></div>
@@ -896,6 +910,7 @@
         let contadorPermanenciaAreas = {}; 
         let historicoPermanenciasDashboard = [];
         let historicoCercasConcluidas = [];
+        let leadtimeViagens = [];
         let historicoDesviosDashboard = [];
         let historicoComboiosDashboard = [];
         let historicoExcessoVelocidadeDashboard = [];
@@ -1004,6 +1019,7 @@
                 if (reg.contador_permanencia) contadorPermanenciaAreas = reg.contador_permanencia;
                 if (reg.hist_permanencias) historicoPermanenciasDashboard = reg.hist_permanencias;
                 if (reg.hist_cercas) historicoCercasConcluidas = reg.hist_cercas;
+                if (reg.leadtime_viagens) leadtimeViagens = reg.leadtime_viagens;
                 if (reg.hist_desvios) historicoDesviosDashboard = reg.hist_desvios;
                 if (reg.hist_comboios) historicoComboiosDashboard = reg.hist_comboios;
                 if (reg.hist_excesso_vel) historicoExcessoVelocidadeDashboard = reg.hist_excesso_vel;
@@ -1038,6 +1054,7 @@
                 contador_permanencia: contadorPermanenciaAreas,
                 hist_permanencias: historicoPermanenciasDashboard,
                 hist_cercas: historicoCercasConcluidas,
+                leadtime_viagens: leadtimeViagens,
                 hist_desvios: historicoDesviosDashboard,
                 hist_comboios: historicoComboiosDashboard,
                 hist_excesso_vel: historicoExcessoVelocidadeDashboard,
@@ -1472,6 +1489,12 @@
             const wsCercas = XLSX.utils.json_to_sheet(dadosCercasRealtime);
             XLSX.utils.book_append_sheet(wb, wsCercas, "Cercas em Tempo Real");
 
+            const dadosLeadTime = obterViagensLeadTimeVisiveis().map(v => {
+                const decorrido = v.status === 'CONCLUIDA' ? (v.duracaoMin || 0) : Math.max(0, Math.round((Date.now() - v.inicio) / 60000));
+                return { Placa: v.placa, Rota: v.rota, Referência: v.referencia, Status: v.atrasada || decorrido > v.limiteMin ? 'ATRASO' : 'ON TIME', 'Tempo Decorrido': formatarMinutosParaHhMm(decorrido), 'Tempo Configurado': formatarMinutosParaHhMm(v.limiteMin), Percentual: Math.round(decorrido / v.limiteMin * 100) + '%', Início: v.inicio ? new Date(v.inicio).toLocaleString('pt-BR') : '-', Fim: v.fim ? new Date(v.fim).toLocaleString('pt-BR') : '-' };
+            });
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dadosLeadTime), 'Lead Time Viagens');
+
             const idsTabelas = ['tabelaDash', 'tabelaTratativas', 'tabelaDashRotas', 'tabelaDashAreas'];
             const nomesAbas = ['Registros Brutos', 'Tratativas', 'Rotas Embarcadas', 'Areas Geograficas'];
 
@@ -1797,6 +1820,83 @@
                 if (btnRefresh) { btnRefresh.innerHTML = iconOriginal; btnRefresh.disabled = false; }
             }
         }
+        const CONFIG_LEADTIME_ROTAS = [
+            { nome: 'Unimetal Cosmópolis x Unimetal São Vicente', referencia: 'unimetal cosmopolis x unimetal sao vicente', origem: 'unimetal cosmopolis', destino: 'unimetal sao vicente', horas: 5 },
+            { nome: 'Unimetal São Vicente x Unimetal Cosmópolis', referencia: 'unimetal sao vicente x unimetal cosmopolis', origem: 'unimetal sao vicente', destino: 'unimetal cosmopolis', horas: 5 },
+            { nome: 'Unimetal Taubaté x Unimetal São Vicente', referencia: 'unimetal taubate x unimetal sao vicente', origem: 'unimetal taubate', destino: 'unimetal sao vicente', horas: 3 },
+            { nome: 'Unimetal São Vicente x Unimetal Taubaté', referencia: 'unimetal sao vicente x unimetal taubate', origem: 'unimetal sao vicente', destino: 'unimetal taubate', horas: 3 },
+            { nome: 'Unimetal Taubaté x Refinaria Revap São José dos Campos x Unimetal Taubaté', referencia: 'unimetal taubate x refinaria revap sao jose dos campos x unimetal taubate', origem: 'unimetal taubate', destino: 'unimetal taubate', destinoAlternativo: 'refinaria revap sao jose dos campos', horas: 2 },
+            { nome: 'Unimetal Cosmópolis x Unimetal Sorocaba', referencia: 'unimetal cosmopolis x unimetal sorocaba', origem: 'unimetal cosmopolis', destino: 'unimetal sorocaba', horas: 2 },
+            { nome: 'Unimetal Sorocaba x Unimetal Cosmópolis', referencia: 'unimetal sorocaba x unimetal cosmopolis', origem: 'unimetal sorocaba', destino: 'unimetal cosmopolis', horas: 2 },
+            { nome: 'Unimetal Cosmópolis x Refinaria Replan Paulínia x Unimetal Cosmópolis', referencia: 'unimetal cosmopolis x refinaria replan paulínia x unimetal cosmopolis', origem: 'unimetal cosmopolis', destino: 'unimetal cosmopolis', destinoAlternativo: 'refinaria replan paulinia', horas: 1 }
+        ];
+
+        function normalizarTextoLeadTime(valor) {
+            return String(valor || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+        }
+        function distanciaEntrePontosMetros(lat1, lon1, lat2, lon2) {
+            return calcularDistanciaMetros(lat1, lon1, lat2, lon2);
+        }
+        function encontrarConfigLeadTimePorReferencia(nome) {
+            const n = normalizarTextoLeadTime(nome);
+            return CONFIG_LEADTIME_ROTAS.find(c => n === c.referencia || n.includes(c.referencia) || c.referencia.includes(n));
+        }
+        function encontrarReferenciaLeadTime(texto) {
+            const n = normalizarTextoLeadTime(texto);
+            return pontosReferenciaSalvos.find(p => {
+                const pn = normalizarTextoLeadTime(p.nome);
+                return pn === n || pn.includes(n) || n.includes(pn);
+            });
+        }
+        function pontoEstaNaReferencia(lat, lon, referencia, raio=500) {
+            if (!referencia) return false;
+            return distanciaEntrePontosMetros(lat, lon, Number(referencia.lat), Number(referencia.lon)) <= raio;
+        }
+        function localizarReferenciaDestino(config) {
+            const principal = encontrarReferenciaLeadTime(config.destino);
+            const alternativa = config.destinoAlternativo ? encontrarReferenciaLeadTime(config.destinoAlternativo) : null;
+            return { principal, alternativa };
+        }
+        function atualizarLeadtimeDaViagem(placa, lat, lon, agora) {
+            let mudou = false;
+            CONFIG_LEADTIME_ROTAS.forEach(config => {
+                // A referência completa da rota é o gatilho prioritário. O ponto curto
+                // de origem permanece como fallback para bases que ainda não foram
+                // cadastradas com o nome completo.
+                const refOrigem = encontrarReferenciaLeadTime(config.referencia) || encontrarReferenciaLeadTime(config.origem);
+                if (!refOrigem) return;
+                const chave = `${placa}|${normalizarTextoLeadTime(config.referencia)}`;
+                let viagem = leadtimeViagens.find(v => v.chave === chave && v.status === 'EM_CURSO');
+                const dentroOrigem = pontoEstaNaReferencia(lat, lon, refOrigem);
+                if (!viagem && dentroOrigem) {
+                    leadtimeViagens.push({ chave, placa, rota: config.nome, referencia: config.referencia, inicio: null, limiteMin: config.horas * 60, status: 'AGUARDANDO_SAIDA', ultimoDentro: true, ultimaAtualizacao: agora });
+                    mudou = true;
+                    return;
+                }
+                if (!viagem) {
+                    const aguardando = leadtimeViagens.find(v => v.chave === chave && v.status === 'AGUARDANDO_SAIDA');
+                    if (aguardando && aguardando.ultimoDentro && !dentroOrigem) {
+                        aguardando.inicio = agora; aguardando.status = 'EM_CURSO'; aguardando.ultimoDentro = false; aguardando.ultimaAtualizacao = agora; mudou = true;
+                    } else if (aguardando) { aguardando.ultimoDentro = dentroOrigem; aguardando.ultimaAtualizacao = agora; mudou = true; }
+                    return;
+                }
+                viagem.ultimaAtualizacao = agora;
+                const destinos = localizarReferenciaDestino(config);
+                const chegouDestino = pontoEstaNaReferencia(lat, lon, destinos.principal) || pontoEstaNaReferencia(lat, lon, destinos.alternativa);
+                if (chegouDestino) {
+                    viagem.fim = agora; viagem.status = 'CONCLUIDA'; viagem.duracaoMin = Math.max(1, Math.round((agora - viagem.inicio) / 60000)); viagem.atrasada = viagem.duracaoMin > viagem.limiteMin; mudou = true;
+                } else if (agora - viagem.inicio > viagem.limiteMin * 60000 && !viagem.atrasada) {
+                    viagem.atrasada = true; mudou = true;
+                }
+            });
+            // Mantém somente um estado aguardando por rota/placa e evita registros obsoletos intermináveis.
+            leadtimeViagens = leadtimeViagens.filter(v => v.status !== 'AGUARDANDO_SAIDA' || agora - v.ultimaAtualizacao < 24 * 60 * 60 * 1000);
+            return mudou;
+        }
+        function obterViagensLeadTimeVisiveis() {
+            return leadtimeViagens.filter(v => v.status === 'EM_CURSO' || v.status === 'CONCLUIDA');
+        }
+
         function processarRegrasEAlertas(veiculos, dadosBrutos) {
             const agora = Date.now();
             let houveMudanca = false;
@@ -1894,6 +1994,8 @@
                 }
 
                 if (isNaN(lat) || isNaN(lon)) return;
+
+                if (atualizarLeadtimeDaViagem(placaFormatada, lat, lon, agora)) houveMudanca = true;
 
                 const rotaObj = rotasVeiculos[placaFormatada];
                 if (rotaObj && rotaObj.coordenadas) {
@@ -3202,9 +3304,20 @@ function renderizarTabelaRotas(filtro = '') {
             renderizarGridEMapa();
         }
 
+        function exportarLeadTimeExcel() {
+            const resumo = obterViagensLeadTimeVisiveis().map(v => {
+                const decorrido = v.status === 'CONCLUIDA' ? (v.duracaoMin || 0) : Math.max(0, Math.round((Date.now() - v.inicio) / 60000));
+                return { Placa:v.placa, Rota:v.rota, Referencia:v.referencia, Status:v.atrasada || decorrido > v.limiteMin ? 'ATRASO' : 'ON TIME', 'Tempo Decorrido':formatarMinutosParaHhMm(decorrido), 'Tempo Configurado':formatarMinutosParaHhMm(v.limiteMin), 'Percentual':Math.round(decorrido / v.limiteMin * 100) + '%', Inicio:v.inicio ? new Date(v.inicio).toLocaleString('pt-BR') : '-', Fim:v.fim ? new Date(v.fim).toLocaleString('pt-BR') : '-' };
+            });
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resumo), 'Lead Time Viagens');
+            XLSX.writeFile(wb, 'LeadTime_Viagens.xlsx');
+        }
+
         function atualizarDashboards() {
             if(window.graf1) window.graf1.destroy(); if(window.graf2) window.graf2.destroy();
             if(window.graf3) window.graf3.destroy(); if(window.graf4) window.graf4.destroy(); if(window.graf5) window.graf5.destroy();
+            if(window.graf6) window.graf6.destroy(); if(window.graf7) window.graf7.destroy(); if(window.graf8) window.graf8.destroy(); if(window.graf9) window.graf9.destroy();
             
             let excessosPorPlaca = {}; let paradosLigadosContagem = {}; let paradosLigadosTempoMinutos = {};
 
@@ -3227,6 +3340,30 @@ function renderizarTabelaRotas(filtro = '') {
             }
             
             const corTextoDinamica = obterCorTextoGrafico(); const fontPadraoGrafico = { size: 12, weight: 'bold' };
+            const viagensLead = obterViagensLeadTimeVisiveis();
+            const agoraLead = Date.now();
+            const resumoLead = viagensLead.map(v => {
+                const decorrido = v.status === 'CONCLUIDA' ? (v.duracaoMin || 0) : Math.max(0, Math.round((agoraLead - v.inicio) / 60000));
+                const pct = Math.min(100, Math.round((decorrido / v.limiteMin) * 100));
+                return { ...v, decorrido, pct, atrasada: v.atrasada || decorrido > v.limiteMin };
+            });
+            const ontimeLead = resumoLead.filter(v => !v.atrasada);
+            const atrasoLead = resumoLead.filter(v => v.atrasada);
+            const cardsLead = document.getElementById('cardsLeadTimeViagens');
+            if (cardsLead) cardsLead.innerHTML = [
+                { titulo: `Viagens On Time (${ontimeLead.length})`, cor: '#388E3C', itens: ontimeLead },
+                { titulo: `Viagens em Atraso (${atrasoLead.length})`, cor: '#D32F2F', itens: atrasoLead }
+            ].map(grupo => `<div class="area-card-item" style="border-left-color:${grupo.cor};"><h4 class="area-card-title" style="color:${grupo.cor};">${grupo.titulo}</h4><div style="font-size:12px;max-height:130px;overflow:auto;">${grupo.itens.length ? grupo.itens.map(v => `<div style="padding:3px 0;"><b>${escapeHtml(v.placa)}</b> — ${escapeHtml(v.rota)} — ${formatarMinutosParaHhMm(v.decorrido)} / ${formatarMinutosParaHhMm(v.limiteMin)}</div>`).join('') : '<span style="opacity:.7">Nenhuma viagem registrada</span>'}</div></div>`).join('');
+            const labelsLead = resumoLead.slice(-20).map(v => v.placa);
+            const dadosLead = resumoLead.slice(-20).map(v => Math.min(100, v.pct));
+            const coresLead = resumoLead.slice(-20).map(v => v.atrasada ? '#D32F2F' : '#388E3C');
+            const canvasLead = document.getElementById('graficoLeadTime');
+            if (canvasLead) window.graf6 = new Chart(canvasLead.getContext('2d'), { type:'bar', data:{ labels: labelsLead.length ? labelsLead : ['Sem viagens'], datasets:[{ label:'Percentual do lead time consumido', data:dadosLead.length ? dadosLead : [0], backgroundColor:coresLead.length ? coresLead : ['#757575'] }] }, options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, scales:{ x:{beginAtZero:true,max:100,ticks:{color:corTextoDinamica,callback:v=>v+'%'}}, y:{ticks:{color:corTextoDinamica}} }, plugins:{ legend:{labels:{color:corTextoDinamica}}, title:{display:true,text:'Lead Time por Veículo — Verde: On Time | Vermelho: Atraso',color:corTextoDinamica}, datalabels:{color:'#fff',formatter:(v)=>v+'%'} } } });
+            const canvasLeadQtd = document.getElementById('graficoPizzaLeadTimeQtd');
+            if (canvasLeadQtd) window.graf7 = new Chart(canvasLeadQtd.getContext('2d'), { type:'pie', data:{labels:['On Time','Atraso'],datasets:[{data:[ontimeLead.length,atrasoLead.length],backgroundColor:['#388E3C','#D32F2F']}]}, options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:corTextoDinamica}},title:{display:true,text:'Quantidade de Viagens',color:corTextoDinamica},datalabels:{color:'#fff',formatter:v=>v}}} });
+            const totalLead = resumoLead.length || 1;
+            const canvasLeadPerc = document.getElementById('graficoPizzaLeadTimePerc');
+            if (canvasLeadPerc) window.graf8 = new Chart(canvasLeadPerc.getContext('2d'), { type:'pie', data:{labels:['On Time','Atraso'],datasets:[{data:[Math.round(ontimeLead.length/totalLead*100),Math.round(atrasoLead.length/totalLead*100)],backgroundColor:['#388E3C','#D32F2F']}]}, options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:corTextoDinamica}},title:{display:true,text:'Percentual de Viagens',color:corTextoDinamica},datalabels:{color:'#fff',formatter:v=>v+'%'}}} });
 
             let keysVel = Object.keys(excessosPorPlaca); let valsVel = Object.values(excessosPorPlaca);
             if (keysVel.length > 10) { keysVel = keysVel.slice(-10); valsVel = valsVel.slice(-10); }
