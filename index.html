@@ -3465,7 +3465,7 @@ function renderizarTabelaRotas(filtro = '') {
             const canvasPizzaStatus = document.getElementById('graficoPizzaStatus');
             if (canvasPizzaStatus) {
                 window.graf3 = new Chart(canvasPizzaStatus.getContext('2d'), {
-                    type: 'pie', data: { labels: ['Em Trânsito (>10km/h)', 'Parados / Desligados'], datasets: [{ data: [qtdEmTransitoPizza, qtdParadosPizza], backgroundColor: ['#388E3C', '#FF8F00'] }] },
+                    type: 'pie', data: { labels: ['Em Trânsito (>20km/h)', 'Parados / Desligados'], datasets: [{ data: [qtdEmTransitoPizza, qtdParadosPizza], backgroundColor: ['#388E3C', '#FF8F00'] }] },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, color: corTextoDinamica, font: { size: 12, weight: 'bold' } } }, title: { display: true, text: 'Veículos em Trânsito vs Parados', color: corTextoDinamica, font: { size: 14, weight: 'bold' } }, datalabels: { color: '#FFFFFF', font: { size: 13, weight: 'bold' }, formatter: (val) => val > 0 ? val : '' } } }
                 });
             }
