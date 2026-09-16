@@ -86,6 +86,9 @@
         #gridOperacional thead { display: table-header-group !important; visibility: visible !important; }
         #gridOperacional thead tr { display: table-row !important; visibility: visible !important; }
         #gridOperacional thead th { position: sticky; top: 0; z-index: 5; min-width: 95px; white-space: nowrap; }
+        #gridOperacional thead th .seta-ordenacao { float: right; margin-left: 6px; color: #B9E7FF; font-size: 11px; cursor: pointer; }
+        #gridOperacional thead th.coluna-ordenavel { cursor: pointer; user-select: none; }
+        #gridOperacional thead th.coluna-ordenavel:hover { background-color: #1262A0; }
         th input { width: 90%; padding: 5px; margin-top: 5px; font-size: 12px; color: #000; box-sizing: border-box;}
         tr:hover { background-color: rgba(0, 141, 218, 0.05); }
         .table-actions a, .table-actions button { margin-right: 5px; }
@@ -134,6 +137,12 @@
         .dashboard-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 20px; }
         .chart-box { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 390px; box-sizing: border-box; }
         .chart-box canvas { max-height: 310px !important; width: 100% !important; }
+        .chart-box.leadtime-chart { position: relative; transition: all .2s ease; }
+        .chart-box.leadtime-chart.is-expanded { position: fixed; inset: 4vh 4vw; z-index: 3000; height: 92vh !important; min-height: 0 !important; background: var(--card-bg); box-shadow: 0 12px 40px rgba(0,0,0,.45); }
+        .chart-box.leadtime-chart.is-expanded canvas { max-height: calc(92vh - 90px) !important; }
+        .chart-expand-btn { position: absolute; top: 10px; right: 10px; z-index: 2; background: var(--card-bg); border: 1px solid var(--accent-blue); color: var(--accent-blue); border-radius: 4px; padding: 6px 9px; cursor: pointer; }
+        .chart-expand-btn:hover { background: var(--accent-blue); color: #fff; }
+        .grid-column-hint { font-size: 11px; opacity: .72; margin: -8px 0 8px; }
 
         .btn-expandir {
             background: none; border: 1px solid var(--accent-blue); color: var(--accent-blue);
@@ -312,6 +321,7 @@
                     <button class="btn" style="background:var(--accent-blue); padding:5px 10px; font-size: 12px;" onclick="limparFiltrosGrid()"><i class="fas fa-eraser"></i> Limpar Filtros</button>
                     <button class="btn" style="background:#6a1b9a; padding:5px 10px; font-size: 12px;" onclick="restaurarOrdemColunas()"><i class="fas fa-columns"></i> Restaurar Colunas</button>
                 </div>
+                <div class="grid-column-hint"><i class="fas fa-arrows-alt"></i> Arraste o cabeçalho para organizar as colunas. A ordem fica salva para este usuário; clique no cabeçalho para ordenar.</div>
                 <div style="overflow-x: auto;">
                     <table id="gridOperacional">
                         <thead>
@@ -403,7 +413,7 @@
 
             <div class="flex-row" style="margin-bottom: 20px;">
                 <div class="card" style="flex: 1; text-align: center; border-left: 4px solid var(--success); padding: 15px; margin-bottom: 0;">
-                    <h4 style="margin: 0; color: var(--accent-blue); font-size: 14px;"><i class="fas fa-truck-moving"></i> Em Trânsito (>20km/h)</h4>
+                    <h4 style="margin: 0; color: var(--accent-blue); font-size: 14px;"><i class="fas fa-truck-moving"></i> Em Trânsito (>10km/h)</h4>
                     <h2 id="kpiEmTransito" style="margin: 10px 0 0 0; color: var(--text-color);">0</h2>
                 </div>
                 <div class="card" style="flex: 1; text-align: center; border-left: 4px solid #757575; padding: 15px; margin-bottom: 0;">
@@ -447,7 +457,10 @@
                     <p style="font-size:12px; opacity:.8; margin:0 0 15px;">A viagem inicia quando o veículo sai da referência de origem configurada. A barra mostra o percentual do tempo previsto já consumido.</p>
                     <div class="areas-cards-container" id="cardsLeadTimeViagens"></div>
                     <div class="dashboard-grid" style="margin-top:10px;">
-                        <div class="chart-box" style="grid-column:span 2; min-height:340px;"><canvas id="graficoLeadTime"></canvas></div>
+                        <div class="chart-box leadtime-chart" id="leadtimeChartBox" style="grid-column:span 2; min-height:340px;">
+                            <button class="chart-expand-btn" type="button" onclick="alternarExpansaoGraficoLeadTime(this)" title="Expandir gráfico"><i class="fas fa-expand-alt"></i></button>
+                            <canvas id="graficoLeadTime"></canvas>
+                        </div>
                         <div class="chart-box"><canvas id="graficoPizzaLeadTimeQtd"></canvas></div>
                         <div class="chart-box"><canvas id="graficoPizzaLeadTimePerc"></canvas></div>
                     </div>
@@ -949,6 +962,8 @@
         let countdown = INTERVALO_REFRESH_SEGUNDOS;
         let timerIntervalRef = null;
         let refreshEmAndamento = false;
+        let ultimoRefreshSucesso = 0;
+        let ultimoErroRefresh = '';
         
         let popupAlertasHabilitado = true;
         let popup20MinIntervalRef = null;
@@ -957,10 +972,45 @@
         let pontoReferenciaEditandoId = null;
 
         let columnOrder = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+        let colunaOrdenacaoGrid = null;
+        let direcaoOrdenacaoGrid = 'asc';
         const SUPABASE_URL = 'https://oyrqywoctnyottwvqrji.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95cnF5d29jdG55b3R0d3ZxcmppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMjMyOTQsImV4cCI6MjEwMzc5OTI5NH0.VdqJLc_u1VXFrnOe59Bw7wLWV-GZLnx6_fjzBV_TU8w';
         const USUARIO_GLOBAL = 'global_sistema_frota';
         const PRECO_DIESEL_SP = 6.43;
+
+        // De/para oficial recebido na planilha de direcionamento.
+        // A aplicação só considera veículos cujo ID/placa esteja neste catálogo.
+        const DE_PARA_PLACAS_IDS = [{"placa":"AZP7371","id":"1981591"},{"placa":"BRQ6A02","id":"1785179"},{"placa":"BWD7F82","id":"1788649"},{"placa":"CHK7G58","id":"1661744"},{"placa":"CNR4F81","id":"1661768"},{"placa":"CQU0E16","id":"1748150"},{"placa":"CSR2G51","id":"1661769"},{"placa":"CUM9H45","id":"1663540"},{"placa":"DIS9G17","id":"1748109"},{"placa":"DIZ4D81","id":"1661773"},{"placa":"DTU1C07","id":"1661756"},{"placa":"DZH9D93","id":"1661750"},{"placa":"EGN5G37","id":"1785384"},{"placa":"EKJ1G06","id":"1788652"},{"placa":"EKU3G16","id":"1661746"},{"placa":"ELI3E98","id":"1661722"},{"placa":"ELQ2G08","id":"1661763"},{"placa":"END8B23","id":"1877007"},{"placa":"ENU8G27","id":"1661726"},{"placa":"EOC0E56","id":"1785177"},{"placa":"EPP4H83","id":"1686384"},{"placa":"EVA9B09","id":"1661724"},{"placa":"EZM5D03","id":"1661755"},{"placa":"EZN8J43","id":"1661749"},{"placa":"FAU8J53","id":"1748151"},{"placa":"FBO9D35","id":"1661730"},{"placa":"FCC9D531","id":"1661765"},{"placa":"FCN2G17","id":"1731718"},{"placa":"FCT8E61","id":"1785181"},{"placa":"FEG1I76","id":"1661748"},{"placa":"FFI5J61","id":"1748143"},{"placa":"FFP8A621","id":"1748147"},{"placa":"FHH6A41","id":"1661734"},{"placa":"FHR5F86","id":"1785385"},{"placa":"FKC9368","id":"1661720"},{"placa":"FMY1I251","id":"1663547"},{"placa":"FNV3E87","id":"1731723"},{"placa":"FNW4E761","id":"1686378"},{"placa":"FOP0G371","id":"1661762"},{"placa":"FOQ0C66","id":"1752433"},{"placa":"FPM1H44","id":"1748149"},{"placa":"FPT2H66","id":"1664524"},{"placa":"FPW5G481","id":"1661742"},{"placa":"FQB9B75","id":"1748146"},{"placa":"FQD0J54","id":"1748145"},{"placa":"FQF4B22","id":"1788653"},{"placa":"FQX3A45","id":"1788648"},{"placa":"FQY6G76","id":"1979699"},{"placa":"FRS2A84","id":"1661727"},{"placa":"FST8C85","id":"1663542"},{"placa":"FSU6F84","id":"1785171"},{"placa":"FTI7C96","id":"1785172"},{"placa":"FTU2C851","id":"1752432"},{"placa":"FTV0F971","id":"1662132"},{"placa":"FUJ0C85","id":"1748111"},{"placa":"FUR3C57","id":"1788650"},{"placa":"FUR6I35","id":"1785176"},{"placa":"FVW7H581","id":"1686377"},{"placa":"FVX2E81","id":"1785170"},{"placa":"FVX9D91","id":"1785180"},{"placa":"FVZ9H22","id":"1686382"},{"placa":"FWC0C811","id":"1686383"},{"placa":"FWJ0H02","id":"1752426"},{"placa":"FWP5J84","id":"1752428"},{"placa":"FWV9E71","id":"1661778"},{"placa":"FWY1I22","id":"1663548"},{"placa":"FXC7F31","id":"1752425"},{"placa":"FXP4F42","id":"1785167"},{"placa":"FYU9H63","id":"1752431"},{"placa":"FYW0D11","id":"1979695"},{"placa":"FYW7C17","id":"1731719"},{"placa":"FYZ7B22","id":"1752430"},{"placa":"FZO7A23","id":"1686385"},{"placa":"FZV6H14","id":"1748108"},{"placa":"GAD5E37","id":"1731721"},{"placa":"GAG6G74","id":"1687560"},{"placa":"GAJ0J04","id":"1687570"},{"placa":"GAJ7G53","id":"1752429"},{"placa":"GAU9F06","id":"1663541"},{"placa":"GAV6H31","id":"1752427"},{"placa":"GBI0F27","id":"1687559"},{"placa":"GCC2C15","id":"1687564"},{"placa":"GCL6H511","id":"1748144"},{"placa":"GCU7A86","id":"1838499"},{"placa":"GDD6F181","id":"1661737"},{"placa":"GDI6A95","id":"1663544"},{"placa":"GDN8C57","id":"1731722"},{"placa":"GDQ2E21","id":"1687562"},{"placa":"GDW8A11","id":"1661771"},{"placa":"GDX2J54","id":"1687566"},{"placa":"GDZ3B76","id":"1877008"},{"placa":"GEH6H62","id":"1687569"},{"placa":"GEK7B86","id":"1661747"},{"placa":"GFD5B35","id":"1748142"},{"placa":"GFJ7J73","id":"1788651"},{"placa":"GGE0D67","id":"1752434"},{"placa":"GGK1A63","id":"1785174"},{"placa":"GGU3I26","id":"1748110"},{"placa":"GGY5G94","id":"1687561"},{"placa":"GGY7D44","id":"1661776"},{"placa":"GHB0G77","id":"1686386"},{"placa":"GHF9A47","id":"1661760"},{"placa":"GHJ1B53","id":"1661752"},{"placa":"GHR2E37","id":"1785169"},{"placa":"GHX9E07","id":"1785178"},{"placa":"GJE6J47","id":"1731720"},{"placa":"GJP1H23","id":"1661774"},{"placa":"GJS0I17","id":"1661757"},{"placa":"GJY2E07","id":"1748148"},{"placa":"GKB2E23","id":"1687567"},{"placa":"GKI6E02","id":"1687568"},{"placa":"MLT1000","id":"1686008"},{"placa":"MLT2000","id":"1686009"},{"placa":"MLT3000","id":"1686010"},{"placa":"MLT4000","id":"1686011"},{"placa":"QPN7D451","id":"1979700"},{"placa":"QPW8J171","id":"1979697"},{"placa":"RFQ8A47","id":"2188894"},{"placa":"SUL1J391","id":"2110508"},{"placa":"SWR9D80","id":"1979698"}];
+        const DE_PARA_POR_ID = new Map(DE_PARA_PLACAS_IDS.map(item => [String(item.id).replace(/[^A-Z0-9]/gi, '').toUpperCase(), item]));
+        const DE_PARA_POR_PLACA = new Map(DE_PARA_PLACAS_IDS.map(item => [String(item.placa).replace(/[^A-Z0-9]/gi, '').toUpperCase(), item]));
+
+        function normalizarChaveDePara(valor) {
+            return String(valor ?? '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
+        }
+
+        function encontrarDeParaVeiculo(valor) {
+            const chave = normalizarChaveDePara(valor);
+            return DE_PARA_POR_ID.get(chave) || DE_PARA_POR_PLACA.get(chave) || null;
+        }
+
+        function obterDeParaDoVeiculo(veiculo) {
+            if (!veiculo) return null;
+            return encontrarDeParaVeiculo(veiculo.id_veiculo) ||
+                encontrarDeParaVeiculo(veiculo.id) ||
+                encontrarDeParaVeiculo(veiculo.placa) ||
+                encontrarDeParaVeiculo(veiculo.plate);
+        }
+
+        function veiculoPertenceAoDePara(veiculo) {
+            return Boolean(obterDeParaDoVeiculo(veiculo));
+        }
+
+        function normalizarVeiculoComDePara(veiculo) {
+            const dePara = obterDeParaDoVeiculo(veiculo);
+            if (!dePara) return null;
+            return { ...veiculo, id_veiculo: dePara.placa, id_sistema: dePara.id, placa_planilha: dePara.placa };
+        }
 
         // Dados vindos de APIs, banco ou entrada do usuário nunca devem ser
         // inseridos diretamente em HTML sem escape.
@@ -1020,7 +1070,7 @@
 
             const reg = dadosNuvem || dadosLocais;
             if (reg) {
-                if (reg.ordem_colunas) columnOrder = reg.ordem_colunas;
+                if (Array.isArray(reg.ordem_colunas) && reg.ordem_colunas.length === 12) columnOrder = reg.ordem_colunas.map(Number);
                 if (reg.frota_cadastrada) frotaCadastrada = reg.frota_cadastrada;
                 
                 // TRATAMENTO PARA ARRAYS VAZIOS FUNCIONAREM (QUANDO TUDO FOI DELETADO)
@@ -1055,6 +1105,10 @@
                     { id: 2, nome: 'Unimetal Cosmópolis', lat: -22.6431, lon: -47.1978, origem: 'Padrão' }
                 ];
             }
+            try {
+                const ordemLocal = JSON.parse(localStorage.getItem('ordem_colunas_grid') || 'null');
+                if (Array.isArray(ordemLocal) && ordemLocal.length === 12 && !dadosNuvem) columnOrder = ordemLocal.map(Number);
+            } catch (e) {}
             reordenarCabecalhoVisualmente();
         }
 
@@ -1237,7 +1291,7 @@
         }
 
         function renderizarTabelaFrota() {
-            const linhas = frotaCadastrada.map(f => `
+            const linhas = frotaCadastrada.filter(veiculoPertenceAoDePara).map(f => `
                 <tr>
                     <td><b>${f.placa}</b></td>
                     <td>${f.descricao}</td>
@@ -1278,15 +1332,32 @@
         
         function parseDateToMs(dateStr) {
             if (!dateStr || dateStr === '-') return 0;
-            const d = new Date(dateStr);
-            if (!isNaN(d.getTime())) return d.getTime();
-
-            const regexBR = /^(\d{2})\/(\d{2})\/(\d{4})[ ,]+(\d{2}):(\d{2}):(\d{2})/;
-            const match = String(dateStr).match(regexBR);
+            const valor = String(dateStr).trim();
+            const regexBR = /^(\d{2})\/(\d{2})\/(\d{4})[ ,]+(\d{2}):(\d{2})(?::(\d{2}))?/;
+            const match = valor.match(regexBR);
             if (match) {
-                return new Date(`${match[3]}-${match[2]}-${match[1]}T${match[4]}:${match[5]}:${match[6]}`).getTime();
+                const iso = `${match[3]}-${match[2]}-${match[1]}T${match[4]}:${match[5]}:${match[6] || '00'}`;
+                const msBR = new Date(iso).getTime();
+                if (!isNaN(msBR)) return msBR;
             }
-            return 0;
+            const d = new Date(valor);
+            return isNaN(d.getTime()) ? 0 : d.getTime();
+        }
+
+        function minutosSemComunicacao(veiculo, agora = Date.now()) {
+            const ms = parseDateToMs(veiculo?.data_posicao);
+            return ms > 0 ? Math.max(0, (agora - ms) / 60000) : Infinity;
+        }
+
+        function alternarExpansaoGraficoLeadTime(botao) {
+            const caixa = document.getElementById('leadtimeChartBox');
+            if (!caixa) return;
+            const expandido = caixa.classList.toggle('is-expanded');
+            if (botao) {
+                botao.title = expandido ? 'Reduzir gráfico' : 'Expandir gráfico';
+                botao.innerHTML = `<i class="fas fa-${expandido ? 'compress-alt' : 'expand-alt'}"></i>`;
+            }
+            setTimeout(() => { if (window.graf6) window.graf6.resize(); }, 50);
         }
 
         function formatarMinutosParaHhMm(totalMinutos) {
@@ -1536,6 +1607,11 @@
             ths.forEach((th, index) => {
                 if (!th.dataset.colIndex) th.dataset.colIndex = String(index);
                 th.setAttribute('draggable', 'true');
+                th.classList.add('coluna-ordenavel');
+                th.addEventListener('click', (e) => {
+                    if (e.target.closest('input, button, a')) return;
+                    ordenarGridPorColuna(Array.from(th.parentNode.children).indexOf(th));
+                });
                 th.addEventListener('dragstart', (e) => {
                     th.classList.add('dragging');
                     e.dataTransfer.effectAllowed = 'move';
@@ -1556,6 +1632,7 @@
                     const depois = e.clientX > rect.left + rect.width / 2;
                     parent.insertBefore(origem, depois ? th.nextSibling : th);
                     columnOrder = Array.from(parent.children).map(el => Number(el.dataset.colIndex));
+                    persistirOrdemColunasLocal();
                     salvarDadosNoBanco();
                     renderizarGridEMapa();
                 });
@@ -1564,6 +1641,39 @@
                     ths.forEach(el => el.classList.remove('drag-over'));
                 });
             });
+            atualizarSetasOrdenacao();
+        }
+
+        function atualizarSetasOrdenacao() {
+            document.querySelectorAll('#gridOperacional thead th').forEach(th => {
+                let seta = th.querySelector('.seta-ordenacao');
+                if (!seta) {
+                    seta = document.createElement('span');
+                    seta.className = 'seta-ordenacao';
+                    th.appendChild(seta);
+                }
+                const indiceVisual = Array.from(th.parentNode.children).indexOf(th);
+                seta.innerHTML = colunaOrdenacaoGrid === indiceVisual ? (direcaoOrdenacaoGrid === 'asc' ? '▲' : '▼') : '↕';
+                seta.title = 'Clique para ordenar';
+            });
+        }
+
+        function ordenarGridPorColuna(indiceVisual) {
+            if (colunaOrdenacaoGrid === indiceVisual) direcaoOrdenacaoGrid = direcaoOrdenacaoGrid === 'asc' ? 'desc' : 'asc';
+            else { colunaOrdenacaoGrid = indiceVisual; direcaoOrdenacaoGrid = 'asc'; }
+            const tbody = document.getElementById('tbodyOperacional');
+            if (!tbody) return;
+            const linhas = Array.from(tbody.querySelectorAll('tr'));
+            linhas.sort((a, b) => {
+                const av = (a.children[indiceVisual]?.innerText || '').trim();
+                const bv = (b.children[indiceVisual]?.innerText || '').trim();
+                const an = Number(av.replace(/[^0-9,.-]/g, '').replace(',', '.'));
+                const bn = Number(bv.replace(/[^0-9,.-]/g, '').replace(',', '.'));
+                const comparacao = !isNaN(an) && !isNaN(bn) && av !== '' && bv !== '' ? an - bn : av.localeCompare(bv, 'pt-BR', { numeric: true, sensitivity: 'base' });
+                return direcaoOrdenacaoGrid === 'asc' ? comparacao : -comparacao;
+            });
+            linhas.forEach(linha => tbody.appendChild(linha));
+            atualizarSetasOrdenacao();
         }
 
         function limparFiltrosGrid() {
@@ -1573,8 +1683,13 @@
             filtrarGrid();
         }
 
+        function persistirOrdemColunasLocal() {
+            try { localStorage.setItem('ordem_colunas_grid', JSON.stringify(columnOrder)); } catch (e) {}
+        }
+
         async function restaurarOrdemColunas() {
             columnOrder = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+            persistirOrdemColunasLocal();
             const head = document.querySelector('#gridOperacional thead tr');
             if (head) {
                 const colunas = Array.from(head.children).sort((a, b) => Number(a.dataset.colIndex) - Number(b.dataset.colIndex));
@@ -1773,30 +1888,39 @@
             if(timerEl) timerEl.innerText = countdown;
 
             try {
+                const controller = new AbortController();
+                const timeoutRef = setTimeout(() => controller.abort(), 30000);
                 const response = await fetch(`${SUPABASE_URL}/rest/v1/posicoes_sascar?select=*&order=data_posicao.desc`, {
                     method: 'GET',
-                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' }
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+                    signal: controller.signal
                 });
+                clearTimeout(timeoutRef);
                 if (!response.ok) throw new Error("Erro na resposta SASCAR");
                 
                 const dadosBrutos = await response.json();
-                if (!dadosBrutos || !Array.isArray(dadosBrutos)) return;
+                if (!Array.isArray(dadosBrutos)) throw new Error('Resposta de posições inválida');
 
                 dadosBrutos.sort((a, b) => parseDateToMs(b.data_posicao) - parseDateToMs(a.data_posicao));
 
                 const veiculosMap = new Map();
-                veiculosCacheGlobal.forEach(v => veiculosMap.set(formatarPlacaPadrao(v.id_veiculo), v));
+                veiculosCacheGlobal.filter(veiculoPertenceAoDePara).forEach(v => {
+                    const normalizado = normalizarVeiculoComDePara(v);
+                    if (normalizado) veiculosMap.set(normalizado.id_veiculo, normalizado);
+                });
 
                 const novosVeiculosMap = new Map();
                 dadosBrutos.forEach(v => {
-                    const placa = formatarPlacaPadrao(v.id_veiculo);
-                    if (!placa || placa === 'SEM-PLACA') return; 
+                    const normalizado = normalizarVeiculoComDePara(v);
+                    // Interseção obrigatória: API/Sistema x planilha.
+                    if (!normalizado) return;
+                    const placa = normalizado.id_veiculo;
 
                     if (!novosVeiculosMap.has(placa)) {
                         novosVeiculosMap.set(placa, {
-                            ...v, id_veiculo: placa,
-                            velocidade: Number(v.velocidade) ? Math.round(Number(v.velocidade)) : 0,
-                            ignicao: v.ignicao === 1 || v.ignicao === true || String(v.ignicao) === '1' || String(v.ignicao).toLowerCase() === 'true'
+                            ...normalizado,
+                            velocidade: Number(normalizado.velocidade) ? Math.round(Number(normalizado.velocidade)) : 0,
+                            ignicao: normalizarIgnicao(normalizado.ignicao)
                         });
                     }
                 });
@@ -1833,17 +1957,25 @@
                 }
                 
                 expirarAlertasNaoTratados();
-                processarRegrasEAlertas(veiculosCacheGlobal, dadosBrutos);
+                // Os módulos de alerta, leadtime e histórico recebem somente o
+                // conjunto normalizado, com a placa oficial no id_veiculo.
+                processarRegrasEAlertas(veiculosCacheGlobal, veiculosCacheGlobal);
                 renderizarGridEMapa();
                 atualizarKpisETabelasDash();
                 atualizarDashboards();
+                ultimoRefreshSucesso = Date.now();
+                ultimoErroRefresh = '';
             } catch (e) {
+                ultimoErroRefresh = e?.name === 'AbortError' ? 'Tempo excedido ao consultar posições' : (e?.message || 'Falha ao consultar posições');
                 console.error("Falha ao atualizar posições:", e);
             } finally {
                 if (btnRefresh) { btnRefresh.innerHTML = iconOriginal; btnRefresh.disabled = false; }
                 refreshEmAndamento = false;
                 const timerElFinal = document.getElementById('timerRefresh');
-                if (timerElFinal && countdown <= 0) { countdown = INTERVALO_REFRESH_SEGUNDOS; timerElFinal.innerText = countdown; }
+                countdown = INTERVALO_REFRESH_SEGUNDOS;
+                if (timerElFinal) timerElFinal.innerText = countdown;
+                const statusAuto = document.getElementById('timerRefresh');
+                if (statusAuto) statusAuto.title = ultimoErroRefresh ? `Último erro: ${ultimoErroRefresh}` : (ultimoRefreshSucesso ? `Última atualização: ${new Date(ultimoRefreshSucesso).toLocaleTimeString('pt-BR')}` : 'Aguardando atualização');
             }
         }
         const CONFIG_LEADTIME_ROTAS = [
@@ -1889,25 +2021,28 @@
                 // A referência completa da rota é o gatilho prioritário. O ponto curto
                 // de origem permanece como fallback para bases que ainda não foram
                 // cadastradas com o nome completo.
-                const refOrigem = encontrarReferenciaLeadTime(config.referencia) || encontrarReferenciaLeadTime(config.origem);
+                const refOrigem = encontrarReferenciaLeadTime(config.origem);
                 if (!refOrigem) return;
                 const chave = `${placa}|${normalizarTextoLeadTime(config.referencia)}`;
-                let viagem = leadtimeViagens.find(v => v.chave === chave && v.status === 'EM_CURSO');
+                const destinos = localizarReferenciaDestino(config);
+                let viagem = leadtimeViagens.find(v => v.chave === chave && (v.status === 'EM_CURSO' || v.status === 'AGUARDANDO_SAIDA'));
                 const dentroOrigem = pontoEstaNaReferencia(lat, lon, refOrigem);
                 if (!viagem && dentroOrigem) {
-                    leadtimeViagens.push({ chave, placa, rota: config.nome, referencia: config.referencia, inicio: null, limiteMin: config.horas * 60, status: 'AGUARDANDO_SAIDA', ultimoDentro: true, ultimaAtualizacao: agora });
+                    viagem = { chave, placa, rota: config.nome, referencia: config.referencia, origem: config.origem, destino: config.destino, inicio: null, limiteMin: config.horas * 60, status: 'AGUARDANDO_SAIDA', ultimoDentro: true, ultimaAtualizacao: agora };
+                    leadtimeViagens.push(viagem);
                     mudou = true;
-                    return;
                 }
-                if (!viagem) {
-                    const aguardando = leadtimeViagens.find(v => v.chave === chave && v.status === 'AGUARDANDO_SAIDA');
-                    if (aguardando && aguardando.ultimoDentro && !dentroOrigem) {
-                        aguardando.inicio = agora; aguardando.status = 'EM_CURSO'; aguardando.ultimoDentro = false; aguardando.ultimaAtualizacao = agora; mudou = true;
-                    } else if (aguardando) { aguardando.ultimoDentro = dentroOrigem; aguardando.ultimaAtualizacao = agora; mudou = true; }
+                if (!viagem) return;
+                if (viagem.status === 'AGUARDANDO_SAIDA') {
+                    if (viagem.ultimoDentro && !dentroOrigem) {
+                        viagem.inicio = agora; viagem.status = 'EM_CURSO'; viagem.ultimoDentro = false; mudou = true;
+                    } else {
+                        viagem.ultimoDentro = dentroOrigem;
+                    }
+                    viagem.ultimaAtualizacao = agora;
                     return;
                 }
                 viagem.ultimaAtualizacao = agora;
-                const destinos = localizarReferenciaDestino(config);
                 const chegouDestino = pontoEstaNaReferencia(lat, lon, destinos.principal) || pontoEstaNaReferencia(lat, lon, destinos.alternativa);
                 if (chegouDestino) {
                     viagem.fim = agora; viagem.status = 'CONCLUIDA'; viagem.duracaoMin = Math.max(1, Math.round((agora - viagem.inicio) / 60000)); viagem.atrasada = viagem.duracaoMin > viagem.limiteMin; mudou = true;
@@ -1964,10 +2099,10 @@
                 const lat = parseFloat(String(v.latitude).replace(',', '.'));
                 const lon = parseFloat(String(v.longitude).replace(',', '.'));
                 const velFinal = Number(v.velocidade) || 0;
-                const ign = Boolean(v.ignicao);
+                const ign = normalizarIgnicao(v.ignicao);
                 
                 const tempoMsCom = parseDateToMs(v.data_posicao);
-                const diffMinutosCom = tempoMsCom > 0 ? (agora - tempoMsCom) / 60000 : 0;
+                const diffMinutosCom = minutosSemComunicacao(v, agora);
                 const chaveSinal = `sinal_${placaFormatada}`;
 
                 if (diffMinutosCom > 20) {
@@ -2286,16 +2421,21 @@
 
             const mapPlacas = new Map();
 
-            veiculosCacheGlobal.forEach(v => {
-                const placa = formatarPlacaPadrao(v.id_veiculo);
-                mapPlacas.set(placa, { fromApi: true, cadastrado: false, data: v });
+            veiculosCacheGlobal.filter(veiculoPertenceAoDePara).forEach(v => {
+                const dePara = obterDeParaDoVeiculo(v);
+                if (!dePara) return;
+                const placa = dePara.placa;
+                mapPlacas.set(placa, { fromApi: true, cadastrado: false, data: { ...v, id_veiculo: placa, id_sistema: dePara.id, placa_planilha: dePara.placa } });
             });
 
             frotaCadastrada.forEach(f => {
-                if (!mapPlacas.has(f.placa)) {
-                    mapPlacas.set(f.placa, { fromApi: false, cadastrado: true, data: { id_veiculo: f.placa, offline: true, velocidade: 0, ignicao: false, data_posicao: '-', latitude: NaN, longitude: NaN } });
+                const dePara = obterDeParaDoVeiculo(f);
+                if (!dePara) return;
+                const placa = dePara.placa;
+                if (!mapPlacas.has(placa)) {
+                    mapPlacas.set(placa, { fromApi: false, cadastrado: true, data: { id_veiculo: placa, id_sistema: dePara.id, placa_planilha: dePara.placa, offline: true, velocidade: 0, ignicao: false, data_posicao: '-', latitude: NaN, longitude: NaN } });
                 } else {
-                    mapPlacas.get(f.placa).cadastrado = true;
+                    mapPlacas.get(placa).cadastrado = true;
                 }
             });
 
@@ -2366,7 +2506,7 @@
                 const chaveParado = `parado_${placaFormatada}`;
 
                 const tempoMsCom = parseDateToMs(v.data_posicao);
-                const diffMinutosCom = tempoMsCom > 0 ? (Date.now() - tempoMsCom) / 60000 : 0;
+                const diffMinutosCom = minutosSemComunicacao(v);
 
                 let duracaoParadoMin = 0;
                 if (statusParadoLigado[chaveParado]) duracaoParadoMin = Math.round((Date.now() - statusParadoLigado[chaveParado]) / 60000);
@@ -2417,7 +2557,7 @@
                 const tds = [
                     `<td><b>${index + 1}</b></td>`,
                     `<td><input type="checkbox" class="chk-veiculo" value="${placaFormatada}" ${isChecked} onchange="toggleMarker('${placaFormatada}')"></td>`,
-                    `<td><a href="#" onclick="${isOfflineForced ? 'return false;' : `focarVeiculoNoMapa('${placaFormatada}'); return false;`}" style="color:var(--accent-blue); font-weight:bold; ${isOfflineForced ? 'pointer-events: none; opacity:0.6;' : ''}">${placaFormatada}</a>${tagCadastro}</td>`,
+                    `<td><a href="#" onclick="${isOfflineForced ? 'return false;' : `focarVeiculoNoMapa('${placaFormatada}'); return false;`}" style="color:var(--accent-blue); font-weight:bold; ${isOfflineForced ? 'pointer-events: none; opacity:0.6;' : ''}">${placaFormatada}</a><small style="display:block;opacity:.7;">ID: ${escapeHtml(v.id_sistema || obterDeParaDoVeiculo(v)?.id || '-')}</small>${tagCadastro}</td>`,
                     `<td>${dataFormatadaPtBr}</td>`,
                     `<td><span style="color: ${isOfflineForced ? '#757575' : (ignicaoBool ? 'var(--success)' : 'var(--danger)')}; font-weight:bold;">${isOfflineForced ? '-' : (ignicaoBool ? 'LIGADA' : 'DESLIGADA')}</span></td>`,
                     `<td>${v.cidade || '-'}</td>`,
@@ -2481,8 +2621,8 @@
             let totalPerdaSinal = 0;
             veiculosCacheGlobal.forEach(v => {
                 const msComunicacao = parseDateToMs(v.data_posicao);
-                const minutosSemComunicacao = msComunicacao > 0 ? (Date.now() - msComunicacao) / 60000 : Infinity;
-                if (minutosSemComunicacao <= 20) totalAtualizados++;
+                const minutosSemComunicacaoAtual = minutosSemComunicacao(v);
+                if (minutosSemComunicacaoAtual <= 20) totalAtualizados++;
                 else totalPerdaSinal++;
             });
             const kpiBase = document.getElementById('kpiVeiculosBase');
@@ -2493,6 +2633,8 @@
             if (kpiSinal) kpiSinal.innerText = totalPerdaSinal;
 
             renderizarPainelCardsAreas();
+            atualizarSetasOrdenacao();
+            if (colunaOrdenacaoGrid !== null) ordenarGridPorColuna(colunaOrdenacaoGrid);
             filtrarGrid();
         }
 
@@ -2531,9 +2673,9 @@
                 let placaFormatada = formatarPlacaPadrao(v.id_veiculo);
                 
                 const velFinal = Number(v.velocidade) || 0;
-                const ign = Boolean(v.ignicao);
+                const ign = normalizarIgnicao(v.ignicao);
                 const tempoMsCom = parseDateToMs(v.data_posicao);
-                const diffMinutosCom = tempoMsCom > 0 ? (Date.now() - tempoMsCom) / 60000 : 0;
+                const diffMinutosCom = minutosSemComunicacao(v);
                 
                 const rotaVinculadaObj = rotasVeiculos[placaFormatada];
                 let desvioMetros = 0;
@@ -2790,7 +2932,7 @@
             veiculosCacheGlobal.forEach(v => {
                 let p = formatarPlacaPadrao(v.id_veiculo);
                 const vel = Number(v.velocidade) || 0;
-                const ign = Boolean(v.ignicao);
+                const ign = normalizarIgnicao(v.ignicao);
                 
                 if (ign && vel > 10) emTransito++;
                 else if (!ign && vel === 0) desligados++;
@@ -3406,9 +3548,10 @@ function renderizarTabelaRotas(filtro = '') {
                 { titulo: `Viagens On Time (${ontimeLead.length})`, cor: '#388E3C', itens: ontimeLead },
                 { titulo: `Viagens em Atraso (${atrasoLead.length})`, cor: '#D32F2F', itens: atrasoLead }
             ].map(grupo => `<div class="area-card-item" style="border-left-color:${grupo.cor};"><h4 class="area-card-title" style="color:${grupo.cor};">${grupo.titulo}</h4><div style="font-size:12px;max-height:130px;overflow:auto;">${grupo.itens.length ? grupo.itens.map(v => `<div style="padding:3px 0;"><b>${escapeHtml(v.placa)}</b> — ${escapeHtml(v.rota)} — ${formatarMinutosParaHhMm(v.decorrido)} / ${formatarMinutosParaHhMm(v.limiteMin)}</div>`).join('') : '<span style="opacity:.7">Nenhuma viagem registrada</span>'}</div></div>`).join('');
-            const labelsLead = resumoLead.slice(-20).map(v => v.placa);
-            const dadosLead = resumoLead.slice(-20).map(v => Math.min(100, v.pct));
-            const coresLead = resumoLead.slice(-20).map(v => v.atrasada ? '#D32F2F' : '#388E3C');
+            const resumoLeadGrafico = resumoLead.slice(-10);
+            const labelsLead = resumoLeadGrafico.map(v => v.placa);
+            const dadosLead = resumoLeadGrafico.map(v => Math.min(100, v.pct));
+            const coresLead = resumoLeadGrafico.map(v => v.atrasada ? '#D32F2F' : '#388E3C');
             const canvasLead = document.getElementById('graficoLeadTime');
             if (canvasLead) window.graf6 = new Chart(canvasLead.getContext('2d'), { type:'bar', data:{ labels: labelsLead.length ? labelsLead : ['Sem viagens'], datasets:[{ label:'Percentual do lead time consumido', data:dadosLead.length ? dadosLead : [0], backgroundColor:coresLead.length ? coresLead : ['#757575'] }] }, options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, scales:{ x:{beginAtZero:true,max:100,ticks:{color:corTextoDinamica,callback:v=>v+'%'}}, y:{ticks:{color:corTextoDinamica}} }, plugins:{ legend:{labels:{color:corTextoDinamica}}, title:{display:true,text:'Lead Time por Veículo — Verde: On Time | Vermelho: Atraso',color:corTextoDinamica}, datalabels:{color:'#fff',formatter:(v)=>v+'%'} } } });
             const canvasLeadQtd = document.getElementById('graficoPizzaLeadTimeQtd');
@@ -3465,7 +3608,7 @@ function renderizarTabelaRotas(filtro = '') {
             const canvasPizzaStatus = document.getElementById('graficoPizzaStatus');
             if (canvasPizzaStatus) {
                 window.graf3 = new Chart(canvasPizzaStatus.getContext('2d'), {
-                    type: 'pie', data: { labels: ['Em Trânsito (>20km/h)', 'Parados / Desligados'], datasets: [{ data: [qtdEmTransitoPizza, qtdParadosPizza], backgroundColor: ['#388E3C', '#FF8F00'] }] },
+                    type: 'pie', data: { labels: ['Em Trânsito (>10km/h)', 'Parados / Desligados'], datasets: [{ data: [qtdEmTransitoPizza, qtdParadosPizza], backgroundColor: ['#388E3C', '#FF8F00'] }] },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, color: corTextoDinamica, font: { size: 12, weight: 'bold' } } }, title: { display: true, text: 'Veículos em Trânsito vs Parados', color: corTextoDinamica, font: { size: 14, weight: 'bold' } }, datalabels: { color: '#FFFFFF', font: { size: 13, weight: 'bold' }, formatter: (val) => val > 0 ? val : '' } } }
                 });
             }
