@@ -83,6 +83,8 @@
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color); color: var(--text-color); }
         th { background-color: var(--primary-blue); color: #FFFFFF; }
+        #gridOperacional thead { display: table-header-group !important; visibility: visible !important; }
+        #gridOperacional thead th { position: sticky; top: 0; z-index: 5; min-width: 95px; white-space: nowrap; }
         th input { width: 90%; padding: 5px; margin-top: 5px; font-size: 12px; color: #000; box-sizing: border-box;}
         tr:hover { background-color: rgba(0, 141, 218, 0.05); }
         .table-actions a, .table-actions button { margin-right: 5px; }
@@ -283,6 +285,21 @@
                     <span id="statusAreasMapa" class="info-tag">Áreas no mapa: 0</span>
                 </div>
                 <div id="map" style="margin-top: 0; margin-bottom: 20px;"></div>
+            </div>
+
+            <div class="flex-row" id="painelIndicadoresFrota" style="margin-bottom:20px; flex-wrap:wrap;">
+                <div class="card" style="flex:1; min-width:210px; margin-bottom:0; padding:15px; border-left:4px solid var(--accent-blue);">
+                    <h4 style="margin:0; color:var(--accent-blue); font-size:13px;"><i class="fas fa-database"></i> Veículos na Base</h4>
+                    <h2 id="kpiVeiculosBase" style="margin:8px 0 0;">0</h2>
+                </div>
+                <div class="card" style="flex:1; min-width:210px; margin-bottom:0; padding:15px; border-left:4px solid var(--success);">
+                    <h4 style="margin:0; color:var(--accent-blue); font-size:13px;"><i class="fas fa-satellite-dish"></i> Posição Atualizada</h4>
+                    <h2 id="kpiPosicoesAtualizadas" style="margin:8px 0 0; color:var(--success);">0</h2>
+                </div>
+                <div class="card" style="flex:1; min-width:210px; margin-bottom:0; padding:15px; border-left:4px solid var(--danger);">
+                    <h4 style="margin:0; color:var(--accent-blue); font-size:13px;"><i class="fas fa-signal-slash"></i> Perda de Sinal</h4>
+                    <h2 id="kpiPerdaSinal" style="margin:8px 0 0; color:var(--danger);">0</h2>
+                </div>
             </div>
 
             <div class="card">
@@ -927,8 +944,10 @@
         let placaAtualAlertaModal = null;
         let tipoAlertaAtualModal = null;
         let chaveAlertaAtualModal = null;
-        let countdown = 300;
+        const INTERVALO_REFRESH_SEGUNDOS = 300;
+        let countdown = INTERVALO_REFRESH_SEGUNDOS;
         let timerIntervalRef = null;
+        let refreshEmAndamento = false;
         
         let popupAlertasHabilitado = true;
         let popup20MinIntervalRef = null;
@@ -1085,6 +1104,7 @@
         function verificarSessaoSalva() {
             const usuarioSalvo = localStorage.getItem('usuarioLogado');
             if (usuarioSalvo) {
+                iniciarAutoRefresh();
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('app').style.display = 'block';
                 document.getElementById('userLogado').textContent = `Usuário: ${usuarioSalvo}`;
@@ -1098,7 +1118,6 @@
                         if (map) map.invalidateSize();
                         carregarDadosVeiculos();
                         carregarAbastecimentos();
-                        iniciarAutoRefresh();
                         iniciarPopupAlertas20MinTimer();
                     }, 200);
                 });
@@ -1738,6 +1757,8 @@
         }
 
         async function carregarDadosVeiculos() {
+            if (refreshEmAndamento) return;
+            refreshEmAndamento = true;
             const btnRefresh = document.getElementById('btnRefreshManual');
             const iconOriginal = '<i class="fas fa-sync"></i> Refresh';
             if (btnRefresh) {
@@ -1745,7 +1766,7 @@
                 btnRefresh.disabled = true;
             }
             
-            countdown = 300;
+            countdown = INTERVALO_REFRESH_SEGUNDOS;
             const timerEl = document.getElementById('timerRefresh');
             if(timerEl) timerEl.innerText = countdown;
 
@@ -1818,6 +1839,9 @@
                 console.error("Falha ao atualizar posições:", e);
             } finally {
                 if (btnRefresh) { btnRefresh.innerHTML = iconOriginal; btnRefresh.disabled = false; }
+                refreshEmAndamento = false;
+                const timerElFinal = document.getElementById('timerRefresh');
+                if (timerElFinal && countdown <= 0) { countdown = INTERVALO_REFRESH_SEGUNDOS; timerElFinal.innerText = countdown; }
             }
         }
         const CONFIG_LEADTIME_ROTAS = [
@@ -2449,6 +2473,22 @@
 
             const elContador = document.getElementById('contadorAlertasGeral');
             if (elContador) elContador.innerText = `${totalAlertasAtivos} Alertas`;
+
+            const totalBase = Array.isArray(frotaCadastrada) ? frotaCadastrada.length : veiculosCacheGlobal.length;
+            let totalAtualizados = 0;
+            let totalPerdaSinal = 0;
+            veiculosCacheGlobal.forEach(v => {
+                const msComunicacao = parseDateToMs(v.data_posicao);
+                const minutosSemComunicacao = msComunicacao > 0 ? (Date.now() - msComunicacao) / 60000 : Infinity;
+                if (minutosSemComunicacao <= 20) totalAtualizados++;
+                else totalPerdaSinal++;
+            });
+            const kpiBase = document.getElementById('kpiVeiculosBase');
+            const kpiAtualizados = document.getElementById('kpiPosicoesAtualizadas');
+            const kpiSinal = document.getElementById('kpiPerdaSinal');
+            if (kpiBase) kpiBase.innerText = totalBase;
+            if (kpiAtualizados) kpiAtualizados.innerText = totalAtualizados;
+            if (kpiSinal) kpiSinal.innerText = totalPerdaSinal;
 
             renderizarPainelCardsAreas();
             filtrarGrid();
@@ -3155,11 +3195,21 @@ function renderizarTabelaAreas() {
         }
 
         function iniciarAutoRefresh() {
-            if (timerIntervalRef) clearInterval(timerIntervalRef);
+            if (timerIntervalRef) {
+                clearInterval(timerIntervalRef);
+                timerIntervalRef = null;
+            }
+            countdown = INTERVALO_REFRESH_SEGUNDOS;
+            const timerElInicial = document.getElementById('timerRefresh');
+            if (timerElInicial) timerElInicial.innerText = countdown;
             timerIntervalRef = setInterval(() => {
-                countdown--; const timerEl = document.getElementById('timerRefresh'); if (timerEl) timerEl.innerText = countdown;
-                if(countdown <= 0) { countdown = 300; carregarDadosVeiculos(); }
-                // Atualiza o tempo dos veículos na área dinamicamente a cada segundo
+                countdown = Math.max(0, countdown - 1);
+                const timerEl = document.getElementById('timerRefresh');
+                if (timerEl) timerEl.innerText = countdown;
+                if (countdown === 0) {
+                    if (!refreshEmAndamento) carregarDadosVeiculos();
+                    else countdown = 5;
+                }
                 renderizarResumoOperacao();
             }, 1000);
         }
