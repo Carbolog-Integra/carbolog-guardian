@@ -1627,7 +1627,12 @@
                 if (!th.dataset.colIndex) th.dataset.colIndex = String(index);
                 th.setAttribute('draggable', 'true');
                 th.classList.add('coluna-ordenavel');
+                th.title = 'Clique para organizar colunas; duplo clique para ordenar veículos';
                 th.addEventListener('click', (e) => {
+                    if (e.target.closest('input, button, a')) return;
+                    abrirOrganizadorColunas();
+                });
+                th.addEventListener('dblclick', (e) => {
                     if (e.target.closest('input, button, a')) return;
                     ordenarGridPorColuna(Array.from(th.parentNode.children).indexOf(th));
                 });
@@ -1973,8 +1978,10 @@
             try {
                 const controller = new AbortController();
                 const timeoutRef = setTimeout(() => controller.abort(), 30000);
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/posicoes_sascar?select=*&order=data_posicao.desc`, {
+                const urlPosicoes = `${SUPABASE_URL}/rest/v1/posicoes_sascar?select=*&order=data_posicao.desc&_refresh=${Date.now()}`;
+                const response = await fetch(urlPosicoes, {
                     method: 'GET',
+                    cache: 'no-store',
                     headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
                     signal: controller.signal
                 });
@@ -2138,7 +2145,20 @@
             return mudou;
         }
         function obterViagensLeadTimeVisiveis() {
-            return leadtimeViagens.filter(v => v.status === 'EM_CURSO' || v.status === 'CONCLUIDA');
+            const unicasPorPlaca = new Map();
+            leadtimeViagens
+                .filter(v => v.status === 'EM_CURSO' || v.status === 'CONCLUIDA')
+                .forEach(viagem => {
+                    const placa = formatarPlacaPadrao(viagem.placa);
+                    const anterior = unicasPorPlaca.get(placa);
+                    const prioridade = v => (v.status === 'EM_CURSO' ? 2 : 1);
+                    const dataViagem = Number(viagem.ultimaAtualizacao || viagem.inicio || viagem.fim || 0);
+                    const dataAnterior = anterior ? Number(anterior.ultimaAtualizacao || anterior.inicio || anterior.fim || 0) : -1;
+                    if (!anterior || prioridade(viagem) > prioridade(anterior) || (prioridade(viagem) === prioridade(anterior) && dataViagem >= dataAnterior)) {
+                        unicasPorPlaca.set(placa, { ...viagem, placa });
+                    }
+                });
+            return Array.from(unicasPorPlaca.values()).sort((a, b) => Number(b.ultimaAtualizacao || b.inicio || 0) - Number(a.ultimaAtualizacao || a.inicio || 0));
         }
 
         function processarRegrasEAlertas(veiculos, dadosBrutos) {
@@ -3483,6 +3503,13 @@ function renderizarTabelaAreas() {
                 renderizarResumoOperacao();
             }, 1000);
         }
+
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && localStorage.getItem('usuarioLogado') && !refreshEmAndamento) {
+                countdown = 0;
+                carregarDadosVeiculos();
+            }
+        });
 
         function alterarEixos(valor) {
             const inputEixos = document.getElementById('iamEixos');
