@@ -319,7 +319,8 @@
                     <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(true)"><i class="fas fa-check-square"></i> Marcar Todos os Veículos</button>
                     <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(false)"><i class="fas fa-square"></i> Desmarcar Todos os Veículos</button>
                     <button class="btn" style="background:var(--accent-blue); padding:5px 10px; font-size: 12px;" onclick="limparFiltrosGrid()"><i class="fas fa-eraser"></i> Limpar Filtros</button>
-                    <button class="btn" style="background:#6a1b9a; padding:5px 10px; font-size: 12px;" onclick="restaurarOrdemColunas()"><i class="fas fa-columns"></i> Restaurar Colunas</button>
+                    <button class="btn" style="background:#6a1b9a; padding:5px 10px; font-size: 12px;" onclick="abrirOrganizadorColunas()"><i class="fas fa-columns"></i> Organizar Colunas</button>
+                    <button class="btn" style="background:#455a64; padding:5px 10px; font-size: 12px;" onclick="restaurarOrdemColunas()"><i class="fas fa-undo"></i> Restaurar</button>
                 </div>
                 <div class="grid-column-hint"><i class="fas fa-arrows-alt"></i> Arraste o cabeçalho para organizar as colunas. A ordem fica salva para este usuário; clique no cabeçalho para ordenar.</div>
                 <div style="overflow-x: auto;">
@@ -682,6 +683,18 @@
                 </table>
             </div>
             <button class="btn" style="width: 100%; margin-top: 15px; background: var(--primary-blue);" onclick="fecharModalPopupAlertas20Min()">Entendido / Fechar</button>
+        </div>
+    </div>
+
+    <div id="modalOrganizadorColunas" class="modal">
+        <div class="modal-content" style="max-width: 560px;">
+            <div class="modal-header"><i class="fas fa-columns"></i> Organizar colunas do Grid Operacional <span class="close-modal" onclick="fecharOrganizadorColunas()">×</span></div>
+            <p style="font-size:13px;opacity:.8;margin-top:0;">Selecione uma coluna e use as setas para definir a ordem. A alteração é aplicada imediatamente e salva automaticamente.</p>
+            <div id="listaOrganizadorColunas" style="display:flex;flex-direction:column;gap:6px;max-height:420px;overflow:auto;padding:4px;border:1px solid var(--border-color);border-radius:6px;"></div>
+            <div style="display:flex;gap:8px;margin-top:15px;">
+                <button class="btn" style="background:var(--success);flex:1;" onclick="aplicarOrganizadorColunas()"><i class="fas fa-check"></i> Aplicar ordem</button>
+                <button class="btn" style="background:var(--danger);flex:1;" onclick="fecharOrganizadorColunas()">Fechar</button>
+            </div>
         </div>
     </div>
 
@@ -1687,6 +1700,61 @@
             try { localStorage.setItem('ordem_colunas_grid', JSON.stringify(columnOrder)); } catch (e) {}
         }
 
+        let ordemColunasEdicao = [];
+
+        function obterNomeColuna(th) {
+            const clone = th.cloneNode(true);
+            clone.querySelectorAll('input, button, .seta-ordenacao').forEach(el => el.remove());
+            return (clone.textContent || '').replace(/\s+/g, ' ').trim();
+        }
+
+        function abrirOrganizadorColunas(preservarOrdem = false) {
+            const ths = Array.from(document.querySelectorAll('#gridOperacional thead th'));
+            if (!preservarOrdem) ordemColunasEdicao = ths.map(th => Number(th.dataset.colIndex));
+            const lista = document.getElementById('listaOrganizadorColunas');
+            if (!lista) return;
+            lista.innerHTML = ordemColunasEdicao.map((indice, posicao) => {
+                const thOriginal = document.querySelector(`#gridOperacional thead th[data-col-index="${indice}"]`);
+                const nome = thOriginal ? obterNomeColuna(thOriginal) : `Coluna ${indice + 1}`;
+                return `<div data-posicao="${posicao}" style="display:flex;align-items:center;gap:8px;padding:8px;background:rgba(0,141,218,.08);border:1px solid var(--border-color);border-radius:4px;">
+                    <span style="width:28px;text-align:center;font-weight:bold;color:var(--accent-blue);">${posicao + 1}</span>
+                    <b style="flex:1;">${escapeHtml(nome)}</b>
+                    <button type="button" class="btn" style="margin:0;padding:4px 8px;" onclick="moverColunaOrganizador(${posicao}, -1)" title="Mover para cima"><i class="fas fa-arrow-up"></i></button>
+                    <button type="button" class="btn" style="margin:0;padding:4px 8px;" onclick="moverColunaOrganizador(${posicao}, 1)" title="Mover para baixo"><i class="fas fa-arrow-down"></i></button>
+                </div>`;
+            }).join('');
+            document.getElementById('modalOrganizadorColunas').style.display = 'flex';
+        }
+
+        function moverColunaOrganizador(posicao, delta) {
+            const destino = posicao + delta;
+            if (destino < 0 || destino >= ordemColunasEdicao.length) return;
+            [ordemColunasEdicao[posicao], ordemColunasEdicao[destino]] = [ordemColunasEdicao[destino], ordemColunasEdicao[posicao]];
+            abrirOrganizadorColunas(true);
+        }
+
+        function aplicarOrdemColunasNoGrid() {
+            const total = document.querySelectorAll('#gridOperacional thead th').length;
+            const ordemValida = ordemColunasEdicao.length === total && new Set(ordemColunasEdicao).size === total;
+            if (!ordemValida) return;
+            columnOrder = ordemColunasEdicao.map(Number);
+            persistirOrdemColunasLocal();
+            reordenarCabecalhoVisualmente();
+            renderizarGridEMapa();
+            atualizarSetasOrdenacao();
+        }
+
+        async function aplicarOrganizadorColunas() {
+            aplicarOrdemColunasNoGrid();
+            await salvarDadosNoBanco();
+            fecharOrganizadorColunas();
+        }
+
+        function fecharOrganizadorColunas() {
+            const modal = document.getElementById('modalOrganizadorColunas');
+            if (modal) modal.style.display = 'none';
+        }
+
         async function restaurarOrdemColunas() {
             columnOrder = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
             persistirOrdemColunasLocal();
@@ -1871,6 +1939,7 @@
             if (mudou) {
                 salvarDadosNoBanco();
             }
+            return mudou;
         }
 
         async function carregarDadosVeiculos() {
@@ -2577,6 +2646,9 @@
                     if (columnOrder[i] !== undefined && tds[columnOrder[i]]) htmlOrdenado += tds[columnOrder[i]];
                 }
                 tr.innerHTML = htmlOrdenado;
+                Array.from(tr.children).forEach((td, indiceVisual) => {
+                    td.dataset.colIndex = String(columnOrder[indiceVisual]);
+                });
                 tbody.appendChild(tr);
 
                 if (!isOfflineForced && !isNaN(lat) && !isNaN(lon)) {
@@ -2616,7 +2688,9 @@
             const elContador = document.getElementById('contadorAlertasGeral');
             if (elContador) elContador.innerText = `${totalAlertasAtivos} Alertas`;
 
-            const totalBase = Array.isArray(frotaCadastrada) ? frotaCadastrada.length : veiculosCacheGlobal.length;
+            // A base oficial é o conjunto único definido pelo de/para da planilha.
+            // Não usar frotaCadastrada: ela pode conter registros antigos/importados.
+            const totalBase = DE_PARA_PLACAS_IDS.length;
             let totalAtualizados = 0;
             let totalPerdaSinal = 0;
             veiculosCacheGlobal.forEach(v => {
@@ -3328,12 +3402,19 @@ function renderizarTabelaAreas() {
 
         function filtrarGrid() {
             const buscaGeral = (document.getElementById('filtroGlobalGrid')?.value || '').trim().toLowerCase();
-            const filtros = Array.from(document.querySelectorAll('#gridOperacional thead .filtro-coluna')).map(input => input.value.trim().toLowerCase());
+            const filtros = Array.from(document.querySelectorAll('#gridOperacional thead th')).map(th => ({
+                coluna: Number(th.dataset.colIndex),
+                valor: (th.querySelector('.filtro-coluna')?.value || '').trim().toLowerCase()
+            })).filter(item => item.valor);
             document.querySelectorAll('#tbodyOperacional tr').forEach(row => {
-                const cells = Array.from(row.children);
                 const textoLinha = (row.innerText || '').toLowerCase();
-                const visivel = (!buscaGeral || textoLinha.includes(buscaGeral)) &&
-                    filtros.every((filtro, index) => !filtro || (cells[index]?.innerText || '').toLowerCase().includes(filtro));
+                const visivel = (!buscaGeral || textoLinha.includes(buscaGeral)) && filtros.every(filtro => {
+                    const celula = row.querySelector(`td[data-col-index="${filtro.coluna}"]`);
+                    const textoCelula = (celula?.innerText || '').toLowerCase();
+                    const buscaNormalizada = normalizarChaveDePara(filtro.valor);
+                    const textoNormalizado = normalizarChaveDePara(textoCelula);
+                    return textoCelula.includes(filtro.valor) || (buscaNormalizada && textoNormalizado.includes(buscaNormalizada));
+                });
                 row.style.display = visivel ? '' : 'none';
             });
         }
@@ -3353,6 +3434,14 @@ function renderizarTabelaAreas() {
                 if (countdown === 0) {
                     if (!refreshEmAndamento) carregarDadosVeiculos();
                     else countdown = 5;
+                }
+                // A expiração é baseada no relógio, então não pode depender
+                // somente do próximo refresh da API. Ao expirar, redesenha o
+                // grid imediatamente: o veículo permanece, mas o alerta sai.
+                if (expirarAlertasNaoTratados()) {
+                    renderizarGridEMapa();
+                    atualizarKpisETabelasDash();
+                    atualizarDashboards();
                 }
                 renderizarResumoOperacao();
             }, 1000);
