@@ -693,7 +693,7 @@
     <div id="modalOrganizadorColunas" class="modal">
         <div class="modal-content" style="max-width: 560px;">
             <div class="modal-header"><i class="fas fa-columns"></i> Organizar colunas do Grid Operacional <span class="close-modal" onclick="fecharOrganizadorColunas()">×</span></div>
-            <p style="font-size:13px;opacity:.8;margin-top:0;">Selecione uma coluna e use as setas para definir a ordem. A alteração é aplicada imediatamente e salva automaticamente.</p>
+            <p style="font-size:13px;opacity:.8;margin-top:0;">Informe a posição de cada coluna, de 1 a 12. Não repita posições. A alteração será aplicada ao clicar em “Aplicar ordem”.</p>
             <div id="listaOrganizadorColunas" style="display:flex;flex-direction:column;gap:6px;max-height:420px;overflow:auto;padding:4px;border:1px solid var(--border-color);border-radius:6px;"></div>
             <div style="display:flex;gap:8px;margin-top:15px;">
                 <button class="btn" style="background:var(--success);flex:1;" onclick="aplicarOrganizadorColunas()"><i class="fas fa-check"></i> Aplicar ordem</button>
@@ -1727,27 +1727,31 @@
             lista.innerHTML = ordemColunasEdicao.map((indice, posicao) => {
                 const thOriginal = document.querySelector(`#gridOperacional thead th[data-col-index="${indice}"]`);
                 const nome = thOriginal ? obterNomeColuna(thOriginal) : `Coluna ${indice + 1}`;
-                return `<div data-posicao="${posicao}" style="display:flex;align-items:center;gap:8px;padding:8px;background:rgba(0,141,218,.08);border:1px solid var(--border-color);border-radius:4px;">
-                    <span style="width:28px;text-align:center;font-weight:bold;color:var(--accent-blue);">${posicao + 1}</span>
+                return `<div data-coluna-edicao="${indice}" style="display:flex;align-items:center;gap:8px;padding:8px;background:rgba(0,141,218,.08);border:1px solid var(--border-color);border-radius:4px;">
                     <b style="flex:1;">${escapeHtml(nome)}</b>
-                    <button type="button" class="btn" style="margin:0;padding:4px 8px;" onclick="moverColunaOrganizador(${posicao}, -1)" title="Mover para cima"><i class="fas fa-arrow-up"></i></button>
-                    <button type="button" class="btn" style="margin:0;padding:4px 8px;" onclick="moverColunaOrganizador(${posicao}, 1)" title="Mover para baixo"><i class="fas fa-arrow-down"></i></button>
+                    <label style="font-size:12px;white-space:nowrap;">Posição
+                        <input class="posicao-coluna" type="number" min="1" max="${ths.length}" value="${posicao + 1}" data-coluna="${indice}" style="width:58px;padding:5px;border:1px solid var(--border-color);border-radius:4px;background:var(--card-bg);color:var(--text-color);">
+                    </label>
                 </div>`;
             }).join('');
             document.getElementById('modalOrganizadorColunas').style.display = 'flex';
         }
 
-        function moverColunaOrganizador(posicao, delta) {
-            const destino = posicao + delta;
-            if (destino < 0 || destino >= ordemColunasEdicao.length) return;
-            [ordemColunasEdicao[posicao], ordemColunasEdicao[destino]] = [ordemColunasEdicao[destino], ordemColunasEdicao[posicao]];
-            abrirOrganizadorColunas(true);
-        }
-
         function aplicarOrdemColunasNoGrid() {
             const total = document.querySelectorAll('#gridOperacional thead th').length;
-            const ordemValida = ordemColunasEdicao.length === total && new Set(ordemColunasEdicao).size === total;
-            if (!ordemValida) return;
+            const entradas = Array.from(document.querySelectorAll('#listaOrganizadorColunas .posicao-coluna')).map(input => ({
+                coluna: Number(input.dataset.coluna), posicao: Number(input.value)
+            }));
+            if (entradas.length !== total || entradas.some(item => !Number.isInteger(item.posicao) || item.posicao < 1 || item.posicao > total)) {
+                alert(`Informe posições inteiras entre 1 e ${total}.`);
+                return false;
+            }
+            const posicoes = entradas.map(item => item.posicao);
+            if (new Set(posicoes).size !== total) {
+                alert('Cada coluna precisa ter uma posição diferente.');
+                return false;
+            }
+            ordemColunasEdicao = entradas.sort((a, b) => a.posicao - b.posicao).map(item => item.coluna);
             columnOrder = ordemColunasEdicao.map(Number);
             persistirOrdemColunasLocal();
             const cabecalho = document.querySelector('#gridOperacional thead tr');
@@ -1761,10 +1765,11 @@
             });
             atualizarSetasOrdenacao();
             filtrarGrid();
+            return true;
         }
 
         async function aplicarOrganizadorColunas() {
-            aplicarOrdemColunasNoGrid();
+            if (!aplicarOrdemColunasNoGrid()) return;
             await salvarDadosNoBanco();
             fecharOrganizadorColunas();
         }
