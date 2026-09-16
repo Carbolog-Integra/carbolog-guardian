@@ -310,6 +310,10 @@
                     <h4 style="margin:0; color:var(--accent-blue); font-size:13px;"><i class="fas fa-signal-slash"></i> Perda de Sinal</h4>
                     <h2 id="kpiPerdaSinal" style="margin:8px 0 0; color:var(--danger);">0</h2>
                 </div>
+                <div class="card" style="flex:1; min-width:210px; margin-bottom:0; padding:15px; border-left:4px solid var(--warning);">
+                    <h4 style="margin:0; color:var(--accent-blue); font-size:13px;"><i class="fas fa-ban"></i> Sem Comunicação</h4>
+                    <h2 id="kpiSemComunicacao" style="margin:8px 0 0; color:var(--warning);">0</h2>
+                </div>
             </div>
 
             <div class="card">
@@ -934,6 +938,8 @@
         let veiculosOcultosGlobal = {}; 
         let veiculoFocoGlobal = null; 
         let linhaRotaVeiculoAtivo = null; 
+        let totalVeiculosGridAtual = 0;
+        let totalSemComunicacaoGridAtual = 0;
 
         let routingControl = null;
         let linhaRotaEstatica = null; 
@@ -1739,9 +1745,17 @@
             if (!ordemValida) return;
             columnOrder = ordemColunasEdicao.map(Number);
             persistirOrdemColunasLocal();
-            reordenarCabecalhoVisualmente();
-            renderizarGridEMapa();
+            const cabecalho = document.querySelector('#gridOperacional thead tr');
+            if (cabecalho) {
+                const thPorIndice = new Map(Array.from(cabecalho.children).map(th => [Number(th.dataset.colIndex), th]));
+                columnOrder.forEach(indice => { const th = thPorIndice.get(indice); if (th) cabecalho.appendChild(th); });
+            }
+            document.querySelectorAll('#tbodyOperacional tr').forEach(linha => {
+                const celulasPorIndice = new Map(Array.from(linha.children).map(td => [Number(td.dataset.colIndex), td]));
+                columnOrder.forEach(indice => { const td = celulasPorIndice.get(indice); if (td) linha.appendChild(td); });
+            });
             atualizarSetasOrdenacao();
+            filtrarGrid();
         }
 
         async function aplicarOrganizadorColunas() {
@@ -2490,25 +2504,48 @@
 
             const mapPlacas = new Map();
 
+            // O grid é baseado no catálogo oficial, não apenas no último retorno
+            // da API. Assim, equipamentos sem nenhuma posição ainda aparecem como
+            // SEM COMUNICAÇÃO e entram na contagem da base.
+            DE_PARA_PLACAS_IDS.forEach(dePara => {
+                mapPlacas.set(dePara.placa, {
+                    fromApi: false,
+                    cadastrado: true,
+                    data: {
+                        id_veiculo: dePara.placa,
+                        id_sistema: dePara.id,
+                        placa_planilha: dePara.placa,
+                        offline: true,
+                        sem_posicao: true,
+                        velocidade: 0,
+                        ignicao: false,
+                        data_posicao: '-',
+                        latitude: NaN,
+                        longitude: NaN
+                    }
+                });
+            });
+
             veiculosCacheGlobal.filter(veiculoPertenceAoDePara).forEach(v => {
                 const dePara = obterDeParaDoVeiculo(v);
                 if (!dePara) return;
                 const placa = dePara.placa;
-                mapPlacas.set(placa, { fromApi: true, cadastrado: false, data: { ...v, id_veiculo: placa, id_sistema: dePara.id, placa_planilha: dePara.placa } });
+                mapPlacas.set(placa, { fromApi: true, cadastrado: true, data: { ...v, id_veiculo: placa, id_sistema: dePara.id, placa_planilha: dePara.placa, sem_posicao: false } });
             });
 
             frotaCadastrada.forEach(f => {
                 const dePara = obterDeParaDoVeiculo(f);
                 if (!dePara) return;
                 const placa = dePara.placa;
-                if (!mapPlacas.has(placa)) {
-                    mapPlacas.set(placa, { fromApi: false, cadastrado: true, data: { id_veiculo: placa, id_sistema: dePara.id, placa_planilha: dePara.placa, offline: true, velocidade: 0, ignicao: false, data_posicao: '-', latitude: NaN, longitude: NaN } });
-                } else {
-                    mapPlacas.get(placa).cadastrado = true;
-                }
+                if (mapPlacas.has(placa)) mapPlacas.get(placa).cadastrado = true;
             });
 
             let dadosUnificados = Array.from(mapPlacas.values());
+            totalVeiculosGridAtual = dadosUnificados.length;
+            totalSemComunicacaoGridAtual = dadosUnificados.filter(item => {
+                const v = item.data;
+                return v.sem_posicao === true || v.offline === true || minutosSemComunicacao(v) > 20;
+            }).length;
 
             if (veiculoFocoGlobal) {
                 dadosUnificados = dadosUnificados.filter(item => formatarPlacaPadrao(item.data.id_veiculo) === veiculoFocoGlobal);
@@ -2688,13 +2725,11 @@
             const elContador = document.getElementById('contadorAlertasGeral');
             if (elContador) elContador.innerText = `${totalAlertasAtivos} Alertas`;
 
-            // A base oficial é o conjunto único definido pelo de/para da planilha.
-            // Não usar frotaCadastrada: ela pode conter registros antigos/importados.
-            const totalBase = DE_PARA_PLACAS_IDS.length;
+            // Os KPIs refletem o conjunto efetivamente montado no grid.
+            const totalBase = totalVeiculosGridAtual;
             let totalAtualizados = 0;
             let totalPerdaSinal = 0;
-            veiculosCacheGlobal.forEach(v => {
-                const msComunicacao = parseDateToMs(v.data_posicao);
+            veiculosCacheGlobal.filter(veiculoPertenceAoDePara).forEach(v => {
                 const minutosSemComunicacaoAtual = minutosSemComunicacao(v);
                 if (minutosSemComunicacaoAtual <= 20) totalAtualizados++;
                 else totalPerdaSinal++;
@@ -2705,6 +2740,8 @@
             if (kpiBase) kpiBase.innerText = totalBase;
             if (kpiAtualizados) kpiAtualizados.innerText = totalAtualizados;
             if (kpiSinal) kpiSinal.innerText = totalPerdaSinal;
+            const kpiSemComunicacao = document.getElementById('kpiSemComunicacao');
+            if (kpiSemComunicacao) kpiSemComunicacao.innerText = totalSemComunicacaoGridAtual;
 
             renderizarPainelCardsAreas();
             atualizarSetasOrdenacao();
