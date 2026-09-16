@@ -84,6 +84,7 @@
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color); color: var(--text-color); }
         th { background-color: var(--primary-blue); color: #FFFFFF; }
         #gridOperacional thead { display: table-header-group !important; visibility: visible !important; }
+        #gridOperacional thead tr { display: table-row !important; visibility: visible !important; }
         #gridOperacional thead th { position: sticky; top: 0; z-index: 5; min-width: 95px; white-space: nowrap; }
         th input { width: 90%; padding: 5px; margin-top: 5px; font-size: 12px; color: #000; box-sizing: border-box;}
         tr:hover { background-color: rgba(0, 141, 218, 0.05); }
@@ -1297,13 +1298,14 @@
         function obterCorTextoGrafico() { return document.body.classList.contains('dark-mode') ? '#FFFFFF' : '#333333'; }
 
         function reordenarCabecalhoVisualmente() {
-            const trHead = document.querySelector('#gridOperacional th');
-            if (!trHead) return;
-            const ths = Array.from(trHead.parentNode.children);
-            ths.forEach((th, idx) => { if (!th.dataset.colIndex) th.dataset.colIndex = String(idx); });
-            const novosThs = columnOrder.map(indiceOriginal => ths[indiceOriginal]).filter(Boolean);
-            trHead.parentNode.innerHTML = '';
-            novosThs.forEach(th => { if(th) trHead.parentNode.appendChild(th); });
+            const linhaCabecalho = document.querySelector('#gridOperacional thead tr');
+            if (!linhaCabecalho) return;
+            const thsAtuais = Array.from(linhaCabecalho.children);
+            thsAtuais.forEach((th, idx) => { if (!th.dataset.colIndex) th.dataset.colIndex = String(idx); });
+            const porIndiceOriginal = new Map(thsAtuais.map(th => [Number(th.dataset.colIndex), th]));
+            const ordemValida = Array.isArray(columnOrder) && columnOrder.length === thsAtuais.length
+                ? columnOrder : thsAtuais.map((_, idx) => idx);
+            linhaCabecalho.replaceChildren(...ordemValida.map(indice => porIndiceOriginal.get(Number(indice))).filter(Boolean));
         }
 
         let timeoutBusca = null;
