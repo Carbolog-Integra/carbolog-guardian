@@ -310,10 +310,6 @@
                     <h4 style="margin:0; color:var(--accent-blue); font-size:13px;"><i class="fas fa-signal-slash"></i> Perda de Sinal</h4>
                     <h2 id="kpiPerdaSinal" style="margin:8px 0 0; color:var(--danger);">0</h2>
                 </div>
-                <div class="card" style="flex:1; min-width:210px; margin-bottom:0; padding:15px; border-left:4px solid var(--warning);">
-                    <h4 style="margin:0; color:var(--accent-blue); font-size:13px;"><i class="fas fa-ban"></i> Sem Comunicação</h4>
-                    <h2 id="kpiSemComunicacao" style="margin:8px 0 0; color:var(--warning);">0</h2>
-                </div>
             </div>
 
             <div class="card">
@@ -323,26 +319,25 @@
                     <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(true)"><i class="fas fa-check-square"></i> Marcar Todos os Veículos</button>
                     <button class="btn" style="background:#555; padding:5px 10px; font-size: 12px;" onclick="marcarTodos(false)"><i class="fas fa-square"></i> Desmarcar Todos os Veículos</button>
                     <button class="btn" style="background:var(--accent-blue); padding:5px 10px; font-size: 12px;" onclick="limparFiltrosGrid()"><i class="fas fa-eraser"></i> Limpar Filtros</button>
-                    <button class="btn" style="background:#6a1b9a; padding:5px 10px; font-size: 12px;" onclick="abrirOrganizadorColunas()"><i class="fas fa-columns"></i> Organizar Colunas</button>
-                    <button class="btn" style="background:#455a64; padding:5px 10px; font-size: 12px;" onclick="restaurarOrdemColunas()"><i class="fas fa-undo"></i> Restaurar</button>
+                    <button class="btn" style="background:#6a1b9a; padding:5px 10px; font-size: 12px;" onclick="restaurarOrdemColunas()"><i class="fas fa-columns"></i> Restaurar Colunas</button>
                 </div>
                 <div class="grid-column-hint"><i class="fas fa-arrows-alt"></i> Arraste o cabeçalho para organizar as colunas. A ordem fica salva para este usuário; clique no cabeçalho para ordenar.</div>
                 <div style="overflow-x: auto;">
                     <table id="gridOperacional">
                         <thead>
                             <tr>
-                                <th draggable="true" onclick="if(!event.target.closest('input,button,a')) abrirOrganizadorColunas()"><i class="fas fa-list-ol"></i> Nº</th>
-                                <th draggable="true" onclick="if(!event.target.closest('input,button,a')) abrirOrganizadorColunas()"><i class="fas fa-eye"></i> Ver <br><input type="checkbox" id="checkAll" checked onclick="toggleCheckAll()"></th>
-                                <th draggable="true" onclick="if(!event.target.closest('input,button,a')) abrirOrganizadorColunas()"><i class="fas fa-truck"></i> Placa <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="placa"></th>
-                                <th draggable="true" onclick="if(!event.target.closest('input,button,a')) abrirOrganizadorColunas()"><i class="fas fa-clock"></i> Data/Hora Com. <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="data/hora"></th>
-                                <th draggable="true" onclick="if(!event.target.closest('input,button,a')) abrirOrganizadorColunas()"><i class="fas fa-power-off"></i> Ignição <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="ON/OFF"></th>
-                                <th draggable="true" onclick="if(!event.target.closest('input,button,a')) abrirOrganizadorColunas()"><i class="fas fa-city"></i> Cidade <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="cidade"></th>
-                                <th draggable="true" onclick="if(!event.target.closest('input,button,a')) abrirOrganizadorColunas()"><i class="fas fa-map"></i> UF <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="UF"></th>
-                                <th draggable="true" onclick="if(!event.target.closest('input,button,a')) abrirOrganizadorColunas()"><i class="fas fa-road"></i> Rua / Rodovia <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="rua/rodovia"></th>
-                                <th draggable="true" onclick="if(!event.target.closest('input,button,a')) abrirOrganizadorColunas()"><i class="fas fa-tachometer-alt"></i> Velocidade <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="km/h"></th>
-                                <th draggable="true" onclick="if(!event.target.closest('input,button,a')) abrirOrganizadorColunas()"><i class="fas fa-route"></i> Rota Vinculada <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="rota"></th>
-                                <th draggable="true" onclick="if(!event.target.closest('input,button,a')) abrirOrganizadorColunas()"><i class="fas fa-draw-polygon"></i> Áreas Vinculadas <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="área"></th>
-                                <th draggable="true" onclick="if(!event.target.closest('input,button,a')) abrirOrganizadorColunas()"><i class="fas fa-exclamation-triangle"></i> Alertas e Ações <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="alerta"></th>
+                                <th draggable="true"><i class="fas fa-list-ol"></i> Nº</th>
+                                <th draggable="true"><i class="fas fa-eye"></i> Ver <br><input type="checkbox" id="checkAll" checked onclick="toggleCheckAll()"></th>
+                                <th draggable="true"><i class="fas fa-truck"></i> Placa <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="placa"></th>
+                                <th draggable="true"><i class="fas fa-clock"></i> Data/Hora Com. <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="data/hora"></th>
+                                <th draggable="true"><i class="fas fa-power-off"></i> Ignição <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="ON/OFF"></th>
+                                <th draggable="true"><i class="fas fa-city"></i> Cidade <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="cidade"></th>
+                                <th draggable="true"><i class="fas fa-map"></i> UF <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="UF"></th>
+                                <th draggable="true"><i class="fas fa-road"></i> Rua / Rodovia <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="rua/rodovia"></th>
+                                <th draggable="true"><i class="fas fa-tachometer-alt"></i> Velocidade <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="km/h"></th>
+                                <th draggable="true"><i class="fas fa-route"></i> Rota Vinculada <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="rota"></th>
+                                <th draggable="true"><i class="fas fa-draw-polygon"></i> Áreas Vinculadas <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="área"></th>
+                                <th draggable="true"><i class="fas fa-exclamation-triangle"></i> Alertas e Ações <br><input type="text" onkeyup="filtrarGrid()" class="filtro-coluna" placeholder="alerta"></th>
                             </tr>
                         </thead>
                         <tbody id="tbodyOperacional"></tbody>
@@ -690,18 +685,6 @@
         </div>
     </div>
 
-    <div id="modalOrganizadorColunas" class="modal">
-        <div class="modal-content" style="max-width: 560px;">
-            <div class="modal-header"><i class="fas fa-columns"></i> Organizar colunas do Grid Operacional <span class="close-modal" onclick="fecharOrganizadorColunas()">×</span></div>
-            <p style="font-size:13px;opacity:.8;margin-top:0;">Informe a posição de cada coluna, de 1 a 12. Não repita posições. A alteração será aplicada ao clicar em “Aplicar ordem”.</p>
-            <div id="listaOrganizadorColunas" style="display:flex;flex-direction:column;gap:6px;max-height:420px;overflow:auto;padding:4px;border:1px solid var(--border-color);border-radius:6px;"></div>
-            <div style="display:flex;gap:8px;margin-top:15px;">
-                <button class="btn" style="background:var(--success);flex:1;" onclick="aplicarOrganizadorColunas()"><i class="fas fa-check"></i> Aplicar ordem</button>
-                <button class="btn" style="background:var(--danger);flex:1;" onclick="fecharOrganizadorColunas()">Fechar</button>
-            </div>
-        </div>
-    </div>
-
     <div id="modalPontoRef" class="modal">
         <div class="modal-content" style="max-width: 600px;">
             <div class="modal-header"><span id="tituloModalPontoRef">Cadastrar Ponto de Referência</span> <span class="close-modal" onclick="fecharModalPontoRef()">×</span></div>
@@ -938,8 +921,6 @@
         let veiculosOcultosGlobal = {}; 
         let veiculoFocoGlobal = null; 
         let linhaRotaVeiculoAtivo = null; 
-        let totalVeiculosGridAtual = 0;
-        let totalSemComunicacaoGridAtual = 0;
 
         let routingControl = null;
         let linhaRotaEstatica = null; 
@@ -997,39 +978,6 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95cnF5d29jdG55b3R0d3ZxcmppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMjMyOTQsImV4cCI6MjEwMzc5OTI5NH0.VdqJLc_u1VXFrnOe59Bw7wLWV-GZLnx6_fjzBV_TU8w';
         const USUARIO_GLOBAL = 'global_sistema_frota';
         const PRECO_DIESEL_SP = 6.43;
-
-        // De/para oficial recebido na planilha de direcionamento.
-        // A aplicação só considera veículos cujo ID/placa esteja neste catálogo.
-        const DE_PARA_PLACAS_IDS = [{"placa":"AZP7371","id":"1981591"},{"placa":"BRQ6A02","id":"1785179"},{"placa":"BWD7F82","id":"1788649"},{"placa":"CHK7G58","id":"1661744"},{"placa":"CNR4F81","id":"1661768"},{"placa":"CQU0E16","id":"1748150"},{"placa":"CSR2G51","id":"1661769"},{"placa":"CUM9H45","id":"1663540"},{"placa":"DIS9G17","id":"1748109"},{"placa":"DIZ4D81","id":"1661773"},{"placa":"DTU1C07","id":"1661756"},{"placa":"DZH9D93","id":"1661750"},{"placa":"EGN5G37","id":"1785384"},{"placa":"EKJ1G06","id":"1788652"},{"placa":"EKU3G16","id":"1661746"},{"placa":"ELI3E98","id":"1661722"},{"placa":"ELQ2G08","id":"1661763"},{"placa":"END8B23","id":"1877007"},{"placa":"ENU8G27","id":"1661726"},{"placa":"EOC0E56","id":"1785177"},{"placa":"EPP4H83","id":"1686384"},{"placa":"EVA9B09","id":"1661724"},{"placa":"EZM5D03","id":"1661755"},{"placa":"EZN8J43","id":"1661749"},{"placa":"FAU8J53","id":"1748151"},{"placa":"FBO9D35","id":"1661730"},{"placa":"FCC9D531","id":"1661765"},{"placa":"FCN2G17","id":"1731718"},{"placa":"FCT8E61","id":"1785181"},{"placa":"FEG1I76","id":"1661748"},{"placa":"FFI5J61","id":"1748143"},{"placa":"FFP8A621","id":"1748147"},{"placa":"FHH6A41","id":"1661734"},{"placa":"FHR5F86","id":"1785385"},{"placa":"FKC9368","id":"1661720"},{"placa":"FMY1I251","id":"1663547"},{"placa":"FNV3E87","id":"1731723"},{"placa":"FNW4E761","id":"1686378"},{"placa":"FOP0G371","id":"1661762"},{"placa":"FOQ0C66","id":"1752433"},{"placa":"FPM1H44","id":"1748149"},{"placa":"FPT2H66","id":"1664524"},{"placa":"FPW5G481","id":"1661742"},{"placa":"FQB9B75","id":"1748146"},{"placa":"FQD0J54","id":"1748145"},{"placa":"FQF4B22","id":"1788653"},{"placa":"FQX3A45","id":"1788648"},{"placa":"FQY6G76","id":"1979699"},{"placa":"FRS2A84","id":"1661727"},{"placa":"FST8C85","id":"1663542"},{"placa":"FSU6F84","id":"1785171"},{"placa":"FTI7C96","id":"1785172"},{"placa":"FTU2C851","id":"1752432"},{"placa":"FTV0F971","id":"1662132"},{"placa":"FUJ0C85","id":"1748111"},{"placa":"FUR3C57","id":"1788650"},{"placa":"FUR6I35","id":"1785176"},{"placa":"FVW7H581","id":"1686377"},{"placa":"FVX2E81","id":"1785170"},{"placa":"FVX9D91","id":"1785180"},{"placa":"FVZ9H22","id":"1686382"},{"placa":"FWC0C811","id":"1686383"},{"placa":"FWJ0H02","id":"1752426"},{"placa":"FWP5J84","id":"1752428"},{"placa":"FWV9E71","id":"1661778"},{"placa":"FWY1I22","id":"1663548"},{"placa":"FXC7F31","id":"1752425"},{"placa":"FXP4F42","id":"1785167"},{"placa":"FYU9H63","id":"1752431"},{"placa":"FYW0D11","id":"1979695"},{"placa":"FYW7C17","id":"1731719"},{"placa":"FYZ7B22","id":"1752430"},{"placa":"FZO7A23","id":"1686385"},{"placa":"FZV6H14","id":"1748108"},{"placa":"GAD5E37","id":"1731721"},{"placa":"GAG6G74","id":"1687560"},{"placa":"GAJ0J04","id":"1687570"},{"placa":"GAJ7G53","id":"1752429"},{"placa":"GAU9F06","id":"1663541"},{"placa":"GAV6H31","id":"1752427"},{"placa":"GBI0F27","id":"1687559"},{"placa":"GCC2C15","id":"1687564"},{"placa":"GCL6H511","id":"1748144"},{"placa":"GCU7A86","id":"1838499"},{"placa":"GDD6F181","id":"1661737"},{"placa":"GDI6A95","id":"1663544"},{"placa":"GDN8C57","id":"1731722"},{"placa":"GDQ2E21","id":"1687562"},{"placa":"GDW8A11","id":"1661771"},{"placa":"GDX2J54","id":"1687566"},{"placa":"GDZ3B76","id":"1877008"},{"placa":"GEH6H62","id":"1687569"},{"placa":"GEK7B86","id":"1661747"},{"placa":"GFD5B35","id":"1748142"},{"placa":"GFJ7J73","id":"1788651"},{"placa":"GGE0D67","id":"1752434"},{"placa":"GGK1A63","id":"1785174"},{"placa":"GGU3I26","id":"1748110"},{"placa":"GGY5G94","id":"1687561"},{"placa":"GGY7D44","id":"1661776"},{"placa":"GHB0G77","id":"1686386"},{"placa":"GHF9A47","id":"1661760"},{"placa":"GHJ1B53","id":"1661752"},{"placa":"GHR2E37","id":"1785169"},{"placa":"GHX9E07","id":"1785178"},{"placa":"GJE6J47","id":"1731720"},{"placa":"GJP1H23","id":"1661774"},{"placa":"GJS0I17","id":"1661757"},{"placa":"GJY2E07","id":"1748148"},{"placa":"GKB2E23","id":"1687567"},{"placa":"GKI6E02","id":"1687568"},{"placa":"MLT1000","id":"1686008"},{"placa":"MLT2000","id":"1686009"},{"placa":"MLT3000","id":"1686010"},{"placa":"MLT4000","id":"1686011"},{"placa":"QPN7D451","id":"1979700"},{"placa":"QPW8J171","id":"1979697"},{"placa":"RFQ8A47","id":"2188894"},{"placa":"SUL1J391","id":"2110508"},{"placa":"SWR9D80","id":"1979698"}];
-        const DE_PARA_POR_ID = new Map(DE_PARA_PLACAS_IDS.map(item => [String(item.id).replace(/[^A-Z0-9]/gi, '').toUpperCase(), item]));
-        const DE_PARA_POR_PLACA = new Map(DE_PARA_PLACAS_IDS.map(item => [String(item.placa).replace(/[^A-Z0-9]/gi, '').toUpperCase(), item]));
-
-        function normalizarChaveDePara(valor) {
-            return String(valor ?? '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
-        }
-
-        function encontrarDeParaVeiculo(valor) {
-            const chave = normalizarChaveDePara(valor);
-            return DE_PARA_POR_ID.get(chave) || DE_PARA_POR_PLACA.get(chave) || null;
-        }
-
-        function obterDeParaDoVeiculo(veiculo) {
-            if (!veiculo) return null;
-            return encontrarDeParaVeiculo(veiculo.id_veiculo) ||
-                encontrarDeParaVeiculo(veiculo.id) ||
-                encontrarDeParaVeiculo(veiculo.placa) ||
-                encontrarDeParaVeiculo(veiculo.plate);
-        }
-
-        function veiculoPertenceAoDePara(veiculo) {
-            return Boolean(obterDeParaDoVeiculo(veiculo));
-        }
-
-        function normalizarVeiculoComDePara(veiculo) {
-            const dePara = obterDeParaDoVeiculo(veiculo);
-            if (!dePara) return null;
-            return { ...veiculo, id_veiculo: dePara.placa, id_sistema: dePara.id, placa_planilha: dePara.placa };
-        }
 
         // Dados vindos de APIs, banco ou entrada do usuário nunca devem ser
         // inseridos diretamente em HTML sem escape.
@@ -1310,7 +1258,7 @@
         }
 
         function renderizarTabelaFrota() {
-            const linhas = frotaCadastrada.filter(veiculoPertenceAoDePara).map(f => `
+            const linhas = frotaCadastrada.map(f => `
                 <tr>
                     <td><b>${f.placa}</b></td>
                     <td>${f.descricao}</td>
@@ -1627,12 +1575,7 @@
                 if (!th.dataset.colIndex) th.dataset.colIndex = String(index);
                 th.setAttribute('draggable', 'true');
                 th.classList.add('coluna-ordenavel');
-                th.title = 'Clique para organizar colunas; duplo clique para ordenar veículos';
                 th.addEventListener('click', (e) => {
-                    if (e.target.closest('input, button, a')) return;
-                    abrirOrganizadorColunas();
-                });
-                th.addEventListener('dblclick', (e) => {
                     if (e.target.closest('input, button, a')) return;
                     ordenarGridPorColuna(Array.from(th.parentNode.children).indexOf(th));
                 });
@@ -1709,74 +1652,6 @@
 
         function persistirOrdemColunasLocal() {
             try { localStorage.setItem('ordem_colunas_grid', JSON.stringify(columnOrder)); } catch (e) {}
-        }
-
-        let ordemColunasEdicao = [];
-
-        function obterNomeColuna(th) {
-            const clone = th.cloneNode(true);
-            clone.querySelectorAll('input, button, .seta-ordenacao').forEach(el => el.remove());
-            return (clone.textContent || '').replace(/\s+/g, ' ').trim();
-        }
-
-        function abrirOrganizadorColunas(preservarOrdem = false) {
-            const ths = Array.from(document.querySelectorAll('#gridOperacional thead th'));
-            if (!preservarOrdem) ordemColunasEdicao = ths.map(th => Number(th.dataset.colIndex));
-            const lista = document.getElementById('listaOrganizadorColunas');
-            if (!lista) return;
-            lista.innerHTML = ordemColunasEdicao.map((indice, posicao) => {
-                const thOriginal = document.querySelector(`#gridOperacional thead th[data-col-index="${indice}"]`);
-                const nome = thOriginal ? obterNomeColuna(thOriginal) : `Coluna ${indice + 1}`;
-                return `<div data-coluna-edicao="${indice}" style="display:flex;align-items:center;gap:8px;padding:8px;background:rgba(0,141,218,.08);border:1px solid var(--border-color);border-radius:4px;">
-                    <b style="flex:1;">${escapeHtml(nome)}</b>
-                    <label style="font-size:12px;white-space:nowrap;">Posição
-                        <input class="posicao-coluna" type="number" min="1" max="${ths.length}" value="${posicao + 1}" data-coluna="${indice}" style="width:58px;padding:5px;border:1px solid var(--border-color);border-radius:4px;background:var(--card-bg);color:var(--text-color);">
-                    </label>
-                </div>`;
-            }).join('');
-            document.getElementById('modalOrganizadorColunas').style.display = 'flex';
-        }
-
-        function aplicarOrdemColunasNoGrid() {
-            const total = document.querySelectorAll('#gridOperacional thead th').length;
-            const entradas = Array.from(document.querySelectorAll('#listaOrganizadorColunas .posicao-coluna')).map(input => ({
-                coluna: Number(input.dataset.coluna), posicao: Number(input.value)
-            }));
-            if (entradas.length !== total || entradas.some(item => !Number.isInteger(item.posicao) || item.posicao < 1 || item.posicao > total)) {
-                alert(`Informe posições inteiras entre 1 e ${total}.`);
-                return false;
-            }
-            const posicoes = entradas.map(item => item.posicao);
-            if (new Set(posicoes).size !== total) {
-                alert('Cada coluna precisa ter uma posição diferente.');
-                return false;
-            }
-            ordemColunasEdicao = entradas.sort((a, b) => a.posicao - b.posicao).map(item => item.coluna);
-            columnOrder = ordemColunasEdicao.map(Number);
-            persistirOrdemColunasLocal();
-            const cabecalho = document.querySelector('#gridOperacional thead tr');
-            if (cabecalho) {
-                const thPorIndice = new Map(Array.from(cabecalho.children).map(th => [Number(th.dataset.colIndex), th]));
-                columnOrder.forEach(indice => { const th = thPorIndice.get(indice); if (th) cabecalho.appendChild(th); });
-            }
-            document.querySelectorAll('#tbodyOperacional tr').forEach(linha => {
-                const celulasPorIndice = new Map(Array.from(linha.children).map(td => [Number(td.dataset.colIndex), td]));
-                columnOrder.forEach(indice => { const td = celulasPorIndice.get(indice); if (td) linha.appendChild(td); });
-            });
-            atualizarSetasOrdenacao();
-            filtrarGrid();
-            return true;
-        }
-
-        async function aplicarOrganizadorColunas() {
-            if (!aplicarOrdemColunasNoGrid()) return;
-            await salvarDadosNoBanco();
-            fecharOrganizadorColunas();
-        }
-
-        function fecharOrganizadorColunas() {
-            const modal = document.getElementById('modalOrganizadorColunas');
-            if (modal) modal.style.display = 'none';
         }
 
         async function restaurarOrdemColunas() {
@@ -1963,7 +1838,6 @@
             if (mudou) {
                 salvarDadosNoBanco();
             }
-            return mudou;
         }
 
         async function carregarDadosVeiculos() {
@@ -1985,8 +1859,7 @@
                 const timeoutRef = setTimeout(() => controller.abort(), 30000);
                 const response = await fetch(`${SUPABASE_URL}/rest/v1/posicoes_sascar?select=*&order=data_posicao.desc`, {
                     method: 'GET',
-                    cache: 'no-store',
-                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
                     signal: controller.signal
                 });
                 clearTimeout(timeoutRef);
@@ -1998,23 +1871,18 @@
                 dadosBrutos.sort((a, b) => parseDateToMs(b.data_posicao) - parseDateToMs(a.data_posicao));
 
                 const veiculosMap = new Map();
-                veiculosCacheGlobal.filter(veiculoPertenceAoDePara).forEach(v => {
-                    const normalizado = normalizarVeiculoComDePara(v);
-                    if (normalizado) veiculosMap.set(normalizado.id_veiculo, normalizado);
-                });
+                veiculosCacheGlobal.forEach(v => veiculosMap.set(formatarPlacaPadrao(v.id_veiculo), v));
 
                 const novosVeiculosMap = new Map();
                 dadosBrutos.forEach(v => {
-                    const normalizado = normalizarVeiculoComDePara(v);
-                    // Interseção obrigatória: API/Sistema x planilha.
-                    if (!normalizado) return;
-                    const placa = normalizado.id_veiculo;
+                    const placa = formatarPlacaPadrao(v.id_veiculo);
+                    if (!placa || placa === 'SEM-PLACA') return; 
 
                     if (!novosVeiculosMap.has(placa)) {
                         novosVeiculosMap.set(placa, {
-                            ...normalizado,
-                            velocidade: Number(normalizado.velocidade) ? Math.round(Number(normalizado.velocidade)) : 0,
-                            ignicao: normalizarIgnicao(normalizado.ignicao)
+                            ...v, id_veiculo: placa,
+                            velocidade: Number(v.velocidade) ? Math.round(Number(v.velocidade)) : 0,
+                            ignicao: v.ignicao === 1 || v.ignicao === true || String(v.ignicao) === '1' || String(v.ignicao).toLowerCase() === 'true'
                         });
                     }
                 });
@@ -2051,9 +1919,7 @@
                 }
                 
                 expirarAlertasNaoTratados();
-                // Os módulos de alerta, leadtime e histórico recebem somente o
-                // conjunto normalizado, com a placa oficial no id_veiculo.
-                processarRegrasEAlertas(veiculosCacheGlobal, veiculosCacheGlobal);
+                processarRegrasEAlertas(veiculosCacheGlobal, dadosBrutos);
                 renderizarGridEMapa();
                 atualizarKpisETabelasDash();
                 atualizarDashboards();
@@ -2149,20 +2015,7 @@
             return mudou;
         }
         function obterViagensLeadTimeVisiveis() {
-            const unicasPorPlaca = new Map();
-            leadtimeViagens
-                .filter(v => v.status === 'EM_CURSO' || v.status === 'CONCLUIDA')
-                .forEach(viagem => {
-                    const placa = formatarPlacaPadrao(viagem.placa);
-                    const anterior = unicasPorPlaca.get(placa);
-                    const prioridade = v => (v.status === 'EM_CURSO' ? 2 : 1);
-                    const dataViagem = Number(viagem.ultimaAtualizacao || viagem.inicio || viagem.fim || 0);
-                    const dataAnterior = anterior ? Number(anterior.ultimaAtualizacao || anterior.inicio || anterior.fim || 0) : -1;
-                    if (!anterior || prioridade(viagem) > prioridade(anterior) || (prioridade(viagem) === prioridade(anterior) && dataViagem >= dataAnterior)) {
-                        unicasPorPlaca.set(placa, { ...viagem, placa });
-                    }
-                });
-            return Array.from(unicasPorPlaca.values()).sort((a, b) => Number(b.ultimaAtualizacao || b.inicio || 0) - Number(a.ultimaAtualizacao || a.inicio || 0));
+            return leadtimeViagens.filter(v => v.status === 'EM_CURSO' || v.status === 'CONCLUIDA');
         }
 
         function processarRegrasEAlertas(veiculos, dadosBrutos) {
@@ -2528,48 +2381,20 @@
 
             const mapPlacas = new Map();
 
-            // O grid é baseado no catálogo oficial, não apenas no último retorno
-            // da API. Assim, equipamentos sem nenhuma posição ainda aparecem como
-            // SEM COMUNICAÇÃO e entram na contagem da base.
-            DE_PARA_PLACAS_IDS.forEach(dePara => {
-                mapPlacas.set(dePara.placa, {
-                    fromApi: false,
-                    cadastrado: true,
-                    data: {
-                        id_veiculo: dePara.placa,
-                        id_sistema: dePara.id,
-                        placa_planilha: dePara.placa,
-                        offline: true,
-                        sem_posicao: true,
-                        velocidade: 0,
-                        ignicao: false,
-                        data_posicao: '-',
-                        latitude: NaN,
-                        longitude: NaN
-                    }
-                });
-            });
-
-            veiculosCacheGlobal.filter(veiculoPertenceAoDePara).forEach(v => {
-                const dePara = obterDeParaDoVeiculo(v);
-                if (!dePara) return;
-                const placa = dePara.placa;
-                mapPlacas.set(placa, { fromApi: true, cadastrado: true, data: { ...v, id_veiculo: placa, id_sistema: dePara.id, placa_planilha: dePara.placa, sem_posicao: false } });
+            veiculosCacheGlobal.forEach(v => {
+                const placa = formatarPlacaPadrao(v.id_veiculo);
+                mapPlacas.set(placa, { fromApi: true, cadastrado: false, data: v });
             });
 
             frotaCadastrada.forEach(f => {
-                const dePara = obterDeParaDoVeiculo(f);
-                if (!dePara) return;
-                const placa = dePara.placa;
-                if (mapPlacas.has(placa)) mapPlacas.get(placa).cadastrado = true;
+                if (!mapPlacas.has(f.placa)) {
+                    mapPlacas.set(f.placa, { fromApi: false, cadastrado: true, data: { id_veiculo: f.placa, offline: true, velocidade: 0, ignicao: false, data_posicao: '-', latitude: NaN, longitude: NaN } });
+                } else {
+                    mapPlacas.get(f.placa).cadastrado = true;
+                }
             });
 
             let dadosUnificados = Array.from(mapPlacas.values());
-            totalVeiculosGridAtual = dadosUnificados.length;
-            totalSemComunicacaoGridAtual = dadosUnificados.filter(item => {
-                const v = item.data;
-                return v.sem_posicao === true || v.offline === true || minutosSemComunicacao(v) > 20;
-            }).length;
 
             if (veiculoFocoGlobal) {
                 dadosUnificados = dadosUnificados.filter(item => formatarPlacaPadrao(item.data.id_veiculo) === veiculoFocoGlobal);
@@ -2687,7 +2512,7 @@
                 const tds = [
                     `<td><b>${index + 1}</b></td>`,
                     `<td><input type="checkbox" class="chk-veiculo" value="${placaFormatada}" ${isChecked} onchange="toggleMarker('${placaFormatada}')"></td>`,
-                    `<td><a href="#" onclick="${isOfflineForced ? 'return false;' : `focarVeiculoNoMapa('${placaFormatada}'); return false;`}" style="color:var(--accent-blue); font-weight:bold; ${isOfflineForced ? 'pointer-events: none; opacity:0.6;' : ''}">${placaFormatada}</a><small style="display:block;opacity:.7;">ID: ${escapeHtml(v.id_sistema || obterDeParaDoVeiculo(v)?.id || '-')}</small>${tagCadastro}</td>`,
+                    `<td><a href="#" onclick="${isOfflineForced ? 'return false;' : `focarVeiculoNoMapa('${placaFormatada}'); return false;`}" style="color:var(--accent-blue); font-weight:bold; ${isOfflineForced ? 'pointer-events: none; opacity:0.6;' : ''}">${placaFormatada}</a>${tagCadastro}</td>`,
                     `<td>${dataFormatadaPtBr}</td>`,
                     `<td><span style="color: ${isOfflineForced ? '#757575' : (ignicaoBool ? 'var(--success)' : 'var(--danger)')}; font-weight:bold;">${isOfflineForced ? '-' : (ignicaoBool ? 'LIGADA' : 'DESLIGADA')}</span></td>`,
                     `<td>${v.cidade || '-'}</td>`,
@@ -2707,9 +2532,6 @@
                     if (columnOrder[i] !== undefined && tds[columnOrder[i]]) htmlOrdenado += tds[columnOrder[i]];
                 }
                 tr.innerHTML = htmlOrdenado;
-                Array.from(tr.children).forEach((td, indiceVisual) => {
-                    td.dataset.colIndex = String(columnOrder[indiceVisual]);
-                });
                 tbody.appendChild(tr);
 
                 if (!isOfflineForced && !isNaN(lat) && !isNaN(lon)) {
@@ -2749,11 +2571,11 @@
             const elContador = document.getElementById('contadorAlertasGeral');
             if (elContador) elContador.innerText = `${totalAlertasAtivos} Alertas`;
 
-            // Os KPIs refletem o conjunto efetivamente montado no grid.
-            const totalBase = totalVeiculosGridAtual;
+            const totalBase = Array.isArray(frotaCadastrada) ? frotaCadastrada.length : veiculosCacheGlobal.length;
             let totalAtualizados = 0;
             let totalPerdaSinal = 0;
-            veiculosCacheGlobal.filter(veiculoPertenceAoDePara).forEach(v => {
+            veiculosCacheGlobal.forEach(v => {
+                const msComunicacao = parseDateToMs(v.data_posicao);
                 const minutosSemComunicacaoAtual = minutosSemComunicacao(v);
                 if (minutosSemComunicacaoAtual <= 20) totalAtualizados++;
                 else totalPerdaSinal++;
@@ -2764,8 +2586,6 @@
             if (kpiBase) kpiBase.innerText = totalBase;
             if (kpiAtualizados) kpiAtualizados.innerText = totalAtualizados;
             if (kpiSinal) kpiSinal.innerText = totalPerdaSinal;
-            const kpiSemComunicacao = document.getElementById('kpiSemComunicacao');
-            if (kpiSemComunicacao) kpiSemComunicacao.innerText = totalSemComunicacaoGridAtual;
 
             renderizarPainelCardsAreas();
             atualizarSetasOrdenacao();
@@ -3463,19 +3283,12 @@ function renderizarTabelaAreas() {
 
         function filtrarGrid() {
             const buscaGeral = (document.getElementById('filtroGlobalGrid')?.value || '').trim().toLowerCase();
-            const filtros = Array.from(document.querySelectorAll('#gridOperacional thead th')).map(th => ({
-                coluna: Number(th.dataset.colIndex),
-                valor: (th.querySelector('.filtro-coluna')?.value || '').trim().toLowerCase()
-            })).filter(item => item.valor);
+            const filtros = Array.from(document.querySelectorAll('#gridOperacional thead .filtro-coluna')).map(input => input.value.trim().toLowerCase());
             document.querySelectorAll('#tbodyOperacional tr').forEach(row => {
+                const cells = Array.from(row.children);
                 const textoLinha = (row.innerText || '').toLowerCase();
-                const visivel = (!buscaGeral || textoLinha.includes(buscaGeral)) && filtros.every(filtro => {
-                    const celula = row.querySelector(`td[data-col-index="${filtro.coluna}"]`);
-                    const textoCelula = (celula?.innerText || '').toLowerCase();
-                    const buscaNormalizada = normalizarChaveDePara(filtro.valor);
-                    const textoNormalizado = normalizarChaveDePara(textoCelula);
-                    return textoCelula.includes(filtro.valor) || (buscaNormalizada && textoNormalizado.includes(buscaNormalizada));
-                });
+                const visivel = (!buscaGeral || textoLinha.includes(buscaGeral)) &&
+                    filtros.every((filtro, index) => !filtro || (cells[index]?.innerText || '').toLowerCase().includes(filtro));
                 row.style.display = visivel ? '' : 'none';
             });
         }
@@ -3496,24 +3309,9 @@ function renderizarTabelaAreas() {
                     if (!refreshEmAndamento) carregarDadosVeiculos();
                     else countdown = 5;
                 }
-                // A expiração é baseada no relógio, então não pode depender
-                // somente do próximo refresh da API. Ao expirar, redesenha o
-                // grid imediatamente: o veículo permanece, mas o alerta sai.
-                if (expirarAlertasNaoTratados()) {
-                    renderizarGridEMapa();
-                    atualizarKpisETabelasDash();
-                    atualizarDashboards();
-                }
                 renderizarResumoOperacao();
             }, 1000);
         }
-
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden && localStorage.getItem('usuarioLogado') && !refreshEmAndamento) {
-                countdown = 0;
-                carregarDadosVeiculos();
-            }
-        });
 
         function alterarEixos(valor) {
             const inputEixos = document.getElementById('iamEixos');
